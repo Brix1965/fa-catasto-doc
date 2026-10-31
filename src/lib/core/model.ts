@@ -201,6 +201,8 @@ export interface Planimetria {
   /** file DXF importato (contenuto testuale) */
   dxf?: string;
   poligoni: Poligono[];
+  /** i poligoni sono già stati letti dal DXF: un elenco vuoto vuol dire «eliminati dal tecnico», non «da leggere» */
+  poligoniLetti?: boolean;
   /** superficie dichiarata totale (m²) */
   superficieDichiarata?: number;
   /** più schede (fogli) della stessa planimetria: una riga per scheda nell'indice allegati */
@@ -222,6 +224,8 @@ export interface SchedaGrafica {
   scala: 100 | 200 | 500;
   dxf?: string;
   poligoni: Poligono[];
+  /** come in Planimetria: poligoni già letti dal DXF */
+  poligoniLetti?: boolean;
   ntf?: Uint8Array;
   tiff?: Uint8Array;
 }

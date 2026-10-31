@@ -293,7 +293,8 @@ export function compilaDocumento(p: Pratica): Compilato {
   }
 
   // --- tipo 9: annotazioni (una riga da 68 caratteri per record, sempre almeno una) ed estremi del titolo
-  const note = (p.annotazioni ?? '').trimEnd();
+  // i record sono a lunghezza fissa e separati da CR LF: un a capo scritto nella nota spezzerebbe il record
+  const note = unaRiga(p.annotazioni ?? '').trimEnd();
   const righe = [note.slice(0, 68), ...spezza(note.slice(68), 317).filter(Boolean)];
   const estremi = acc ? (p.estremi ?? []).slice(0, 3) : [];
   righe.forEach((riga, i) => {
@@ -398,10 +399,11 @@ export function compilaDocumento(p: Pratica): Compilato {
         vani_principali_n: m.vaniPrincipaliN, vani_principali_sup: m.vaniPrincipaliSup,
         acc_diretti_bagni_n: m.bagniN, acc_diretti_bagni_sup: m.bagniSup,
         acc_diretti_altri_n: m.accessoriDirettiN, acc_diretti_altri_sup: m.accessoriDirettiSup,
-        sup_lorda_principali_accessori: m.superficieLorda,
-        acc_indiretti_n: m.accessoriIndirettiN, acc_indiretti_sup: m.accessoriIndirettiSup,
-        dip_balconi_sup: m.balconiSup, dip_terrazzo_coperto_sup: m.terrazziCopertiSup,
-        pert_scoperte_sup: m.pertinenzeScoperteSup,
+        // superfici in mq interi: un valore con decimali (inserito a mano) farebbe fallire la compilazione
+        sup_lorda_principali_accessori: Math.round(m.superficieLorda || 0),
+        acc_indiretti_n: m.accessoriIndirettiN, acc_indiretti_sup: Math.round(m.accessoriIndirettiSup || 0),
+        dip_balconi_sup: Math.round(m.balconiSup || 0), dip_terrazzo_coperto_sup: Math.round(m.terrazziCopertiSup || 0),
+        pert_scoperte_sup: Math.round(m.pertinenzeScoperteSup || 0),
         pert_altra_descrizione: m.pertAltraDescrizione ?? '', pert_altra_sup: m.pertAltraSup ?? 0, pert_sup_lorda: m.pertSupLorda ?? 0,
         posti_auto: m.postiAuto ?? 0,
         altezza_media_cm: m.altezzaMediaCm,
@@ -430,7 +432,7 @@ export function compilaDocumento(p: Pratica): Compilato {
     recs.push(rI);
 
     if (m.osservazioni?.trim()) {
-      spezza(m.osservazioni.trim(), 300).slice(0, 2).forEach((riga, i) => {
+      spezza(unaRiga(m.osservazioni).trim(), 300).slice(0, 2).forEach((riga, i) => {
         const rL = new FixedRecord('L').key(prog, 'U', n2, 2 + i, md0);
         rL.assign({ osservazioni: riga, codice_comune: comune });
         recs.push(rL);
@@ -483,6 +485,11 @@ export function compilaDocumento(p: Pratica): Compilato {
     epv: p.elaboratoPlanimetrico ? { nome: nomeFile(`EP${L}`, prog, 'DAT'), dati: compilaElencoSubalterni(p) } : undefined,
     records: recs,
   };
+}
+
+/** Testo su una sola riga: a capo e tabulazioni diventano uno spazio (non possono stare in un record). */
+export function unaRiga(t: string): string {
+  return t.replace(/[\r\n\t]+/g, ' ');
 }
 
 /** Scrive tutti i campi dati (18-334) di un record da una mappa id → valore; i campi assenti vanno a zero/spazi. */
@@ -571,6 +578,12 @@ export function compilaAtt(p: Pratica): Uint8Array {
   return concat(parts);
 }
 
+/** Ambienti scritti nei dati metrici (NMV) e stampati nella pagina dei dati metrici: senza i G per i gruppi A e B. */
+export function ambientiDatiMetrici(u: UnitaImmobiliare): UnitaImmobiliare['ambienti'] {
+  const cat = u.classamento?.categoria ?? '';
+  return /^[AB]/.test(cat) ? u.ambienti.filter((a) => a.tipo !== 'G') : u.ambienti;
+}
+
 /**
  * NMVnnn.DAT — dati metrici: per ogni u.i.u. due record da 313 byte (il secondo di continuazione),
  * con 21 ambienti da 14 byte: tipo (1) + superficie (5) + altezza min (4) + altezza max (4).
@@ -584,8 +597,7 @@ export function compilaDatiMetrici(p: Pratica): Uint8Array {
     const key = `${pad(p.progressivo, 4)}${pad(md, 3)}C${pad(i + 1, 3)}`;
     // i poligoni G ("non rilevanti ai fini del calcolo della superficie catastale", vademecum Docfa) restano nella
     // planimetria (NTF) ma nei dati metrici dei gruppi R e P Docfa li rifiuta (M0710, verificato su un'A/3): si omettono
-    const cat = u.classamento?.categoria ?? '';
-    const amb = /^[AB]/.test(cat) ? u.ambienti.filter((a) => a.tipo !== 'G') : u.ambienti;
+    const amb = ambientiDatiMetrici(u);
     for (let r = 0; r < 2; r++) {
       let s = key + pad(r, 5) + (r === 0 && u.spessoreMuri ? String(u.spessoreMuri) : '0') + (r === 0 ? (u.tipologiaMetrica ?? tipologiaMetrica(u.classamento?.categoria ?? '')) : '  ');
       for (let k = 0; k < 21; k++) {

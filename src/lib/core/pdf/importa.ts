@@ -1,5 +1,5 @@
 /**
- * Importazione di un documento Docfa esistente (NCVnnn.PDF).
+ * Importazione di un documento Docfa esistente (NCAnnn.PDF o NCVnnn.PDF).
  *
  * Il PDF prodotto da Docfa (PDF 1.4, senza object stream) nasconde i file dati nelle annotazioni
  * di testo: NCVnnn.DAT, NCVnnn.ATT, NMVnnn.DAT, EPVnnn.DAT sull'ultima pagina dei modelli e, su ogni
@@ -583,12 +583,12 @@ export async function importaPdfDocfa(bytes: Uint8Array): Promise<ImportazioneDo
   const contenuto = await estraiContenutoPdf(bytes);
   const avvisi = [...contenuto.avvisi];
   const trovaFile = (re: RegExp) => contenuto.file.find((f) => re.test(f.nome));
-  const ncv = trovaFile(/^NCV\d{3}\.DAT$/i);
-  if (!ncv) throw new Error('Nel PDF non c\'è il file NCVnnn.DAT: non è un documento Docfa');
-  const nmv = trovaFile(/^NMV\d{3}\.DAT$/i);
-  const att = trovaFile(/^NCV\d{3}\.ATT$/i);
-  const epv = trovaFile(/^EPV\d{3}\.DAT$/i);
-  if (!att) avvisi.push('Indice allegati (NCVnnn.ATT) assente: formato e scala delle planimetrie non noti');
+  const ncv = trovaFile(/^NC[AV]\d{3}\.DAT$/i);   // NCA = accatastamento, NCV = variazione
+  if (!ncv) throw new Error('Nel PDF non c\'è il file NCAnnn.DAT o NCVnnn.DAT: non è un documento Docfa');
+  const nmv = trovaFile(/^NM[AV]\d{3}\.DAT$/i);
+  const att = trovaFile(/^NC[AV]\d{3}\.ATT$/i);
+  const epv = trovaFile(/^EP[AV]\d{3}\.DAT$/i);
+  if (!att) avvisi.push('Indice allegati (NCxnnn.ATT) assente: formato e scala delle planimetrie non noti');
   const decompilato = decompilaDocumento(ncv.dati, nmv?.dati, att?.dati, epv?.dati);
   const pratica = decompilato.pratica;
   if (decompilato.nonInterpretati.length) avvisi.push(`Record non interpretati: ${[...new Set(decompilato.nonInterpretati)].join(', ')}`);

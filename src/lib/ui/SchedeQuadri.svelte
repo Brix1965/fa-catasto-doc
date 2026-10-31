@@ -26,6 +26,8 @@
     if (dopo) corrente = dopo.id;
     else onfine();
   }
+  /** Esc: chiude il modello (come «Chiudi»), senza annullare lo schermo intero. */
+  export function chiudi(): void { onannulla(); }
   const mancanti = $derived(quadri.filter((q) => q.obbligatorio && !q.completo).length);
 </script>
 

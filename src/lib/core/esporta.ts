@@ -10,6 +10,7 @@ import { componiElaborato, componiPlanimetria } from './raster/planimetria';
 import { renderDocumento, type ImmagineDocumento, type OpzioniDocumento } from './pdf/documento';
 import { immagineDaTiff } from './pdf/tiff';
 import { ALBI_TECNICO } from './regole-docfa';
+import { nomeProvincia as nomeProvinciaTabella } from './pdf/tabelle';
 import { letteraDocumento } from './compile';
 
 export interface RisultatoEsportazione {
@@ -24,9 +25,9 @@ export interface RisultatoEsportazione {
 /** Albo come compare nel cartiglio della planimetria (plurale), per codice Docfa. */
 export const ALBI: Record<string, string> = Object.fromEntries(ALBI_TECNICO.map((a) => [a.codice, a.dipendentePubblico ? a.descrizione : a.descrizione]));
 
+/** Nome della provincia per il cartiglio, dalla tabella completa e scritto come nell'anteprima (es. FI → Firenze). */
 function nomeProvincia(sigla: string): string {
-  const nomi: Record<string, string> = { FI: 'Firenze', BO: 'Bologna', PO: 'Prato', PT: 'Pistoia', SI: 'Siena', AR: 'Arezzo', LU: 'Lucca', PI: 'Pisa', LI: 'Livorno', GR: 'Grosseto', MS: 'Massa-Carrara', RM: 'Roma', MI: 'Milano', TO: 'Torino', NA: 'Napoli' };
-  return nomi[sigla.toUpperCase()] ?? sigla.toUpperCase();
+  return capitalizza(nomeProvinciaTabella(sigla));
 }
 
 /** Esporta la pratica nel PDF/A finale. */
@@ -77,7 +78,7 @@ export async function esportaPratica(p: Pratica, opzioni: OpzioniDocumento & { d
     if (!pl) continue;
     const descr = descriviUiu(u.identificativo.foglio, u.identificativo.numero, u.identificativo.subalterno);
     // la scheda 1 è descritta dai campi della planimetria, le successive da altreSchede
-    const schede: SchedaGrafica[] = [{ formato: pl.formato, scala: pl.scala, dxf: pl.dxf, tiff: pl.tiff, ntf: pl.ntf, poligoni: pl.poligoni }, ...(pl.altreSchede ?? [])];
+    const schede: SchedaGrafica[] = [{ formato: pl.formato, scala: pl.scala, dxf: pl.dxf, tiff: pl.tiff, ntf: pl.ntf, poligoni: pl.poligoni, poligoniLetti: pl.poligoniLetti }, ...(pl.altreSchede ?? [])];
     for (let k = 0; k < schede.length; k++) {
       const sc = schede[k];
       const nome = nomeImmagine(pl.progressivo, k + 1);
@@ -113,18 +114,20 @@ export async function esportaPratica(p: Pratica, opzioni: OpzioniDocumento & { d
           scala: sc.scala,
         },
       });
-      const poligoni: Poligono[] = sc.poligoni.length ? sc.poligoni : composta.poligoni;
+      // poligoni già letti (anche se il tecnico li ha eliminati tutti) → si usano quelli; altrimenti quelli del DXF
+      const poligoni: Poligono[] = sc.poligoni.length || sc.poligoniLetti ? sc.poligoni : composta.poligoni;
       if (!poligoni.length && k === 0 && !(pl.altreSchede ?? []).some((x) => x.poligoni.length)) avvisi.push(`Unità ${descr}: nessun poligono sul layer DOCFA_POLIGONI`);
       const ntf = poligoni.length ? generaNtf(pl.progressivo, k + 1, composta.foglio, poligoni) : undefined;
       // aggiorna la pratica con i poligoni letti dal DXF, così i record (ATT) sanno che ci sono
       if (!sc.poligoni.length && poligoni.length) {
-        if (k === 0) pl.poligoni = poligoni;
-        else pl.altreSchede![k - 1].poligoni = poligoni;
+        if (k === 0) { pl.poligoni = poligoni; pl.poligoniLetti = true; }
+        else { pl.altreSchede![k - 1].poligoni = poligoni; pl.altreSchede![k - 1].poligoniLetti = true; }
       }
       immagini.push({ nome, g4: composta.g4, width: composta.width, height: composta.height, ntf, nomeNtf: ntf ? nomeNtf : undefined, formato: composta.foglio.formato });
     }
   }
-  // i poligoni letti dai DXF possono cambiare l'indice allegati: ricompila
+  // i poligoni letti dai DXF possono cambiare l'indice allegati e i dati metrici: si riallinea e si ricompila
+  for (const u of p.unita) sincronizzaDaPoligoni(u);
   const finale = compilaDocumento(p);
   const pdf = await renderDocumento(p, finale, immagini, { ufficioProvinciale: provincia, ...opzioni });
   return { pdf, nomeFile: `NC${letteraDocumento(p)}${String(p.progressivo).padStart(3, '0')}.PDF`, compilato: finale, immagini, avvisi };

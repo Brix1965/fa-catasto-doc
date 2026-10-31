@@ -103,7 +103,8 @@
       if (!letto.poligoni.length) avvisiDxf.push('Nessun poligono sul layer DOCFA_POLIGONI: servono per il calcolo della superficie');
       if (!letto.entita.length) avvisiDxf.push('Il DXF non contiene oggetti disegnabili');
       // alla riapertura si tengono i poligoni salvati (tipo cambiato, poligoni eliminati); si rileggono solo con un DXF nuovo
-      if (nuovo || !p.poligoni.length) p.poligoni = letto.poligoni;
+      if (nuovo || (!p.poligoni.length && !p.poligoniLetti)) p.poligoni = letto.poligoni;
+      p.poligoniLetti = true;
       return letto;
     } catch (e) {
       errore = `DXF non leggibile: ${e instanceof Error ? e.message : String(e)}`;

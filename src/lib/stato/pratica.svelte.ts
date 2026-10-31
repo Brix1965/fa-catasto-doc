@@ -4,7 +4,7 @@
  * contiene <id>.catasto.json e, dopo l'esportazione, il PDF NCVnnn.PDF.
  */
 import type { Pratica } from '$lib/core/model';
-import { elencoFile, leggiFile, scriviFile, unisci, creaCartella, eliminaFile, cartellaDi } from '$lib/piattaforma';
+import { elencoFile, leggiFile, scriviFile, unisci, creaCartella, eliminaFile, cartellaDi, nomeFile } from '$lib/piattaforma';
 import { deserializzaPratica, serializzaPratica, nuovoId, ESTENSIONE_PRATICA, type FilePratica, type MetaPratica } from './pratica-file';
 
 export interface VocePratica {
@@ -93,14 +93,18 @@ class StatoPratica {
     if (!this.file || !this.percorso) return;
     if (this.timer) { clearTimeout(this.timer); this.timer = null; }
     this.salvataggio = 'salvataggio';
+    const precedente = this.ultimoSerializzato;
     try {
       this.file.meta.modificata = new Date().toISOString();
       const s = serializzaPratica($state.snapshot(this.file) as FilePratica);
-      await scriviFile(this.percorso, s);
+      // va aggiornato PRIMA della scrittura: il cambio di "modificata" riattiva l'effetto dell'autosalvataggio,
+      // che altrimenti vedrebbe una differenza e programmerebbe un altro salvataggio, all'infinito
       this.ultimoSerializzato = s;
+      await scriviFile(this.percorso, s);
       this.salvataggio = 'salvato';
       this.errore = null;
     } catch (e) {
+      this.ultimoSerializzato = precedente;
       this.salvataggio = 'errore';
       this.errore = e instanceof Error ? e.message : String(e);
     }
@@ -121,7 +125,16 @@ class StatoPratica {
   async elimina(voce: VocePratica, cartellaPratiche: string): Promise<void> {
     if (this.percorso === voce.percorso) this.chiudi();
     const stessa = voce.cartella.replace(/[\\/]+$/, '') === cartellaPratiche.replace(/[\\/]+$/, '');
-    await eliminaFile(stessa ? voce.percorso : voce.cartella);
+    // si elimina tutta la cartella solo se è quella creata dal programma per questa pratica (nome = id) e non
+    // contiene altre pratiche; altrimenti (cartella del tecnico con altri file) si toglie solo il file della pratica
+    let propria = !stessa && nomeFile(voce.cartella.replace(/[\\/]+$/, '')) === voce.meta.id;
+    if (propria) {
+      try {
+        const altre = (await elencoFile(voce.cartella)).filter((v) => !v.cartella && v.nome.endsWith(ESTENSIONE_PRATICA) && v.percorso !== voce.percorso);
+        if (altre.length) propria = false;
+      } catch { propria = false; }
+    }
+    await eliminaFile(propria ? voce.cartella : voce.percorso);
   }
 
   /** Serializzazione corrente della pratica (per l'autosalvataggio). */

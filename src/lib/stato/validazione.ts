@@ -10,6 +10,7 @@ import {
   ALBI_TECNICO, pianoValido, civicoValido, CARATTERI_INDIRIZZO, normalizzaIndirizzo, type CodiceVariazione,
 } from '$lib/core/regole-docfa';
 import { TITOLI, DIAGNOSTICI } from '$lib/core/dati/docfa-tabelle.generated';
+import { aCapo } from '$lib/core/pdf/formato';
 
 /** Schermi della pratica, nell'ordine di Docfa. */
 export type SezionePratica =
@@ -394,6 +395,8 @@ export function controllaPratica(p: Pratica): EsitoControlli {
   const note = p.annotazioni ?? '';
   // l'help indica 380 caratteri; il record ne contiene 385 (68 + 317) e Docfa li accetta (NCV081)
   if (note.length > 385) err('quadroD', `Le note superano i 385 caratteri (${note.length})`);
+  // nel modello D stampato le note hanno 4 righe da 100 caratteri: oltre non si vedono (restano nel file dati)
+  if (aCapo(note.replace(/[\r\n\t]+/g, ' ').trim(), 100).length > 4) avv('quadroD', 'Le note occupano più di 4 righe: nel modello D stampato le ultime parole non compaiono. Accorciare il testo');
   if (acc) {
     const bc = p.bcnc ?? [];
     if (bc.length > 20) err('quadroD', 'Al massimo 20 beni comuni non censibili');

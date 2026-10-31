@@ -55,6 +55,8 @@
   const INFISSI: [string, string][] = [['legno', 'Legno'], ['tamburato', 'Tamburato'], ['metallo', 'Metallo'], ['altro', 'Altro']];
   const numero = (v: string): number | undefined => (v.trim() === '' ? undefined : Math.max(0, Math.trunc(Number(v))));
   const intero = (v: string): number => Math.max(0, Math.trunc(Number(v) || 0));
+  /** superfici in mq interi (il record non ammette decimali): arrotonda, accetta anche la virgola */
+  const mq = (v: string): number => Math.max(0, Math.round(Number(v.replace(',', '.')) || 0));
 
   function abilitaGruppoC(): void {
     m.gruppoC = { principali: [], accessoriDiretti: [], accessoriIndiretti: [], balconiSup: 0, coperteSup: 0, pertinenzeSup: 0, postiAuto: 0, accessoCarrabile: false, altezzaMediaCm: 0, supAltezzaInferiore230: 0, postoAutoScoperto: false };
@@ -135,7 +137,7 @@
           <Campo etichetta="Bagni sup. utile (mq)"><input type="number" class="campo" min="0" value={m.bagniSup} oninput={(e) => (m.bagniSup = intero(e.currentTarget.value))} /></Campo>
           <Campo etichetta="Altri accessori n."><input type="number" class="campo" min="0" value={m.accessoriDirettiN} oninput={(e) => (m.accessoriDirettiN = intero(e.currentTarget.value))} /></Campo>
           <Campo etichetta="Altri sup. utile (mq)"><input type="number" class="campo" min="0" value={m.accessoriDirettiSup} oninput={(e) => (m.accessoriDirettiSup = intero(e.currentTarget.value))} /></Campo>
-          <Campo etichetta="Superficie lorda (mq)" aiuto={auto ? 'dai poligoni' : 'dai poligoni (manca la planimetria)'}><input type="number" class="campo" min="0" bind:value={m.superficieLorda} disabled={auto} /></Campo>
+          <Campo etichetta="Superficie lorda (mq)" aiuto={auto ? 'dai poligoni' : 'dai poligoni (manca la planimetria)'}><input type="number" class="campo" min="0" value={m.superficieLorda} onchange={(e) => (m.superficieLorda = mq(e.currentTarget.value))} disabled={auto} /></Campo>
           <Campo etichetta="di cui mq con h < 150 cm" aiuto="non entra nella consistenza"><input type="number" class="campo" value={sottoMetro50} disabled /></Campo>
         </div>
       </div>
@@ -144,13 +146,13 @@
           <h3 class="mb-2 text-xs font-semibold text-fg-muted">3) Accessori indiretti</h3>
           <div class="grid grid-cols-2 gap-4">
             <Campo etichetta="Numero" aiuto="se presenti"><input type="number" class="campo" min="0" value={m.accessoriIndirettiN} oninput={(e) => (m.accessoriIndirettiN = intero(e.currentTarget.value))} /></Campo>
-            <Campo etichetta="Superficie (mq)" aiuto="dai poligoni"><input type="number" class="campo" min="0" bind:value={m.accessoriIndirettiSup} disabled={auto} /></Campo>
+            <Campo etichetta="Superficie (mq)" aiuto="dai poligoni"><input type="number" class="campo" min="0" value={m.accessoriIndirettiSup} onchange={(e) => (m.accessoriIndirettiSup = mq(e.currentTarget.value))} disabled={auto} /></Campo>
           </div>
         </div>
         <div>
           <h3 class="mb-2 text-xs font-semibold text-fg-muted">4) Dipendenze esclusive</h3>
           <div class="grid grid-cols-2 gap-4">
-            <Campo etichetta="Balconi e terrazzi (mq)" aiuto="dai poligoni"><input type="number" class="campo" min="0" bind:value={m.balconiSup} disabled={auto} /></Campo>
+            <Campo etichetta="Balconi e terrazzi (mq)" aiuto="dai poligoni"><input type="number" class="campo" min="0" value={m.balconiSup} onchange={(e) => (m.balconiSup = mq(e.currentTarget.value))} disabled={auto} /></Campo>
             <Campo etichetta="Terrazzi coperti (mq)"><input type="number" class="campo" min="0" value={m.terrazziCopertiSup} oninput={(e) => (m.terrazziCopertiSup = intero(e.currentTarget.value))} /></Campo>
           </div>
         </div>
@@ -171,7 +173,7 @@
         </div>
       {:else}
         <div class="grid gap-4 sm:grid-cols-4">
-          <Campo etichetta="Superficie totale (mq)" aiuto="dai poligoni"><input type="number" class="campo" min="0" bind:value={m.pertinenzeScoperteSup} disabled={auto} /></Campo>
+          <Campo etichetta="Superficie totale (mq)" aiuto="dai poligoni"><input type="number" class="campo" min="0" value={m.pertinenzeScoperteSup} onchange={(e) => (m.pertinenzeScoperteSup = mq(e.currentTarget.value))} disabled={auto} /></Campo>
           <Campo etichetta="Altra pertinenza (piscina, tennis…)"><input type="text" class="campo uppercase" maxlength="15" value={m.pertAltraDescrizione ?? ''} oninput={(e) => (m.pertAltraDescrizione = e.currentTarget.value.toUpperCase() || undefined)} /></Campo>
           <Campo etichetta="Sua superficie (mq)"><input type="number" class="campo" min="0" value={m.pertAltraSup ?? ''} oninput={(e) => (m.pertAltraSup = numero(e.currentTarget.value))} /></Campo>
           <Campo etichetta="Posti auto n."><input type="number" class="campo" min="0" value={m.postiAuto ?? ''} oninput={(e) => (m.postiAuto = numero(e.currentTarget.value))} /></Campo>

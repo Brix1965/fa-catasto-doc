@@ -155,8 +155,8 @@ Su macOS al posto di Ctrl si può usare Cmd.
 
 **Campi obbligatori** in fucsia con l'asterisco; un bordo ambra indica un valore non valido.
 
-> **Attenzione nei modelli 1N/2N**: per chiudere un modello usa **«OK»** o **«Chiudi»**. Esc annulla
-> le modifiche dell'intero schermo Modelli.
+Dentro un modello 1N/2N aperto, Esc chiude il modello (come «Chiudi») senza annullare il resto dello schermo;
+nei campi con i suggerimenti (es. la ricerca della strada) Esc chiude solo l'elenco dei suggerimenti.
 
 Il titolo della pratica si modifica cliccandoci sopra.
 
@@ -235,7 +235,7 @@ Il PDF si firma digitalmente e si invia con Sister, come quello di Docfa.
 
 ## 6. Importare un documento fatto con Docfa
 
-Dalla pagina iniziale premi **«Importa da PDF Docfa»** e scegli il PDF prodotto da Docfa. Il programma mostra
+Dalla pagina iniziale premi **«Importa da PDF Docfa»** e scegli il PDF prodotto da Docfa (accatastamento NCA o variazione NCV). Il programma mostra
 un riepilogo (comune, tecnico, dichiarante, unità, planimetrie) ed eventuali avvisi; premi
 **«Crea pratica»**. Le planimetrie importate vengono riusate tali e quali nel PDF.
 

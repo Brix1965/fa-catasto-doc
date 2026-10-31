@@ -46,7 +46,7 @@
     if (e.key === 'ArrowDown') { evidenziato = Math.min(risultati.length - 1, evidenziato + 1); e.preventDefault(); }
     else if (e.key === 'ArrowUp') { evidenziato = Math.max(0, evidenziato - 1); e.preventDefault(); }
     else if (e.key === 'Enter') { if (risultati[evidenziato]) { conferma(risultati[evidenziato]); e.preventDefault(); } }
-    else if (e.key === 'Escape') { aperto = false; }
+    else if (e.key === 'Escape') { aperto = false; e.preventDefault(); e.stopPropagation(); }   // non deve arrivare all'Annulla dello schermo
   }
 </script>
 

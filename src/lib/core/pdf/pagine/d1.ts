@@ -238,7 +238,8 @@ export function pagineD1(pratica: Pratica, compilato: Compilato, cornice: DatiCo
   const righeCausali = aCapo(testoCausali, 110);
   stampa(85.039, 230, ' ' + (righeCausali[0] ?? ''));
   stampa(85.039, 225, ' ' + (righeCausali[1] ?? ''));
-  stampa(269.291, 220, dataEstesa(pratica.dataVariazione.gg, pratica.dataVariazione.mm, pratica.dataVariazione.aaaa));
+  // VTO/VRP e tipologie 8/9: data non prevista, niente «00/00/0000»
+  if (pratica.dataVariazione?.aaaa) stampa(269.291, 220, dataEstesa(pratica.dataVariazione.gg, pratica.dataVariazione.mm, pratica.dataVariazione.aaaa));
   stampa(235.276, 215, v1('n_mod_1n_i'));
   stampa(396.85, 215, v1('n_mod_2n_i'));
   stampa(544.252, 215, v1('n_planimetrie'));
@@ -394,7 +395,7 @@ export function pagineD1(pratica: Pratica, compilato: Compilato, cornice: DatiCo
   riquadro(topD - 5, topD - 30);
   B(29.764, topD - 4, ' Quadro D | ');
   B(85.039, topD - 4, 'Note Relative al Documento e Relazione Tecnica');
-  aCapo((pratica.annotazioni ?? '').toLowerCase().trim(), 100).slice(0, 4).forEach((riga, i) => stampa(34.016, topD - 9 - 5 * i, riga));
+  aCapo((pratica.annotazioni ?? '').replace(/[\r\n\t]+/g, ' ').toLowerCase().trim(), 100).slice(0, 4).forEach((riga, i) => stampa(34.016, topD - 9 - 5 * i, riga));
   const t2 = topD - 33;
   riquadro(t2, t2 - 45);
   R(45.354, t2 - 4, "- Dichiaro di non essere nella condizione di sospensione o revoca dell'esercizio della professione.", 8);

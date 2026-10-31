@@ -305,8 +305,14 @@ function interpreta(e: EntitaGrezza, t: Trasformazione | null, ctx: Contesto, ou
       out.push({ ...base, tipo: 'cerchio', centro: P(10, 20), raggio: num(e, 40) * k });
       break;
     case 'ARC': {
-      // con scala negativa (specchiatura) l'arco andrebbe invertito: caso raro, approssimato
-      out.push({ ...base, tipo: 'arco', centro: P(10, 20), raggio: num(e, 40) * k, inizio: rotazione(num(e, 50, 0)), fine: rotazione(num(e, 51, 360)) });
+      // blocco specchiato (scala X o Y negativa, es. porte specchiate): gli angoli si riflettono e, se la
+      // specchiatura è su un solo asse, l'arco cambia verso (inizio e fine si scambiano)
+      let a0 = num(e, 50, 0), a1 = num(e, 51, 360);
+      if (t && (t.sx < 0 || t.sy < 0)) {
+        const m = (a: number) => (t.sx < 0 && t.sy < 0 ? a + 180 : t.sx < 0 ? 180 - a : -a);
+        [a0, a1] = t.sx * t.sy < 0 ? [m(a1), m(a0)] : [m(a0), m(a1)];
+      }
+      out.push({ ...base, tipo: 'arco', centro: P(10, 20), raggio: num(e, 40) * k, inizio: rotazione(a0), fine: rotazione(a1) });
       break;
     }
     case 'TEXT': {

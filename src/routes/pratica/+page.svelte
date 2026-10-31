@@ -45,6 +45,8 @@
   /** rami aperti dell'albero (quadro U ed elaborati grafici mostrano le unità) */
   let aperti = $state<Partial<Record<SezionePratica, boolean>>>({ unita: true });
   let okInterno = $state<(() => void) | null>(null);
+  /** Esc dentro un modello 1N/2N aperto: chiude il modello invece di annullare tutto lo schermo */
+  let escInterno = $state<(() => void) | null>(null);
   /** copia della pratica all'ingresso nello schermo, per Annulla */
   let istantanea: Pratica | null = null;
 
@@ -143,9 +145,11 @@
     else if ((e.ctrlKey || e.metaKey) && k === 's') { e.preventDefault(); void statoPratica.salva(); }
     else if (e.key === 'F1') { e.preventDefault(); aiuto = !aiuto; }
     else if (e.key === 'Escape') {
+      if (e.defaultPrevented) return;   // già gestito da un campo (es. chiusura dei suggerimenti)
       if (aiuto) { aiuto = false; return; }
       if (avvisoOk) { avvisoOk = null; return; }
       if (document.querySelector('[role="dialog"]')) return;
+      if (escInterno) { e.preventDefault(); escInterno(); return; }
       e.preventDefault(); annulla();
     }
   }
@@ -271,7 +275,7 @@
             {:else if sezione === 'elaborati'}
               <ElaboratiGrafici bind:pratica={statoPratica.file.pratica} bind:selezionata={unitaSelezionata} />
             {:else if sezione === 'modelli'}
-              <Modelli1N2N bind:pratica={statoPratica.file.pratica} registraOk={(h) => (okInterno = h)} />
+              <Modelli1N2N bind:pratica={statoPratica.file.pratica} registraOk={(h) => (okInterno = h)} registraEsc={(h) => (escInterno = h)} />
             {:else if sezione === 'classamento'}
               <Classamento bind:pratica={statoPratica.file.pratica} vai={(s, i) => entra(s, i)} />
             {:else if sezione === 'elenco'}

@@ -9,6 +9,7 @@
   import { motiviElaboratoObbligatorio } from '$lib/stato/validazione';
   import { importaPdfDocfa } from '$lib/core/pdf/importa';
   import { scegliFile, leggiFile, conferma } from '$lib/piattaforma';
+  import { impostazioni } from '$lib/stato/impostazioni.svelte';
   import Campo from '../Campo.svelte';
   import Sezione from '../Sezione.svelte';
   import Icona from '../Icona.svelte';
@@ -23,7 +24,7 @@
   function crea(): void {
     const u = pratica.unita.find((x) => x.operazione !== 'S');
     const usati = pratica.unita.map((x) => x.planimetria?.progressivo ?? 0);
-    pratica.elaboratoPlanimetrico = { identificativo: { sezione: u?.identificativo.sezione, foglio: u?.identificativo.foglio ?? '', numero: u?.identificativo.numero ?? '' }, progressivoImmagine: Math.max(0, ...usati) + 1, subalterni: [] };
+    pratica.elaboratoPlanimetrico = { identificativo: { sezione: u?.identificativo.sezione, foglio: u?.identificativo.foglio ?? '', numero: u?.identificativo.numero ?? '' }, progressivoImmagine: impostazioni.nuovaImmagine(usati.filter((x) => x > 0)), subalterni: [] };   // numerazione unica, come da Elaborati grafici
   }
   /** Aggiorna: riscrive le righe delle unità del documento, lascia quelle inserite a mano. */
   function aggiorna(): void {

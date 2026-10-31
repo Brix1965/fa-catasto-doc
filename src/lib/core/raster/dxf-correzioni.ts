@@ -76,7 +76,9 @@ function puntiEntita(e: Entita): Punto2[] {
   }
 }
 
-function trasforma(e: Entita, f: (p: Punto2) => Punto2, k: number): Entita {
+function trasforma(e0: Entita, f: (p: Punto2) => Punto2, k: number): Entita {
+  // anche lo spessore (39/43) è in unità del disegno: va convertito con le coordinate (cm/mm → m)
+  const e = { ...e0, spessore: e0.spessore * k };
   switch (e.tipo) {
     case 'linea': return { ...e, p1: f(e.p1), p2: f(e.p2) };
     case 'polilinea': return { ...e, punti: e.punti.map(f) };

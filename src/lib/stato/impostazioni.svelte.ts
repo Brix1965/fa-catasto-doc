@@ -286,6 +286,8 @@ class StatoImpostazioni {
       if (mancanti.length) avvisi.push(`${prov}: mancano ${mancanti.join(', ')}`);
     }
     this.strade = strade; this.tariffe = tariffe; this.zone = zone; this.classamento = classamento;
+    // rilettura completa: ricostruisce anche i prospetti del classamento automatico (prima restavano quelli vecchi fino al riavvio)
+    await this.caricaArchivi();
     await this.salva();
     return { righe, avvisi };
   }
@@ -308,6 +310,7 @@ class StatoImpostazioni {
     this.tariffe = senza(this.tariffe);
     this.zone = senza(this.zone);
     this.classamento = senza(this.classamento);
+    this.prospetti = senza(this.prospetti);
     await this.salva();
   }
 

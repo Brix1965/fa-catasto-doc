@@ -14,7 +14,7 @@
   import Sezione from '../Sezione.svelte';
   import Icona from '../Icona.svelte';
 
-  let { pratica = $bindable(), registraOk }: { pratica: Pratica; registraOk?: (f: (() => void) | null) => void } = $props();
+  let { pratica = $bindable(), registraOk, registraEsc }: { pratica: Pratica; registraOk?: (f: (() => void) | null) => void; registraEsc?: (f: (() => void) | null) => void } = $props();
 
   type Editor = { tipo: '1NI' } | { tipo: '1NII'; i: number } | { tipo: '2N'; i: number };
   let editor = $state<Editor | null>(null);
@@ -23,7 +23,8 @@
 
   $effect(() => {
     registraOk?.(editor ? () => schede?.ok() : null);
-    return () => registraOk?.(null);
+    registraEsc?.(editor ? () => schede?.chiudi() : null);
+    return () => { registraOk?.(null); registraEsc?.(null); };
   });
 
   const ordinarie = $derived(pratica.unita.map((u, i) => ({ u, i })).filter(({ u }) => u.operazione !== 'S' && /^[ABC]/.test(u.classamento?.categoria ?? '') && u.partitaSpeciale !== 'A'));
@@ -61,9 +62,10 @@
     if (copia === null || !destinazioni.size) return;
     if (!(await conferma("ATTENZIONE – L'operazione di copia ricoprirà i dati già esistenti. Confermi?"))) return;
     const sorgente = pratica.unita[copia];
+    const saltate: string[] = [];
     for (const i of destinazioni) {
       const u = pratica.unita[i];
-      if ((u.classamento?.categoria ?? '') !== (sorgente.classamento?.categoria ?? '')) continue;
+      if ((u.classamento?.categoria ?? '') !== (sorgente.classamento?.categoria ?? '')) { saltate.push(descriviUnita(u, i)); continue; }
       const m = clonaProfondo($state.snapshot(sorgente.mod1NParteII) as DatiMod1NParteII);
       const vecchio = u.mod1NParteII;
       if (vecchio) Object.assign(m, { superficieLorda: vecchio.superficieLorda, accessoriIndirettiSup: vecchio.accessoriIndirettiSup, balconiSup: vecchio.balconiSup, pertinenzeScoperteSup: vecchio.pertinenzeScoperteSup });
@@ -71,7 +73,9 @@
       u.spessoreMuri = sorgente.spessoreMuri;
     }
     destinazioni = new Set();
+    esitoCopia = saltate.length ? `Non copiato (categoria diversa da ${sorgente.classamento?.categoria || 'quella di partenza'}): ${saltate.join(', ')}` : '';
   }
+  let esitoCopia = $state('');
   const obbligatoriCompleti = (i: number) => quadri1NParteII(pratica.unita[i]).filter((q) => q.obbligatorio).every((q) => q.completo);
   const altriDati = (i: number) => quadri1NParteII(pratica.unita[i]).some((q) => !q.obbligatorio && q.completo);
   const titoloEditor = $derived(!editor ? '' : editor.tipo === '1NI' ? 'Modello 1NB – parte I (fabbricato)' : editor.tipo === '1NII' ? `Modello 1NB – parte II · ${descriviUnita(pratica.unita[editor.i], editor.i)}` : `Modello 2NB · ${descriviUnita(pratica.unita[editor.i], editor.i)}`);
@@ -112,6 +116,7 @@
       {#snippet azioni()}
         <button type="button" class="btn btn-piccolo" disabled={copia === null || !destinazioni.size} onclick={incolla}><Icona nome="copia" /> Incolla</button>
       {/snippet}
+      {#if esitoCopia}<p class="mb-2 text-xs text-amber-700 dark:text-amber-400">{esitoCopia}</p>{/if}
       {#if copia !== null}<p class="mb-2 text-xs text-fg-muted">Copia da {descriviUnita(pratica.unita[copia], copia)}: seleziona le unità e premi Incolla (le superfici lorde non si copiano).</p>{/if}
       <table class="w-full text-sm">
         <thead><tr class="text-left text-xs text-fg-muted"><th class="w-6"></th><th class="py-1 font-medium">U.I.U.</th><th class="font-medium">Cat.</th><th class="font-medium">Dati obbligatori</th><th class="font-medium">Altri dati</th><th></th></tr></thead>

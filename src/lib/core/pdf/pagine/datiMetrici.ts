@@ -5,7 +5,7 @@
  * vanno sull'ultima pagina prima degli elaborati grafici (vedi documento.ts).
  */
 import type { Pratica } from '../../model';
-import { tipologiaMetrica } from '../../compile';
+import { ambientiDatiMetrici, tipologiaMetrica } from '../../compile';
 import { Pagina, MM } from '../pagina';
 import { FORMATO, intestazione, type DatiCornice } from '../cornice';
 import { aDestra, intero } from '../formato';
@@ -51,7 +51,8 @@ export function pagineDatiMetrici(pratica: Pratica, cornice: DatiCornice): Pagin
   let top = 254;
   pratica.unita.forEach((u, idx) => {
     if (!u.mod1NParteII) return;
-    const righe = Math.max(1, Math.ceil(u.ambienti.length / 3));
+    const ambienti = ambientiDatiMetrici(u);   // gli stessi del file NMV (senza i G per i gruppi A e B)
+    const righe = Math.max(1, Math.ceil(ambienti.length / 3));
     const altezza = 26 + 5 * (righe - 1);
     if (top - altezza < 65) {
       p = nuovaPagina();
@@ -80,7 +81,7 @@ export function pagineDatiMetrici(pratica: Pratica, cornice: DatiCornice): Pagin
       B(158.74 + dx, top - 19, '< 150 cm');
     }
     const tm = u.tipologiaMetrica ?? tipologiaMetrica(u.classamento?.categoria ?? '');
-    u.ambienti.forEach((a, k) => {
+    ambienti.forEach((a, k) => {
       const col = k % 3;
       const riga = Math.floor(k / 3);
       const y = top - 24 - 5 * riga;

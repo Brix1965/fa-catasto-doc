@@ -122,15 +122,19 @@
         <Sezione titolo="Titolo">
           <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <Campo etichetta="Titolo" classe="sm:col-span-2" obbligatorio>
-              <select class="campo" bind:value={it.titolo}>
+              <select class="campo" value={it.titolo} onchange={(e) => {
+                it.titolo = e.currentTarget.value;
+                // per i titoli senza quota la quota va tolta (i campi si disattivano e Docfa la rifiuta: E0228)
+                if (!TITOLI.find((t) => t.codice === it.titolo)?.quotaObbligatoria) { it.quotaNumeratore = undefined; it.quotaDenominatore = undefined; }
+              }}>
                 {#each TITOLI as t (t.codice)}<option value={t.codice}>{t.codice.trim()} – {t.descrizione}</option>{/each}
               </select>
             </Campo>
             <Campo etichetta="Quota" obbligatorio={titolo?.quotaObbligatoria} aiuto={titolo?.quotaObbligatoria ? 'numeratore / denominatore' : 'non prevista per questo titolo'}>
               <div class="flex items-center gap-1.5">
-                <input type="text" inputmode="numeric" class="campo text-right" maxlength="9" value={it.quotaNumeratore ?? ''} disabled={!titolo?.quotaObbligatoria} oninput={(e) => (it.quotaNumeratore = e.currentTarget.value.replace(/\D/g, '') || undefined)} />
+                <input type="text" inputmode="numeric" class="campo text-right" maxlength="9" value={it.quotaNumeratore ?? ''} disabled={!titolo?.quotaObbligatoria && it.quotaNumeratore === undefined && it.quotaDenominatore === undefined} oninput={(e) => (it.quotaNumeratore = e.currentTarget.value.replace(/\D/g, '') || undefined)} />
                 <span>/</span>
-                <input type="text" inputmode="numeric" class="campo" maxlength="6" value={it.quotaDenominatore ?? ''} disabled={!titolo?.quotaObbligatoria} oninput={(e) => (it.quotaDenominatore = Number(e.currentTarget.value.replace(/\D/g, '')) || undefined)} />
+                <input type="text" inputmode="numeric" class="campo" maxlength="6" value={it.quotaDenominatore ?? ''} disabled={!titolo?.quotaObbligatoria && it.quotaNumeratore === undefined && it.quotaDenominatore === undefined} oninput={(e) => (it.quotaDenominatore = Number(e.currentTarget.value.replace(/\D/g, '')) || undefined)} />
               </div>
             </Campo>
             {#if it.tipo === 'fisica'}
