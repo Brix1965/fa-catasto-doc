@@ -14,6 +14,18 @@ ufficiale dell'Agenzia.
 > Prima della presentazione si consiglia di importare il documento nel Docfa ufficiale e di eseguirne
 > il controllo formale.
 
+## Perché usarlo al posto di Docfa
+
+- **Niente Java**: Docfa per il PDF ha bisogno di un runtime Java di vecchia generazione (il Leggimi indica
+  Java 1.5, senza aggiornamenti dal 2009) e di librerie fuori supporto; Fa.Catasto.Doc genera il PDF/A da sé.
+- **Windows, macOS e Linux**, senza macchine virtuali; niente Acrobat Reader, nessun limite sugli spazi nei
+  nomi delle cartelle.
+- **Tutti gli archivi provinciali insieme** invece di una provincia alla volta.
+- **Salvataggio automatico** a ogni modifica, navigazione libera tra gli schermi, pagina «Cosa manca».
+- **DXF corretto in automatico**, superfici e rendita calcolate, classamento proposto e automatico affiancati.
+
+Il dettaglio è nella [guida all'uso](GUIDA.md#perché-usarlo-al-posto-di-docfa).
+
 ## Scaricare
 
 Gli eseguibili per Windows, macOS e Linux sono nella pagina
@@ -38,6 +50,10 @@ In alternativa al Terminale: prova ad aprire l'app, poi **Impostazioni di Sistem
 **Linux** — `FaCatastoDoc-Linux.AppImage` oppure `FaCatastoDoc-Linux.deb`
 - AppImage: `chmod +x FaCatastoDoc-Linux.AppImage` e poi avviarlo con doppio clic o `./FaCatastoDoc-Linux.AppImage`.
 - Pacchetto per Debian/Ubuntu: `sudo apt install ./FaCatastoDoc-Linux.deb`.
+
+## Come si usa
+
+La [guida all'uso](GUIDA.md) spiega il primo avvio, gli schermi, l'esportazione e cosa fa meglio di Docfa.
 
 ## Sostieni il progetto
 

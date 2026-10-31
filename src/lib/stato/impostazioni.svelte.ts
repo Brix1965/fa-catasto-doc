@@ -76,6 +76,7 @@ class StatoImpostazioni {
           tecnici: letto.tecnici ?? [],
           cartellaPratiche: letto.cartellaPratiche ?? '',
           archivi: { comuni: letto.archivi?.comuni, provinciali: letto.archivi?.provinciali ?? [] },
+          prossimaImmagine: letto.prossimaImmagine,
         };
       }
       await this.caricaArchivi();
