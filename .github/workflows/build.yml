@@ -1,0 +1,146 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test motore
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: 22 }
+      - name: pnpm
+        run: npm install -g pnpm@10
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: npx vitest run
+
+  build:
+    name: Build ${{ matrix.nome }}
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            nome: Windows
+            args: ''
+          - os: ubuntu-22.04
+            nome: Linux
+            args: ''
+          - os: macos-latest
+            nome: macOS (Apple Silicon)
+            args: '--target aarch64-apple-darwin'
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: 22 }
+      - name: pnpm
+        run: npm install -g pnpm@10
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Dipendenze di sistema (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libgtk-3-dev
+      - run: pnpm install --frozen-lockfile
+      - name: Build Tauri
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: ${{ matrix.args }}
+          # con un tag v* pubblica una release con gli installer
+          tagName: ${{ startsWith(github.ref, 'refs/tags/v') && 'v__VERSION__' || '' }}
+          releaseName: ${{ startsWith(github.ref, 'refs/tags/v') && 'Fa.Catasto.Doc v__VERSION__' || '' }}
+          releaseBody: 'Eseguibili per Windows, Linux e macOS. Vedi il README per le istruzioni.'
+          releaseDraft: true
+          prerelease: false
+      - name: Eseguibile portable (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v5
+        with:
+          name: fa-catasto-doc-windows-portable
+          path: src-tauri/target/release/*.exe
+      - name: Pacchetti (tutti)
+        uses: actions/upload-artifact@v5
+        with:
+          name: fa-catasto-doc-${{ matrix.os }}
+          path: |
+            src-tauri/target/**/release/bundle/**/*.exe
+            src-tauri/target/**/release/bundle/**/*.msi
+            src-tauri/target/**/release/bundle/**/*.AppImage
+            src-tauri/target/**/release/bundle/**/*.deb
+            src-tauri/target/**/release/bundle/**/*.dmg
+            src-tauri/target/release/bundle/**/*.exe
+            src-tauri/target/release/bundle/**/*.AppImage
+            src-tauri/target/release/bundle/**/*.deb
+
+  # ad ogni push su main: release "ultima" con gli eseguibili scaricabili direttamente (senza zip),
+  # visibile nella colonna di destra del repository alla voce Releases
+  pubblica:
+    name: Pubblica eseguibili
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v5
+        with: { path: artefatti }
+      - name: Raccolta e nomi dei file
+        run: |
+          mkdir -p dist
+          # Windows portatile (exe singolo, nessuna installazione)
+          f=$(find artefatti/fa-catasto-doc-windows-portable -maxdepth 1 -name '*.exe' | head -1)
+          [ -n "$f" ] && cp "$f" dist/FaCatastoDoc-Windows-portatile.exe
+          # installer e pacchetti
+          find artefatti/fa-catasto-doc-windows-latest -name '*-setup.exe' -exec cp {} dist/FaCatastoDoc-Windows-installer.exe \;
+          find artefatti/fa-catasto-doc-windows-latest -name '*.msi' -exec cp {} dist/FaCatastoDoc-Windows.msi \;
+          find artefatti/fa-catasto-doc-macos-latest -name '*.dmg' -exec cp {} dist/FaCatastoDoc-macOS-AppleSilicon.dmg \;
+          find artefatti/fa-catasto-doc-ubuntu-22.04 -name '*.AppImage' -exec cp {} dist/FaCatastoDoc-Linux.AppImage \;
+          find artefatti/fa-catasto-doc-ubuntu-22.04 -name '*.deb' -exec cp {} dist/FaCatastoDoc-Linux.deb \;
+          ls -la dist
+      - name: Release "ultima versione"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          quando=$(TZ=Europe/Rome date '+%d/%m/%Y %H:%M')
+          breve=$(echo "$GITHUB_SHA" | cut -c1-7)
+          cat > note.md <<'NOTE'
+          Ultima versione di Fa.Catasto.Doc, generata automaticamente il QUANDO (ora italiana) dal commit BREVE.
+
+          ## Installazione
+
+          Gli eseguibili non sono firmati con un certificato a pagamento: al primo avvio il sistema chiede una conferma.
+
+          **macOS (Apple Silicon)** — `FaCatastoDoc-macOS-AppleSilicon.dmg`
+          1. Apri il `.dmg` e trascina **Fa.Catasto.Doc** nella cartella **Applicazioni**.
+          2. Apri il **Terminale** e scrivi (dopo ogni installazione o aggiornamento):
+             `xattr -cr "/Applications/Fa.Catasto.Doc.app"`
+          3. Avvia Fa.Catasto.Doc normalmente.
+
+          In alternativa al Terminale: prova ad aprire l'app, poi **Impostazioni di Sistema → Privacy e sicurezza → Apri comunque**.
+
+          **Windows** — `FaCatastoDoc-Windows-portatile.exe` (nessuna installazione), oppure l'installer o il `.msi`
+          - Se compare «Windows ha protetto il PC»: **Ulteriori informazioni → Esegui comunque**.
+
+          **Linux** — `FaCatastoDoc-Linux.AppImage` oppure `FaCatastoDoc-Linux.deb`
+          - AppImage: `chmod +x FaCatastoDoc-Linux.AppImage` e poi avviarlo con doppio clic o `./FaCatastoDoc-Linux.AppImage`.
+          - Pacchetto per Debian/Ubuntu: `sudo apt install ./FaCatastoDoc-Linux.deb`.
+
+          Software libero (GPL-3.0) fornito **così com'è, senza alcuna garanzia**: il professionista resta responsabile
+          dei documenti che presenta. Non è un software dell'Agenzia delle Entrate né di Sogei.
+          NOTE
+          sed -i "s|QUANDO|$quando|; s|BREVE|$breve|" note.md
+          gh release delete collaudo --yes --cleanup-tag || true
+          gh release delete ultima --yes --cleanup-tag || true
+          gh release create ultima dist/* --target "$GITHUB_SHA" --title "Fa.Catasto.Doc – ultima versione ($quando)" --notes-file note.md --latest

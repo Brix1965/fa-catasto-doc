@@ -1,0 +1,364 @@
+{
+"D/1": [
+[
+"0101",
+"Immobili in uso a centrali termoelettriche e turbogas"
+],
+[
+"0102",
+"Immobili in uso a centrali idroelettriche"
+],
+[
+"0103",
+"Immobili in uso a centrali eoliche"
+],
+[
+"0104",
+"Immobili in uso a centrali fotovoltaiche"
+],
+[
+"0105",
+"Immobili in uso a centrali per la produzione di energia da altre fonti rinnovabili"
+],
+[
+"0201",
+"Immobili per l'estrazione di minerali da cave e miniere"
+],
+[
+"0202",
+"Immobili per l'estrazione di petrolio greggio e di gas"
+],
+[
+"0301",
+"Capannoni industriali e costruzioni assimilabili per attività produttive"
+],
+[
+"0302",
+"Siti industriali costituiti da aree occupate prevalentemente da impianti"
+],
+[
+"0503",
+"Discariche per lo smaltimento dei rifiuti solidi urbani (con produzione annessa)"
+],
+[
+"0504",
+"Immobili destinati al trattamento delle acque reflue (con produzione annessa)"
+],
+[
+"1701",
+"Immobili destinati ad ospitare impianti per il trasporto e la distribuzione dell'energia"
+]
+],
+"D/2": [
+[
+"0901",
+"Alberghi e strutture simili"
+],
+[
+"0902",
+"Residenze turistiche alberghiere, alloggi per vacanze e altre strutture per soggiorni brevi"
+],
+[
+"0904",
+"Alloggi per studenti e lavoratori con servizi accessori di tipo alberghiero"
+]
+],
+"D/3": [
+[
+"1001",
+"Teatri, cinema, sale per concerti e arene"
+]
+],
+"D/4": [
+[
+"1201",
+"Ospedali"
+],
+[
+"1203",
+"Strutture per l'assistenza sociale residenziale"
+]
+],
+"D/5": [
+[
+"0602",
+"Immobili destinati ad attività del settore terziario provvisti di specifiche dotazioni di sicurezza non classificabili in categoria ordinaria"
+]
+],
+"D/6": [
+[
+"1101",
+"Immobili destinati ad impianti sportivi"
+],
+[
+"1102",
+"Palestre e piscine in fabbricati promiscui"
+]
+],
+"D/7": [
+[
+"0402",
+"Magazzini e altre strutture di stoccaggio"
+],
+[
+"0403",
+"Aree scoperte di stoccaggio"
+],
+[
+"0501",
+"Discariche per lo smaltimento dei rifiuti solidi urbani (senza produzione annessa)"
+],
+[
+"0502",
+"Immobili destinati al trattamento delle acque reflue (senza produzione annessa)"
+],
+[
+"0706",
+"Autofficine meccaniche e carrozzerie ubicate in fabbricati industriali"
+],
+[
+"1702",
+"Immobili destinati ad ospitare ripetitori di segnali audiovisivi"
+],
+[
+"1703",
+"Immobili destinati ad ospitare impianti per la regolazione dei fluidi"
+],
+[
+"1705",
+"Altri immobili realizzati per le specifiche esigenze di una attività industriale"
+]
+],
+"D/8": [
+[
+"0401",
+"Interporti e terminal portuali"
+],
+[
+"0601",
+"Uffici strutturati"
+],
+[
+"0701",
+"Centri commerciali"
+],
+[
+"0702",
+"Immobili destinati a grande distribuzione organizzata in fabbricati autonomi"
+],
+[
+"0703",
+"Altri immobili destinati al commercio all'ingrosso o al dettaglio"
+],
+[
+"0704",
+"Immobili destinati ad attività fieristiche"
+],
+[
+"0705",
+"Autorimesse pluripiano e autosilos"
+],
+[
+"0801",
+"Scuole"
+],
+[
+"0802",
+"Istituti universitari e conservatori"
+],
+[
+"0803",
+"Collegi e convitti, educandati e seminari"
+],
+[
+"0804",
+"Accademie e scuole militari"
+],
+[
+"0903",
+"Aree di campeggio e aree attrezzate per camper e roulotte"
+],
+[
+"0905",
+"Immobili per servizi di ristorazione"
+],
+[
+"1002",
+"Discoteche, sale da ballo e simili"
+],
+[
+"1003",
+"Sale da gioco"
+],
+[
+"1004",
+"Parchi di divertimento, tematici e zoo"
+],
+[
+"1005",
+"Orti e giardini botanici"
+],
+[
+"1006",
+"Stabilimenti balneari"
+],
+[
+"1103",
+"Immobili destinati ad impianti di risalita commerciali non finalizzati al trasporto pubblico"
+],
+[
+"1104",
+"Porti turistici"
+],
+[
+"1105",
+"Aeroporti turistici o per voli non di linea"
+],
+[
+"1202",
+"Stabilimenti termali"
+],
+[
+"1301",
+"Immobili militari"
+],
+[
+"1302",
+"Caserme destinate ai Corpi preposti alla tutela dell'ordine e della sicurezza pubblica"
+],
+[
+"1501",
+"Palazzi a destinazione terziaria o commerciale di pregio storico-artistico architettonico"
+],
+[
+"1704",
+"Aree attrezzate per servizi ai veicoli"
+]
+],
+"D/9": [
+[
+"1601",
+"Costruzioni galleggianti e strutture assimilabili"
+]
+],
+"D/10": [
+[
+"1401",
+"Immobili destinati ad attività agrituristiche"
+],
+[
+"1402",
+"Immobili destinati all'esercizio delle attività di coltivazione dei terreni e della silvicoltura"
+],
+[
+"1403",
+"Immobili destinati all'attività di allevamento e ricovero di animali"
+],
+[
+"1404",
+"Immobili destinati all'allevamento di prodotti di acquacoltura"
+],
+[
+"1405",
+"Costruzione strumentale alla protezione delle piante"
+],
+[
+"1406",
+"Costruzione strumentale alle attività di cui al comma 3 dell'art.2135 del Codice Civile"
+],
+[
+"1407",
+"Immobili destinati all'attività di alpeggio in zona di montagna"
+],
+[
+"1408",
+"Immobili destinati ad uso ufficio dell'azienda agricola"
+],
+[
+"1409",
+"Immobili destinati all'esercizio dell'attività agricola in maso chiuso"
+],
+[
+"1410",
+"Immobili strumentali alla produzione di energia elettrica da fonti fotovoltaiche"
+],
+[
+"1411",
+"Immobili strumentali alla produzione di energia elettrica da fonti agroforestali"
+],
+[
+"1412",
+"Immobili strumentali alla produzione di carburanti o prodotti chimici ottenuti da prodotti agricoli"
+]
+],
+"E/1": [
+[
+"1801",
+"Stazioni per servizi di trasporto terrestri, marittimi e aerei"
+],
+[
+"1811",
+"Banchine e aree scoperte dei porti di rilevanza economica nazionale ed internazionale adibite alle operazioni e ai servizi portuali e passeggeri"
+],
+[
+"1812",
+"Depositi dei porti di rilevanza economica nazionale ed internazionale strettamente funzionali alle operazioni e ai servizi portuali"
+],
+[
+"1813",
+"Depositi doganali dei porti di rilevanza economica nazionale ed internazionale"
+]
+],
+"E/2": [
+[
+"1806",
+"Ponti comunali e provinciali soggetti a pedaggio"
+]
+],
+"E/3": [
+[
+"1802",
+"Costruzioni e fabbricati per speciali esigenze pubbliche"
+],
+[
+"1805",
+"Impianti per la distribuzione dei carburanti"
+]
+],
+"E/4": [
+[
+"1803",
+"Recinti chiusi per speciali esigenze pubbliche"
+]
+],
+"E/5": [
+[
+"1807",
+"Fabbricati costituenti fortificazioni e loro dipendenze"
+]
+],
+"E/6": [
+[
+"1808",
+"Fari, semafori, torri per rendere d'uso pubblico l'orologio comunale"
+]
+],
+"E/7": [
+[
+"1809",
+"Fabbricati destinati all'esercizio pubblico dei culti"
+]
+],
+"E/8": [
+[
+"1804",
+"Fabbricati e costruzioni nei cimiteri, esclusi i colombari, i sepolcri, e le tombe di famiglia"
+]
+],
+"E/9": [
+[
+"1810",
+"Edifici a destinazione particolare non compresi nelle categorie precedenti del Gruppo E"
+]
+]
+}

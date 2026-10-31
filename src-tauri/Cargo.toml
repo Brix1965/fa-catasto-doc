@@ -1,0 +1,30 @@
+[package]
+name = "fa-catasto-doc"
+version = "0.2.0"
+description = "Fa.Catasto.Doc: alternativa open source a Docfa 4"
+authors = ["Fa.Catasto.Doc"]
+edition = "2024"
+license = "GPL-3.0-only"
+
+[lib]
+name = "fa_catasto_doc_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+panic = "abort"
+strip = true

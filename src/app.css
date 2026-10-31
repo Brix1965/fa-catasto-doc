@@ -1,0 +1,97 @@
+/* Stili globali di Fa.Catasto.Doc: Tailwind v4 + tema chiaro/scuro automatico. */
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', Menlo, Consolas, monospace;
+
+  /* accento: verde petrolio */
+  --color-accent-50: #effaf8;
+  --color-accent-100: #d6f3ee;
+  --color-accent-200: #afe6dd;
+  --color-accent-300: #7fd2c6;
+  --color-accent-400: #4fb7ab;
+  --color-accent-500: #2f9a90;
+  --color-accent-600: #237b75;
+  --color-accent-700: #1f625e;
+  --color-accent-800: #1c4f4c;
+  --color-accent-900: #1a4240;
+  --color-accent-950: #0b2626;
+
+  /* colori semantici (ridefiniti nel tema scuro) */
+  --color-fondo: var(--cs-fondo);
+  --color-surface: var(--cs-surface);
+  --color-surface-2: var(--cs-surface-2);
+  --color-fg: var(--cs-fg);
+  --color-fg-muted: var(--cs-fg-muted);
+  --color-fg-faint: var(--cs-fg-faint);
+  --color-line: var(--cs-line);
+  --color-line-strong: var(--cs-line-strong);
+}
+
+:root {
+  --cs-fondo: #f5f6f7;
+  --cs-surface: #ffffff;
+  --cs-surface-2: #eef0f2;
+  --cs-fg: #1b1f23;
+  --cs-fg-muted: #5b6470;
+  --cs-fg-faint: #8a929c;
+  --cs-line: #e1e4e8;
+  --cs-line-strong: #c6ccd3;
+  color-scheme: light;
+}
+
+.dark {
+  --cs-fondo: #15181b;
+  --cs-surface: #1d2126;
+  --cs-surface-2: #262b31;
+  --cs-fg: #e6e8eb;
+  --cs-fg-muted: #a0a8b2;
+  --cs-fg-faint: #6f7883;
+  --cs-line: #2f353c;
+  --cs-line-strong: #434b54;
+  color-scheme: dark;
+}
+
+@layer base {
+  html, body { height: 100%; }
+  body { font-size: 14px; line-height: 1.45; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  ::selection { background: var(--color-accent-200); color: var(--color-accent-950); }
+  .dark ::selection { background: var(--color-accent-700); color: #fff; }
+}
+
+@layer components {
+  .campo {
+    @apply w-full rounded-md border border-line bg-surface px-2.5 py-1.5 text-sm text-fg shadow-xs outline-none transition
+      placeholder:text-fg-faint hover:border-line-strong focus:border-accent-500 focus:ring-2 focus:ring-accent-500/25
+      disabled:cursor-not-allowed disabled:bg-surface-2 disabled:text-fg-muted;
+  }
+  .campo-errore { @apply border-amber-400 bg-amber-50/60 dark:border-amber-600 dark:bg-amber-950/30; }
+  .campo-piccolo { @apply px-1.5 py-0.5 text-xs; }
+  textarea.campo { @apply min-h-20 leading-snug; }
+  select.campo { @apply pr-8; }
+  .check { @apply size-4 shrink-0 rounded border-line-strong text-accent-600 accent-accent-600 focus:ring-2 focus:ring-accent-500/30; }
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-md border border-line-strong bg-surface px-3 py-1.5 text-sm font-medium
+      text-fg shadow-xs transition hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500/40
+      disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primario { @apply border-accent-600 bg-accent-600 text-white hover:bg-accent-700 hover:border-accent-700; }
+  .btn-pericolo { @apply hover:border-red-400 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950/40 dark:hover:text-red-300; }
+  .btn-piccolo { @apply px-2 py-1 text-xs; }
+  .btn-ghost { @apply border-transparent bg-transparent shadow-none; }
+  .scheda { @apply rounded-lg border border-line bg-surface shadow-xs; }
+  .etichetta { @apply mb-1 block text-xs font-medium text-fg-muted; }
+  /* campi obbligatori: fucsia, come nei modelli di Docfa */
+  .obbligatorio { @apply text-fuchsia-700 dark:text-fuchsia-300; }
+  .obbligatorio::after { content: ' *'; }
+  .tasto { @apply inline-flex min-w-5 items-center justify-center rounded border border-line-strong bg-surface-2 px-1 font-mono text-[10px] leading-4 text-fg-muted; }
+  .titolo-sezione { @apply mb-3 text-sm font-semibold tracking-wide text-fg uppercase; }
+  .pill { @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium; }
+}
+
+/* scrollbar discreta */
+* { scrollbar-width: thin; scrollbar-color: var(--cs-line-strong) transparent; }
