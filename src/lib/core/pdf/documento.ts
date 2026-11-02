@@ -9,6 +9,7 @@ import { PdfWriter, type AnnotazioneTesto, type VoceOutline } from './writer';
 import { decodificaBase64 } from './base64';
 import { LIBERATION_SERIF_BOLD_B64, LIBERATION_SERIF_REGULAR_B64 } from './assets/fonts.generated';
 import { SRGB_ICC_B64 } from './assets/icc.generated';
+import { FONT_MODULO_2N } from './assets/modulo2n.generated';
 import { NOME_FONT, Pagina } from './pagina';
 import { FORMATO, pieDiPagina, type DatiCornice } from './cornice';
 import { pagineD1 } from './pagine/d1';
@@ -88,14 +89,34 @@ export async function renderDocumento(pratica: Pratica, compilato: Compilato, im
   const regolare = await w.aggiungiFontTrueType(decodificaBase64(LIBERATION_SERIF_REGULAR_B64), NOME_FONT_REGOLARE);
   const grassetto = await w.aggiungiFontTrueType(decodificaBase64(LIBERATION_SERIF_BOLD_B64), NOME_FONT_GRASSETTO);
   const font = { [NOME_FONT.R]: regolare.rif, [NOME_FONT.B]: grassetto.rif };
+  // font del modulo 2N copiato da Docfa: si aggiungono solo se ci sono pagine 2N
+  let fontModulo: Record<string, number> | undefined;
+  const fontPagina = async (p: Pagina) => {
+    if (!p.moduloGrezzo) return font;
+    if (!fontModulo) {
+      fontModulo = {};
+      for (const [nome, f] of Object.entries(FONT_MODULO_2N))
+        fontModulo[nome] = await w.aggiungiFontModulo({ ...f, fontFile: decodificaBase64(f.fontFile), toUnicode: decodificaBase64(f.toUnicode) });
+    }
+    return { ...font, ...fontModulo };
+  };
 
   // i file dati vanno come annotazioni sull'ultima pagina prima degli elaborati grafici
-  const fileDati = [compilato.ncv, compilato.att, compilato.nmv, ...(compilato.epv ? [compilato.epv] : [])];
-  const annotazioniDati: AnnotazioneTesto[] = fileDati.map((f, k) => ({
-    nome: f.nome,
-    contenuto: f.dati,
-    rect: [40 + 20 * k, 30, 60 + 20 * k, 50],
-  }));
+  // posizioni fisse per file (NCV 40, ATT 60, NMV 80, EPV 100); un file vuoto non si scrive (NMV senza 1N parte II)
+  // e oltre 65535 byte Docfa lo divide in «.part1», «.part2»… spostando ogni parte di 1 punto (pratica BPM)
+  const fileDati = [compilato.ncv, compilato.att, compilato.nmv, compilato.epv];
+  const annotazioniDati: AnnotazioneTesto[] = [];
+  fileDati.forEach((f, k) => {
+    if (!f || !f.dati.length) return;
+    const parti = Math.ceil(f.dati.length / 65535);
+    for (let j = 0; j < parti; j++) {
+      annotazioniDati.push({
+        nome: parti > 1 ? `${f.nome}.part${j + 1}` : f.nome,
+        contenuto: f.dati.subarray(j * 65535, (j + 1) * 65535),
+        rect: [40 + 20 * k + j, 30 + j, 60 + 20 * k + j, 50 + j],
+      });
+    }
+  });
 
   const indici: number[] = [];
   for (let i = 0; i < numerate.length; i++) {
@@ -105,10 +126,10 @@ export async function renderDocumento(pratica: Pratica, compilato: Compilato, im
       larghezza: p.larghezza,
       altezza: p.altezza,
       contenuto: p.bytes(),
-      font,
+      font: await fontPagina(p),
       annotazioni: ultima ? annotazioniDati : undefined,
-      rotate: p.larghezza === FORMATO.modello.larghezza && p.altezza === FORMATO.modello.altezza ? 0 : undefined,
-      cropBox: p.larghezza === FORMATO.modello.larghezza && p.altezza === FORMATO.modello.altezza,
+      rotate: p.larghezza === FORMATO.modello.larghezza && p.altezza === FORMATO.modello.altezza && !p.modello2N ? 0 : undefined,
+      cropBox: p.larghezza === FORMATO.modello.larghezza && p.altezza === FORMATO.modello.altezza && !p.modello2N,
     }));
   }
 
@@ -126,7 +147,8 @@ export async function renderDocumento(pratica: Pratica, compilato: Compilato, im
 
   // segnalibri
   const figli: VoceOutline[] = [{ titolo: 'Modello D1', pagina: 0 }];
-  if (modelli.length) figli.push({ titolo: 'Modelli 1N 2N', pagina: d1.length });
+  // senza 1N (solo 2N) Docfa non mette il segnalibro «Modelli 1N 2N» (pratica BPM)
+  if (modelli.length && modelli.some((p) => !p.modello2N)) figli.push({ titolo: 'Modelli 1N 2N', pagina: d1.length });
   if (datiMetrici.length) figli.push({ titolo: 'Dati metrici', pagina: d1.length + modelli.length });
   if (elenco.length) figli.push({ titolo: 'Elenco subalterni', pagina: d1.length + modelli.length + datiMetrici.length });
   if (vociImmagini.length) figli.push({ titolo: 'Elaborati grafici', pagina: vociImmagini[0].pagina, figli: vociImmagini, chiusa: true });

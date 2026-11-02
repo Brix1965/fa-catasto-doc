@@ -503,6 +503,31 @@ export interface ContenutoPdfDocfa {
 }
 
 /** Estrae file nascosti e planimetrie da un PDF Docfa, senza interpretarli. */
+/**
+ * Docfa divide un file oltre 65535 byte in più annotazioni «NOME.part1», «NOME.part2»… (pratica BPM,
+ * EPV001.DAT di 131524 byte): qui si riuniscono nel file originale.
+ */
+export function unisciParti(file: FileEstratto[]): FileEstratto[] {
+  const out: FileEstratto[] = [];
+  const gruppi = new Map<string, FileEstratto[]>();
+  for (const f of file) {
+    const m = /^(.*)\.part(\d+)$/i.exec(f.nome);
+    if (!m) { out.push(f); continue; }
+    const g = gruppi.get(m[1]);
+    if (g) g.push(f);
+    else { const n: FileEstratto[] = [f]; gruppi.set(m[1], n); out.push({ nome: m[1], dati: new Uint8Array(0), pagina: f.pagina }); }
+  }
+  for (const [nome, parti] of gruppi) {
+    parti.sort((x, y) => Number(/(\d+)$/.exec(x.nome)![1]) - Number(/(\d+)$/.exec(y.nome)![1]));
+    const tot = new Uint8Array(parti.reduce((t, x) => t + x.dati.length, 0));
+    let o = 0;
+    for (const x of parti) { tot.set(x.dati, o); o += x.dati.length; }
+    const k = out.findIndex((f) => f.nome === nome && !f.dati.length);
+    out[k] = { ...out[k], dati: tot };
+  }
+  return out;
+}
+
 export async function estraiContenutoPdf(bytes: Uint8Array): Promise<ContenutoPdfDocfa> {
   if (latin1(bytes.subarray(0, 5)) !== '%PDF-') throw new Error('Il file non è un PDF');
   const doc = await DocumentoPdf.leggi(bytes);
@@ -556,7 +581,7 @@ export async function estraiContenutoPdf(bytes: Uint8Array): Promise<ContenutoPd
     }
   });
   if (!file.length) avvisi.push('Nessun file dati trovato nelle annotazioni: non è un PDF prodotto da Docfa?');
-  return { file, immagini, avvisi, pagine: pagine.length };
+  return { file: unisciParti(file), immagini, avvisi, pagine: pagine.length };
 }
 
 /** Decodifica l'immagine G4 estratta in una Bitmap (per l'anteprima o i controlli). */

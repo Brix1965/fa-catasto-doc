@@ -105,6 +105,10 @@ export function formattaValore(rec: FixedRecord, c: { id: string; fmt?: string; 
     case 'int':
       s = intero(v.testo);
       break;
+    case 'intoan':
+      // numero senza zeri (es. servizi igienici «6»), altrimenti il testo così com'è
+      s = /^\d+$/.test(v.testo.trim()) ? intero(v.testo) : v.testo.trim();
+      break;
     case 'id':
       // identificativo catastale (campo alfanumerico): zeri iniziali tolti, come stampa Docfa
       s = v.testo.trim().replace(/^0+(?=.)/, '');

@@ -8,6 +8,7 @@
    * Annulla (Esc: scarta le modifiche dello schermo e torna al precedente); F1 apre l'aiuto.
    */
   import { dataIt, dataOraIt } from '$lib/formato-data';
+  import VersioneApp from '$lib/ui/VersioneApp.svelte';
   import { page } from '$app/state';
   import { goto } from '$app/navigation';
   import { onDestroy } from 'svelte';
@@ -235,6 +236,7 @@
       <div class="border-t border-line p-4 text-xs text-fg-muted">
         <p class="flex items-center gap-1.5"><Icona nome="orologio" classe="size-3.5" /> Ultima modifica: {ora(f.meta.modificata)}</p>
         <p class="mt-1 flex items-center gap-1.5"><Icona nome="tastiera" classe="size-3.5" /> <span><kbd class="tasto">Ctrl+O</kbd> OK · <kbd class="tasto">Esc</kbd> Annulla · <kbd class="tasto">F1</kbd> Aiuto</span></p>
+        <VersioneApp classe="mt-2" />
       </div>
     </aside>
 

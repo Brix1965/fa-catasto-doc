@@ -1,6 +1,7 @@
 <script lang="ts">
   /** Home: elenco delle pratiche nella cartella di lavoro. */
   import { dataIt, dataOraIt } from '$lib/formato-data';
+  import VersioneApp from '$lib/ui/VersioneApp.svelte';
   import { goto } from '$app/navigation';
   import { impostazioni } from '$lib/stato/impostazioni.svelte';
   import { elencoPratiche, statoPratica, type VocePratica } from '$lib/stato/pratica.svelte';
@@ -146,6 +147,7 @@
       {/if}
     {/if}
   </main>
+  <footer class="px-5 pb-3"><VersioneApp /></footer>
 </div>
 
 {#if dialogo}

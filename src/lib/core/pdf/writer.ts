@@ -95,6 +95,13 @@ export function num(n: number): string {
   return n.toFixed(4).replace(/\.?0+$/, '');
 }
 
+/** Dimensioni delle pagine scritte come Docfa (NCV065/NCV081): il D1 in float32, i dati metrici a 5 decimali. */
+const BOX_DOCFA: Record<string, string> = { '595.44': '595.4400024414', '842.4': '842.4000244141', '836.2205': '836.22046' };
+export function numBox(n: number): string {
+  const s = num(n);
+  return BOX_DOCFA[s] ?? s;
+}
+
 function dataPdf(d: Date): string {
   const p = (n: number) => String(n).padStart(2, '0');
   const tz = -d.getTimezoneOffset();
@@ -206,6 +213,14 @@ export class PdfWriter {
     return { rif, nomeBase, metriche: m };
   }
 
+  /** Font sottoinsieme copiato da un PDF di Docfa (modulo 2N): dizionari già pronti, FontFile2 e ToUnicode. */
+  async aggiungiFontModulo(f: { font: string; descrittore: string; fontFile: Uint8Array; length1: number; toUnicode: Uint8Array }): Promise<RifOggetto> {
+    const ff = await this.aggiungiStream(`/Length1 ${f.length1}`, f.fontFile, { comprimi: true });
+    const tu = await this.aggiungiStream('', f.toUnicode, { comprimi: true });
+    const fd = this.aggiungi(`<<${f.descrittore} /FontFile2 ${ff} 0 R>>`);
+    return this.aggiungi(`<<${f.font} /FontDescriptor ${fd} 0 R /ToUnicode ${tu} 0 R>>`);
+  }
+
   /** Immagine bitonale compressa CCITT G4 (dati grezzi, come nello stream di un TIFF G4). */
   async aggiungiImmagineCCITT(g4: Uint8Array, larghezza: number, altezza: number): Promise<RifOggetto> {
     return this.aggiungiStream(
@@ -226,11 +241,12 @@ export class PdfWriter {
     const annots: RifOggetto[] = [];
     for (const a of p.annotazioni ?? []) {
       annots.push(this.aggiungi(
-        `<</Type /Annot /Subtype /Text /Name /Note /F 28 /Rect [${a.rect.map(num).join(' ')}] ` +
-        `/T ${stringaPdf(a.nome)} /NM ${stringaPdf(a.nome)} /Contents ${stringaHex(a.contenuto)}>>`,
+        // ordine delle chiavi come Docfa (NCV065/NCV081): /Contents /T /NM /Name /F /Rect
+        `<</Type /Annot /Subtype /Text /Contents ${stringaHex(a.contenuto)} /T ${stringaPdf(a.nome)} /NM ${stringaPdf(a.nome)} ` +
+        `/Name /Note /F 28 /Rect [${a.rect.map(num).join(' ')}]>>`,
       ));
     }
-    const box = `[0 0 ${num(p.larghezza)} ${num(p.altezza)}]`;
+    const box = `[0 0 ${numBox(p.larghezza)} ${numBox(p.altezza)}]`;
     const rif = this.aggiungi(
       `<</Type /Page /Parent ${this.rifPages} 0 R /MediaBox ${box}${p.cropBox ? ` /CropBox ${box}` : ''}` +
       `${p.rotate !== undefined ? ` /Rotate ${p.rotate}` : ''} /Resources <<${risorse.join(' ')}>> /Contents ${rifContenuto} 0 R` +

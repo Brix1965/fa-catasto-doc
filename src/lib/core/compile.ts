@@ -7,7 +7,7 @@
  */
 import { FixedRecord, FixedRecordLibero } from './tracciati/record';
 import { ELENCO_SUBALTERNI, ELENCO_SUBALTERNI_LENGTH } from './tracciati/schema';
-import type { Data, Identificativo, LocaleGruppoC, Pratica, UnitaImmobiliare } from './model';
+import type { Campi, Data, ElencoSubalterno, Identificativo, LocaleGruppoC, Pratica, UnitaImmobiliare } from './model';
 import { schedeElaborato, schedePlanimetria } from './model';
 import { CAUSALI_VARIAZIONE, normalizzaIndirizzo, allineaZona, allineaClasse, type CodiceVariazione } from './regole-docfa';
 import { REC_H_GRUPPO_C_FIELDS, REC_H } from './tracciati/schema';
@@ -446,14 +446,15 @@ export function compilaDocumento(p: Pratica): Compilato {
     if (!d) return;
     const n2 = idx + 1;
     const rM = new FixedRecord('M').key(prog, 'W', n2, 0, md0);
-    riempiGenerico(rM, d.recordM, comune);
+    riempiGenerico(rM, normalizza2N(d.recordM), comune);
     recs.push(rM);
     const rN = new FixedRecord('N').key(prog, 'W', n2, 1, md0);
-    riempiGenerico(rN, d.recordN, comune);
+    // anno di riferimento all'epoca censuaria: Docfa scrive sempre 0000 (NCV081 e pratica BPM)
+    riempiGenerico(rN, { ...normalizza2N(d.recordN), anno_epoca_censuaria: 0 }, comune);
     recs.push(rN);
     for (let k = 0; k < 3; k++) {
       const rO = new FixedRecord('O').key(prog, 'W', n2, 2 + k, md0);
-      riempiGenerico(rO, { ...(d.stimaComparativa[k] ?? {}), tipo_stima: 0 }, comune);
+      riempiGenerico(rO, { ...normalizza2N(d.stimaComparativa[k] ?? {}), tipo_stima: 0 }, comune);
       recs.push(rO);
     }
     // Le 3 righe «altro tipo di stima» (tipo 1) vanno scritte anche vuote quando non ci sono corpi di fabbrica:
@@ -472,7 +473,7 @@ export function compilaDocumento(p: Pratica): Compilato {
       for (const [tipo, campi, tr] of [['P', c.recordP, '00'], ['Q', c.recordQ, '01'], ['R', c.recordR, '02']] as const) {
         const r = new FixedRecord(tipo).key(prog, 'W', n2, 0, md0);
         r.setRaw(12, corpo + tr);
-        riempiGenerico(r, campi, comune);
+        riempiGenerico(r, normalizza2N(campi), comune);
         recs.push(r);
       }
     });
@@ -493,6 +494,27 @@ export function compilaDocumento(p: Pratica): Compilato {
 /** Testo su una sola riga: a capo e tabulazioni diventano uno spazio (non possono stare in un record). */
 export function unaRiga(t: string): string {
   return t.replace(/[\r\n\t]+/g, ' ');
+}
+
+/**
+ * Campi del modello 2N scritti come Docfa (confronto con la pratica BPM esportata da Docfa 4.00.5 e NCV081):
+ * testi in maiuscolo; foglio, particella e subalterno con gli zeri (0187, 00214, 0265); riferimento della riga di
+ * stima con gli zeri (001); numero dei servizi igienici del corpo di fabbrica con gli zeri su 20 cifre.
+ */
+export function normalizza2N(campi: Campi): Campi {
+  const out: Campi = {};
+  for (const [id, v] of Object.entries(campi)) {
+    if (typeof v !== 'string') { out[id] = v; continue; }
+    const t = v.trim();
+    const cifre = /^\d+$/.test(t);
+    if (cifre && /_foglio$/.test(id)) out[id] = t.padStart(4, '0');
+    else if (cifre && /_numero(_2)?$/.test(id)) out[id] = t.padStart(5, '0');
+    else if (cifre && /_subalterno$/.test(id)) out[id] = t.padStart(4, '0');
+    else if (cifre && /^stima\d_corpo$/.test(id)) out[id] = t.padStart(3, '0');
+    else if (cifre && id === 'servizi_igienici') out[id] = t.padStart(20, '0');
+    else out[id] = v.toUpperCase();
+  }
+  return out;
 }
 
 /** Scrive tutti i campi dati (18-334) di un record da una mappa id → valore; i campi assenti vanno a zero/spazi. */
@@ -618,7 +640,7 @@ export function compilaElencoSubalterni(p: Pratica): Uint8Array {
   const ep = p.elaboratoPlanimetrico;
   if (!ep) return new Uint8Array(0);
   const recs: Uint8Array[] = [];
-  for (const sub of ep.subalterni) {
+  for (const sub of subalterniElenco(p)) {
     const r = new FixedRecordLibero(ELENCO_SUBALTERNI, ELENCO_SUBALTERNI_LENGTH);
     r.assign({
       numero_ditta: 0,
@@ -638,9 +660,32 @@ export function compilaElencoSubalterni(p: Pratica): Uint8Array {
       tipo: sub.tipo,
       categoria: sub.categoria ?? ' 00',
       entita_1: sub.entita[0] ?? '', entita_2: sub.entita[1] ?? '', entita_3: sub.entita[2] ?? '', entita_4: sub.entita[3] ?? '', entita_5: sub.entita[4] ?? '',
-      versione_x: '', versione_f: 'F', versione: 'D3',
+      // «X» sulle righe importate (flag 2): pratica BPM, 260 righe importate tutte con X; nelle righe lette dal
+      // documento o inserite (0/1, NCV065 e NCV081) lo spazio
+      versione_x: sub.flagInserimento === 2 ? 'X' : '', versione_f: 'F', versione: 'D3',
     });
     recs.push(r.bytes());
   }
   return joinCRLF(recs);
+}
+
+/**
+ * Righe dell'elenco subalterni da scrivere: quelle della pratica più le u.i.u. soppresse dal documento che
+ * mancano, come «SOPPRESSO» (flag 0, categoria « 00»), al loro posto in ordine di subalterno: così fa Docfa
+ * (pratica BPM, sub 90 soppresso).
+ */
+export function subalterniElenco(p: Pratica): ElencoSubalterno[] {
+  const lista = [...(p.elaboratoPlanimetrico?.subalterni ?? [])];
+  const chiave = (i: Identificativo) => `${(i.sezione ?? '').trim()}|${Number(i.foglio) || i.foglio}|${Number(i.numero) || i.numero}|${Number(i.subalterno) || (i.subalterno ?? '')}`;
+  const presenti = new Set(lista.map((s) => chiave(s.identificativo)));
+  for (const u of p.unita) {
+    if (u.operazione !== 'S' || !u.identificativo.subalterno || presenti.has(chiave(u.identificativo))) continue;
+    const riga: ElencoSubalterno = { identificativo: { ...u.identificativo }, piani: [], descrizione: 'SOPPRESSO', flagInserimento: 0, tipo: 'U', entita: [] };
+    const n = Number(u.identificativo.subalterno);
+    const k = lista.findIndex((s) => Number(s.identificativo.subalterno) > n);
+    if (k < 0) lista.push(riga);
+    else lista.splice(k, 0, riga);
+    presenti.add(chiave(u.identificativo));
+  }
+  return lista;
 }

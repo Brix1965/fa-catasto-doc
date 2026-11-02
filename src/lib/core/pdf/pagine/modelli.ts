@@ -8,6 +8,8 @@ import type { Compilato } from '../../compile';
 import type { FixedRecord } from '../../tracciati/record';
 import { decode1252 } from '../../bytes';
 import { Pagina } from '../pagina';
+import { MODULO_2N } from '../assets/modulo2n.generated';
+import { decodificaBase64 } from '../base64';
 import { FORMATO, intestazione, type DatiCornice } from '../cornice';
 import { disegnaCampi, disegnaFissi, type ContestoModulo, type Layout } from '../layout';
 import lay1NI1 from '../layout/1N-I-1.json';
@@ -35,9 +37,12 @@ function progressivo(r: FixedRecord): number {
 /** Pagina di un modello: modulo fisso + valori. */
 export function paginaModello(nome: string, ctx: ContestoModulo, cornice: DatiCornice): Pagina {
   const p = new Pagina(FORMATO.modello.larghezza, FORMATO.modello.altezza);
+  p.modello2N = nome.startsWith('2N');
+  // 2N: modulo fisso copiato da Docfa (NCV081), identico al loro; 1N: modulo ridisegnato dal layout
+  if (MODULO_2N[nome]) p.moduloGrezzo = decodificaBase64(MODULO_2N[nome]);
   intestazione(p, cornice);
   const layout = LAYOUT[nome];
-  disegnaFissi(p, layout);
+  if (!p.moduloGrezzo) disegnaFissi(p, layout);
   disegnaCampi(p, layout, ctx);
   return p;
 }

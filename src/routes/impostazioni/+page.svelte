@@ -5,6 +5,7 @@
   import { scegliCartella, scegliFile, conferma, apriUrl } from '$lib/piattaforma';
   import { PROGETTO } from '$lib/progetto';
   import { version } from '../../../package.json';
+  import { VERSIONE_APP } from '$lib/versione';
   import Campo from '$lib/ui/Campo.svelte';
   import Icona from '$lib/ui/Icona.svelte';
   import Intestazione from '$lib/ui/Intestazione.svelte';
@@ -167,7 +168,7 @@
       {/if}
     </Sezione>
 
-    <Sezione titolo="Informazioni" descrizione="{PROGETTO.nome} {version}: software libero e gratuito ({PROGETTO.licenza}).">
+    <Sezione titolo="Informazioni" descrizione="{PROGETTO.nome} {version}{VERSIONE_APP.rilascio ? ` del ${VERSIONE_APP.rilascio}` : ''}: software libero e gratuito ({PROGETTO.licenza}).">
       <div class="space-y-3 text-sm">
         <p>
           Il programma è fornito <strong>così com'è, senza alcuna garanzia</strong>, nemmeno implicita di commerciabilità o

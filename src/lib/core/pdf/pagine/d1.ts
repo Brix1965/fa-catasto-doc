@@ -233,7 +233,11 @@ export function pagineD1(pratica: Pratica, compilato: Compilato, cornice: DatiCo
   stampa(544.252, 240, v1('uiu_variate'));
   stampa(396.85, 235, v1('derivate_bcnc'));
   stampa(544.252, 235, v1('uiu_costituite'));
-  const causali = CAUSALI_STAMPA.filter(([c]) => pratica.tipiVariazione[c as keyof Pratica['tipiVariazione']]).map(([, d]) => d);
+  // variazione della destinazione: Docfa stampa «Variazione della destinazione (da D/6 a BANCA)» (pratica BPM)
+  const causali = CAUSALI_STAMPA.filter(([c]) => pratica.tipiVariazione[c as keyof Pratica['tipiVariazione']]).map(([c, d]) =>
+    c === 'VDE' && (pratica.variazioneDa?.trim() || pratica.variazioneA?.trim())
+      ? `Variazione della destinazione (da ${pratica.variazioneDa?.trim() ?? ''} a ${pratica.variazioneA?.trim() ?? ''})`
+      : d);
   const testoCausali = causali.length ? causali.join(', ') : pratica.causale === 'NC' ? 'accatastamento' : '';
   const righeCausali = aCapo(testoCausali, 110);
   stampa(85.039, 230, ' ' + (righeCausali[0] ?? ''));

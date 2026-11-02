@@ -140,7 +140,8 @@ export function ricalcola2N(d: Mod2N, opz: { attribuitaDaTotale?: boolean } = {}
   n.rendita_catastale = rc;
   // «c.t.» = cifra tonda: nell'unico campione reale (NCV081) coincide con la rendita
   n.rendita_catastale_tonda = rc;
-  if (!num(n.anno_epoca_censuaria)) n.anno_epoca_censuaria = 1988;
+  // l'anno di riferimento all'epoca censuaria Docfa lo scrive sempre 0000 (NCV081, pratica BPM)
+  delete n.anno_epoca_censuaria;
   return JSON.stringify(n) !== prima;
 }
 

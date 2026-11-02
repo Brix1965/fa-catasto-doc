@@ -39,6 +39,8 @@ function tipologiaStampa(tipo: string, tipologiaMetrica: string): string {
 
 export function pagineDatiMetrici(pratica: Pratica, cornice: DatiCornice): Pagina[] {
   const pagine: Pagina[] = [];
+  // senza 1N parte II (es. solo unità D/E) Docfa non stampa la pagina dei dati metrici (pratica BPM)
+  if (!pratica.unita.some((u) => u.mod1NParteII)) return pagine;
   const nuovaPagina = (): Pagina => {
     const p = new Pagina(FORMATO.datiMetrici.larghezza, FORMATO.datiMetrici.altezza);
     intestazione(p, cornice);

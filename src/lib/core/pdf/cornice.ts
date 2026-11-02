@@ -30,11 +30,16 @@ export const FORMATO = {
 } as const;
 
 export function intestazione(p: Pagina, d: DatiCornice): void {
-  p.testo(368.504, 793.701, 'R', 9, 'Ufficio Provinciale di');
-  p.testo(447.874, 793.701, 'R', 9, ': ');
+  // nelle pagine 2N le diciture sono già nel modulo copiato da Docfa: si scrivono solo i valori
+  if (!p.moduloGrezzo) {
+    p.testo(368.504, 793.701, 'R', 9, 'Ufficio Provinciale di');
+    p.testo(447.874, 793.701, 'R', 9, ': ');
+  }
   p.testo(453.543, 793.701, 'B', 9, d.ufficio);
-  p.testo(408.189, 782.362, 'R', 9, 'Comune di ');
-  p.testo(447.874, 782.362, 'R', 9, ': ');
+  if (!p.moduloGrezzo) {
+    p.testo(408.189, 782.362, 'R', 9, 'Comune di ');
+    p.testo(447.874, 782.362, 'R', 9, ': ');
+  }
   p.testo(453.543, 782.362, 'B', 9, d.comune);
 }
 
@@ -56,7 +61,7 @@ export function pieDiPagina(p: Pagina, d: DatiCornice, numero: number, totale: n
   if (conCodiceFiscale) p.testo(419.528, 22.677, 'R', 9, d.codiceFiscale);
   p.testo(510.236, 22.677, 'R', 9, `${z(t.getDate())}/${z(t.getMonth() + 1)}/${z(t.getFullYear() % 100)}:`);
   p.testo(544.252, 22.677, 'R', 9, `${z(t.getHours())}.${z(t.getMinutes())}.${z(t.getSeconds())}`);
-  p.testo(481.89, 11.339, 'R', 9, 'pag. ');
+  if (!p.moduloGrezzo) p.testo(481.89, 11.339, 'R', 9, 'pag. ');
   p.testo(488.976, 11.339, 'R', 9, String(numero).padStart(9, ' '));
   p.testo(524.409, 11.339, 'R', 9, 'di');
   p.testo(531.496, 11.339, 'R', 9, String(totale).padStart(9, ' '));

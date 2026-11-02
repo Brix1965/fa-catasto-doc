@@ -203,7 +203,7 @@ MAPPATURE['2N-I-1'] = [
     T('anno_ristrutturazione', 241.795, 623.622, 4, rec='M'),
     # C | azienda
     T('descrizione_azienda', 34.016, 566.929, rec='M', fmt='an', righe=2, passo=22.7, larghezza=54),
-    T('numero_fabbricati', 113.386, 524.409, 2, rec='M'), T('numero_unita_ordinarie', 113.386, 510.203, 3, rec='M'),  # seconda stimata
+    T('numero_fabbricati', 113.386, 524.409, 2, rec='M'), T('numero_unita_ordinarie', 107.717, 510.203, 3, rec='M'),  # misurata sulla pratica BPM (02/11/2026)
     # D | collegamenti con infrastrutture
     F('coll_ferroviario', 0, rec='M'), F('coll_autostrada', 1, rec='M'), T('coll_distanza_autostrada', 198.425, 413.858, 2, rec='M'),
     F('coll_svincolo', 2, rec='M'), F('coll_strade_principali', 3, rec='M'), T('coll_distanza_strade', 198.425, 385.503, 2, rec='M'),  # stimata
@@ -213,7 +213,7 @@ MAPPATURE['2N-I-1'] = [
     F('imp_depurazione', 7, rec='M'), F('imp_depurazione_azienda', 8, rec='M'), F('imp_depurazione_consortile', 9, rec='M'),
     F('imp_abbattimento_fumi', 10, rec='M'), F('imp_antincendio', 11, rec='M'), F('imp_uscite_sicurezza', 12, rec='M'),
     F('imp_scale_emergenza', 13, rec='M'), F('imp_antintrusione', 14, rec='M'),
-    T('imp_antintrusione_descrizione', 144.0, 161.603, rec='M', fmt='an'),  # stimata
+    T('imp_antintrusione_descrizione', 155.906, 161.603, rec='M', fmt='an'),  # misurata sulla pratica BPM
     F('imp_altro_flag', 15, rec='M'), T('imp_altro_testo', 76.535, 141.703, rec='M', fmt='an', righe=2, passo=17.0, larghezza=40, xRighe=73.0),  # stimata (campi extra, vedi layout.ts)
     # F | sistemazioni esterne (record N)
     T('pav_piazzali', 348.0, 663.303, rec='N', fmt='an', righe=2, passo=17.0, larghezza=40),  # stimata
@@ -279,7 +279,7 @@ MAPPATURE['2N-II'] = [
     # I | altri elementi costruttivi
     T('solai', 428.031, 510.236, rec='P', fmt='an'), T('tamponature', 428.031, 496.063, rec='P', fmt='an'),
     T('finestre_porte', 428.031, 481.89, rec='P', fmt='an'), T('pavimentazione', 428.031, 467.717, rec='P', fmt='an'),
-    T('rifinitura_esterna', 428.031, 453.543, rec='P', fmt='an'), T('servizi_igienici', 440.0, 439.303, rec='P', fmt='an'),  # stimata
+    T('rifinitura_esterna', 428.031, 453.543, rec='P', fmt='an'), T('servizi_igienici', 428.031, 439.303, 20, rec='P', fmt='intoan'),  # BPM: numero allineato su 20
     # L | locali a peculiari destinazioni
     T('sup_ricovero_operai', 430.0, 385.503, 4, rec='P'), T('sup_mensa', 530.079, 385.512, 4, rec='P'),  # prima stimata
     T('sup_pronto_soccorso', 430.0, 371.303, 4, rec='P'), T('sup_locali_ritrovo', 530.079, 371.303, 4, rec='P'),  # stimate

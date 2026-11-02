@@ -36,6 +36,10 @@ export class Pagina {
   private ops: string[] = [];
   readonly larghezza: number;
   readonly altezza: number;
+  /** pagina del modello 2N: Docfa non le dà /CropBox né /Rotate (verificato su NCV081 e sulla pratica BPM) */
+  modello2N = false;
+  /** modulo fisso copiato da Docfa (content stream grezzo), disegnato prima dei valori */
+  moduloGrezzo?: Uint8Array;
   private xobjectUsati = new Set<string>();
 
   constructor(larghezza: number, altezza: number) {
@@ -84,6 +88,13 @@ export class Pagina {
 
   /** Content stream codificato (Windows-1252: coincide con WinAnsiEncoding per i caratteri usati). */
   bytes(): Uint8Array {
-    return encode1252(this.ops.join('\n') + '\n');
+    const valori = encode1252(this.ops.join('\n') + '\n');
+    if (!this.moduloGrezzo) return valori;
+    // il modulo di Docfa cambia lo stato grafico (es. «0.1 w»): lo si racchiude in q … Q
+    const apri = encode1252('q\n'), chiudi = encode1252('\nQ\n');
+    const out = new Uint8Array(apri.length + this.moduloGrezzo.length + chiudi.length + valori.length);
+    let o = 0;
+    for (const b of [apri, this.moduloGrezzo, chiudi, valori]) { out.set(b, o); o += b.length; }
+    return out;
   }
 }

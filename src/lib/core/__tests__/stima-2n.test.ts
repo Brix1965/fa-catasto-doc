@@ -15,7 +15,7 @@ describe('2N: stima e rendita', () => {
       stima1_corpo: '001', stima1_tipologia: 'C', stima1_destinazione: 'CAMERE', stima1_consistenza: 454, stima1_valore_unitario: 90000, stima1_valore: 4086000,
       stima2_corpo: '002', stima2_tipologia: 'C', stima2_destinazione: 'MENSA ETC', stima2_consistenza: 395, stima2_valore_unitario: 60000, stima2_valore: 237000,
     }];
-    d.recordN = { valore_stima_comparativa: 432300000, valutazione_attribuita: 432300000, saggio_intero: 0, saggio_decimale: 200, rendita_catastale: 8646000, rendita_catastale_tonda: 8646000, anno_epoca_censuaria: 1988 };
+    d.recordN = { valore_stima_comparativa: 432300000, valutazione_attribuita: 432300000, saggio_intero: 0, saggio_decimale: 200, rendita_catastale: 8646000, rendita_catastale_tonda: 8646000 };
     const r = leggiRighe(d);
     expect(r[1]).toMatchObject({ consistenza: 395, unitario: 600, valore: 237000 });
     expect(leggiStima(d)).toMatchObject({ comparativa: 4323000, attribuita: 4323000, saggio: 0.02, rendita: 86460 });
