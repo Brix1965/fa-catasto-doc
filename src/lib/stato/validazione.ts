@@ -3,6 +3,7 @@
  * (help in linea "Elenco errori formali", schermi del modello D e programma di controllo NZC000).
  * Gli errori bloccano l'esportazione, gli avvisi no. Ogni problema indica lo schermo in cui si corregge.
  */
+import { controlli2N } from '$lib/core/stima-2n';
 import { poligoniPlanimetria, schedePlanimetria, type Intestato, type Pratica, type UnitaImmobiliare } from '$lib/core/model';
 import { causaliBarrate } from '$lib/core/compile';
 import {
@@ -368,6 +369,13 @@ export function controllaPratica(p: Pratica): EsitoControlli {
     }
     if (isSpeciale(u) && u.mod1NParteII) err('modelli', `${nome}: modello 1N per unità a destinazione speciale`, 'G0061', i);
     if (isOrdinaria(u) && u.mod2N) err('modelli', `${nome}: modello 2N per unità a destinazione ordinaria`, 'G0060', i);
+    if (isSpeciale(u) && u.mod2N && req === 'completo') {
+      // quadro H del 2N: Va × saggio = rendita, e la stessa rendita nel quadro U
+      for (const t of controlli2N(u.mod2N, u.classamento?.rendita)) {
+        const grave = t.startsWith('rendita');
+        (grave ? err : avv)('modelli', `${nome}: 2N parte I, stima e rendita: ${t}`, undefined, i);
+      }
+    }
     const m = u.mod1NParteII;
     if (m && isOrdinaria(u)) {
       if (u.spessoreMuri === undefined) avv('modelli', `${nome}: 1N parte II, quadro A: indicare lo spessore dei muri`, undefined, i);

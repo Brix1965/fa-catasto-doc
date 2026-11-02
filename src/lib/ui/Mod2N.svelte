@@ -1,5 +1,6 @@
 <script lang="ts" module>
   import type { UnitaImmobiliare } from '$lib/core/model';
+  import { controlli2N } from '$lib/core/stima-2n';
   import type { VoceQuadro } from './SchedeQuadri.svelte';
   const pieno = (o: Record<string, unknown> | undefined) => !!o && Object.values(o).some((v) => v !== '' && v !== 0 && v !== undefined);
   /** Quadri del modello 2N (parte I e, per ogni corpo di fabbrica, parte II). */
@@ -9,8 +10,7 @@
       { id: 'm1', sigla: 'I-A', titolo: "Riferimenti e azienda", obbligatorio: true, completo: !!d && (pieno({ a: d.recordM.ceu_foglio }) || pieno({ a: d.recordM.ct_foglio })) && !!d.recordM.anno_costruzione },
       { id: 'm2', sigla: 'I-B', titolo: 'Collegamenti e impianti', completo: pieno(d?.recordM) },
       { id: 'n1', sigla: 'I-C', titolo: 'Sistemazioni esterne e dati metrici', obbligatorio: true, completo: !!d && Number(d.recordN.area_totale_lorda) > 0 },
-      { id: 'n2', sigla: 'I-D', titolo: 'Stima e rendita', obbligatorio: true, completo: !!d && Number(d.recordN.rendita_catastale) > 0 },
-      { id: 'o', sigla: 'I-E', titolo: 'Stima comparativa', completo: !!d && (d.stimaComparativa.some((s) => pieno(s)) || !!d.altroTipoStima?.some(Boolean)) },
+      { id: 'n2', sigla: 'I-H', titolo: 'Stima e rendita', obbligatorio: true, completo: !!d && Number(d.recordN.rendita_catastale) > 0 && !controlli2N(d).length },
     ];
     (d?.corpi ?? []).forEach((c, k) => {
       q.push({ id: `p${k}`, sigla: `II-${k + 1}`, titolo: `Corpo ${k + 1}: caratteristiche`, obbligatorio: true, completo: pieno(c.recordP) });
@@ -26,18 +26,20 @@
   import { campiRecord } from '$lib/stato/mod1n-sezioni';
   import CampoRecord from './CampoRecord.svelte';
   import Icona from './Icona.svelte';
+  import Stima2N from './Stima2N.svelte';
 
   let { unita = $bindable(), quadro }: { unita: UnitaImmobiliare; quadro: string } = $props();
   const d = $derived(unita.mod2N!);
-  const M1 = campiRecord('M', (id) => /^(coll_|imp_|pav_|categoria_alfabetica)/.test(id));
-  const M2 = campiRecord('M', (id) => !/^(coll_|imp_|pav_)/.test(id));
-  const N1 = campiRecord('N', (id) => /^(valore_|valutazione|saggio|rendita|anno_epoca)/.test(id));
-  const N2 = campiRecord('N', (id) => !/^(valore_|valutazione|saggio|rendita|anno_epoca)/.test(id));
-  const O = campiRecord('O', (id) => id === 'tipo_stima');
+  // campiRecord(rec, escludi): la funzione indica i campi da TOGLIERE
+  /** riferimenti, anni, azienda */
+  const M_RIF = campiRecord('M', (id) => /^(coll_|imp_|pav_|categoria_alfabetica)/.test(id));
+  /** collegamenti, impianti, pavimentazioni */
+  const M_COLL = campiRecord('M', (id) => !/^(coll_|imp_|pav_)/.test(id));
+  /** sistemazioni esterne e dati metrici (gli importi sono nello schermo «Stima e rendita») */
+  const N_METRICI = campiRecord('N', (id) => /^(valore_|valutazione|saggio|rendita|anno_epoca)/.test(id));
   const P = campiRecord('P');
   const Q = campiRecord('Q');
   const R = campiRecord('R');
-  function aggiungiStima(): void { if (d.stimaComparativa.length < 3) d.stimaComparativa.push({}); }
   function aggiungiCorpo(): void { d.corpi.push({ recordP: {}, recordQ: {}, recordR: {} }); }
   const indiceCorpo = $derived(Number(quadro.slice(1)));
 </script>
@@ -51,24 +53,13 @@
 {/snippet}
 
 {#if quadro === 'm1'}
-  {@render griglia('M', M2, d.recordM)}
+  {@render griglia('M', M_RIF, d.recordM)}
 {:else if quadro === 'm2'}
-  {@render griglia('M', M1, d.recordM)}
+  {@render griglia('M', M_COLL, d.recordM)}
 {:else if quadro === 'n1'}
-  {@render griglia('N', N2, d.recordN)}
-{:else if quadro === 'n2'}
-  <p class="mb-3 text-xs text-fg-muted">Importi in centesimi di euro, come nei record del documento.</p>
-  {@render griglia('N', N1, d.recordN)}
-{:else if quadro === 'o'}
-  <div class="space-y-4">
-    {#each d.stimaComparativa as s, k (k)}
-      <div class="rounded-md border border-line p-3">
-        <div class="mb-2 flex items-center justify-between"><span class="text-xs font-semibold text-fg-muted">Prospetto {k + 1}</span><button type="button" class="btn btn-piccolo btn-pericolo" onclick={() => d.stimaComparativa.splice(k, 1)}><Icona nome="cestino" /></button></div>
-        {@render griglia('O', O, s)}
-      </div>
-    {/each}
-    <button type="button" class="btn btn-piccolo" onclick={aggiungiStima} disabled={d.stimaComparativa.length >= 3}><Icona nome="piu" /> Prospetto di stima</button>
-  </div>
+  {@render griglia('N', N_METRICI, d.recordN)}
+{:else if quadro === 'n2' || quadro === 'o'}
+  <Stima2N bind:unita />
 {:else if quadro.startsWith('p') && d.corpi[indiceCorpo]}
   {@render griglia('P', P, d.corpi[indiceCorpo].recordP)}
 {:else if quadro.startsWith('q') && d.corpi[indiceCorpo]}

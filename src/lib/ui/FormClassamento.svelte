@@ -9,6 +9,7 @@
   import { CATEGORIE, DESCRIZIONE_CATEGORIA } from '$lib/core/regole-docfa';
   import { DESTINAZIONI_DE } from '$lib/core/dati/docfa-tabelle.generated';
   import { classamentoRichiesto } from '$lib/stato/validazione';
+  import { leggiStima } from '$lib/core/stima-2n';
   import { impostazioni } from '$lib/stato/impostazioni.svelte';
   import Campo from './Campo.svelte';
 
@@ -33,8 +34,12 @@
   /** id univoci delle liste di suggerimenti (più moduli nella stessa pagina) */
   const uid = Math.random().toString(36).slice(2, 8);
 
+  /** per D ed E la rendita è quella del modello 2N parte I (Va × saggio) */
+  const rendita2N = $derived(gruppoDE && unita.mod2N ? leggiStima(unita.mod2N).rendita || null : null);
+
   $effect(() => {
     if (renditaCalcolata !== null && classamento.rendita !== renditaCalcolata) classamento.rendita = renditaCalcolata;
+    if (rendita2N !== null && classamento.rendita !== rendita2N) classamento.rendita = rendita2N;
   });
 
   function categoria(v: string): void {
@@ -88,8 +93,8 @@
       <Campo etichetta="n° Mod. 2N II parte" aiuto="corpi di fabbrica"><input type="number" class="campo" value={nCorpi} disabled /></Campo>
     {/if}
     {#if richiesto === 'completo' && !gruppoF}
-      <Campo etichetta="Rendita (€)" aiuto={tariffa ? `tariffa ${tariffa.lire.toLocaleString('it-IT')} lire (${(tariffa.lire / LIRE_PER_EURO).toFixed(2)} €) × ${consistenzaNumero}` : gruppoDE ? 'dal modello 2N parte I' : conTariffe ? 'zona, categoria e classe non presenti nelle tariffe del comune' : 'tariffe non caricate: rendita da indicare a mano'}>
-        <input type="number" class="campo" step="0.01" min="0" bind:value={classamento.rendita} disabled={renditaCalcolata !== null || (ordinaria && conTariffe)} />
+      <Campo etichetta="Rendita (€)" aiuto={tariffa ? `tariffa ${tariffa.lire.toLocaleString('it-IT')} lire (${(tariffa.lire / LIRE_PER_EURO).toFixed(2)} €) × ${consistenzaNumero}` : gruppoDE ? (rendita2N !== null ? 'dal modello 2N parte I (Va × saggio)' : 'si calcola nel modello 2N parte I, «Stima e rendita»') : conTariffe ? 'zona, categoria e classe non presenti nelle tariffe del comune' : 'tariffe non caricate: rendita da indicare a mano'}>
+        <input type="number" class="campo" step="0.01" min="0" bind:value={classamento.rendita} disabled={renditaCalcolata !== null || rendita2N !== null || (ordinaria && conTariffe)} />
       </Campo>
     {/if}
   </div>

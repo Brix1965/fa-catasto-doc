@@ -436,8 +436,10 @@ export const REC_O = rec('O', '2N parte I - stima', [
   ...Array.from({ length: 6 }, (_, i) => {
     const b = 19 + i * 52;
     return [AN(`stima${i + 1}_corpo`, b, b + 2), AN(`stima${i + 1}_tipologia`, b + 3, b + 10), AN(`stima${i + 1}_destinazione`, b + 11, b + 30),
-      // importi in euro: valore unitario 7 cifre in centesimi, valore complessivo 8 cifre in centesimi
-      N(`stima${i + 1}_consistenza`, b + 31, b + 36), N(`stima${i + 1}_valore_unitario`, b + 37, b + 43, 'centesimi di euro'), N(`stima${i + 1}_valore`, b + 44, b + 51, 'centesimi di euro')];
+      // importi, verificati su NCV081: valore unitario 7 cifre in centesimi di euro (0060000 = 600,00 €/m²),
+      // valore della riga 8 cifre in euro interi (395 m² × 600 = 00237000; 4.086.000 + 237.000 = 4.323.000 €,
+      // cioè 432300000 centesimi nel record N)
+      N(`stima${i + 1}_consistenza`, b + 31, b + 36), N(`stima${i + 1}_valore_unitario`, b + 37, b + 43, 'centesimi di euro'), N(`stima${i + 1}_valore`, b + 44, b + 51, 'euro')];
   }).flat(),
 ]);
 /** Ridefinizione del record O per "altro tipo di stima" (testo libero 19-318). */
