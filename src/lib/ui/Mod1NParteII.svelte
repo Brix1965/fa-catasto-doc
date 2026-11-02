@@ -25,6 +25,8 @@
   import { lordeAutomatiche } from '$lib/core/superfici';
   import Campo from './Campo.svelte';
   import Icona from './Icona.svelte';
+  import VaniDaDisegno from './VaniDaDisegno.svelte';
+  import { schedeConDxf } from '$lib/core/vani/esegui';
 
   let { unita = $bindable(), pratica, quadro }: { unita: UnitaImmobiliare; pratica: Pratica; quadro: string } = $props();
   const m = $derived(unita.mod1NParteII as Mod1NParteII);
@@ -35,6 +37,9 @@
   const destinazioni = $derived(DESTINAZIONI_1N[categoria] ?? []);
   const sottoMetro50 = $derived(unita.ambienti.filter((a) => a.altezzaMin === 149).reduce((s, a) => s + a.superficie, 0));
   const ante1942 = $derived(!!m.annoCostruzione && m.annoCostruzione < 1942);
+  /** proposta dei vani dal DXF (sperimentale) */
+  let propostaAperta = $state(false);
+  const conDxf = $derived(schedeConDxf(unita.planimetria).length > 0);
 
   // destinazione d'uso: se la categoria ne ha una sola Docfa la imposta senza permetterne la modifica
   $effect(() => {
@@ -123,6 +128,12 @@
     </div>
   {:else}
     <div class="space-y-5">
+      <div class="flex flex-wrap items-center gap-3 rounded-md border border-dashed border-line px-3 py-2 text-sm">
+        <button type="button" class="btn btn-piccolo" onclick={() => (propostaAperta = true)} disabled={!conDxf} title={conDxf ? undefined : 'Serve la planimetria in DXF (Elaborati grafici)'}><Icona nome="calcolo" /> Proponi i vani dalla planimetria</button>
+        <span class="rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">sperimentale</span>
+        <span class="text-xs text-fg-muted">{m.propostaVani ? `Proposta confermata il ${new Date(m.propostaVani.confermata).toLocaleString('it-IT', { timeZone: 'Europe/Rome', dateStyle: 'short', timeStyle: 'short' })}: i valori qui sotto si possono sempre correggere.` : conDxf ? 'Numero e superfici dei vani letti dal DXF: li controlli e li confermi tu.' : 'Serve la planimetria in DXF.'}</span>
+      </div>
+      <VaniDaDisegno bind:unita bind:aperto={propostaAperta} {auto} />
       <div>
         <h3 class="mb-2 text-xs font-semibold obbligatorio">1) Vani principali</h3>
         <div class="grid gap-4 sm:grid-cols-4">

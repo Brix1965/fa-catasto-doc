@@ -355,6 +355,33 @@ export interface Mod1NParteII {
   infissi: Record<string, boolean>;
   destinazioneUso: string;
   osservazioni?: string;
+  /**
+   * vani riconosciuti dalla planimetria e confermati dal tecnico (modulo sperimentale): servono a riaprire la
+   * proposta con le scelte fatte; i dati del quadro C restano quelli dei campi qui sopra, modificabili a mano
+   */
+  propostaVani?: PropostaVani;
+}
+
+/** Vano proposto dal riconoscimento automatico, con le scelte del tecnico. */
+export interface VanoProposto {
+  id: number;
+  tipo: 'principale' | 'bagno' | 'diretto' | 'indiretto' | 'verificare' | 'escluso';
+  tipoProposto: VanoProposto['tipo'];
+  superficie: number;
+  m2: number;
+  testi: string[];
+  altezze: number[];
+  contorni: [number, number][][];
+  centro: [number, number];
+  scala?: boolean;
+  nota?: string;
+}
+
+export interface PropostaVani {
+  /** ISO 8601 della conferma */
+  confermata: string;
+  /** una voce per scheda della planimetria (piani su più fogli) */
+  schede: { vani: VanoProposto[] }[];
 }
 
 export interface UnitaImmobiliare {

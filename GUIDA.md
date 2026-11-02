@@ -83,6 +83,9 @@ far sbagliare meno il tecnico.
 - **Tecnici memorizzati** (fino a 20) e riproposti nei documenti successivi.
 - **Nuova unità precompilata** con foglio, particella, indirizzo e piano della precedente.
 - **Copia del modello 1N parte II** su più unità della stessa categoria in un colpo solo.
+- **Vani proposti dalla planimetria** (sperimentale): numero e superfici di vani principali, bagni e accessori
+  del quadro C del modello 1N parte II letti dal DXF, da controllare e confermare. Vedi
+  [Vani dalla planimetria](#vani-dalla-planimetria-sperimentale).
 - **Causali incompatibili disattivate**, con il motivo.
 - **Indirizzo del dichiarante sistemato in automatico**: accentate, apostrofi tipografici e «°» vengono
   convertiti nei caratteri ammessi da Docfa.
@@ -211,6 +214,86 @@ e può avere più schede.
 - **2N**: per le unità a destinazione speciale e particolare (gruppi D ed E).
 
 Nell'editor «OK (Ctrl+O)» porta al prossimo quadro obbligatorio ancora da compilare.
+
+### Vani dalla planimetria (sperimentale)
+
+> **Attenzione: questo modulo è sperimentale.** Il riconoscimento dei vani può sbagliare. I dati che inserisce
+> sono **solo una proposta**: restano tutti modificabili dal professionista, prima e dopo la conferma, e la
+> responsabilità di quanto dichiarato resta del tecnico che firma. Controllali sempre sulla planimetria.
+
+**Dove si trova.** Modello 1N parte II dell'unità → quadro C → pulsante **«Proponi i vani dalla planimetria»**.
+Serve che l'unità abbia almeno una planimetria caricata da DXF. Il calcolo richiede qualche secondo.
+
+**Cosa si vede.** Una finestra con la planimetria e ogni vano colorato secondo il tipo, con numero e m²:
+
+| Colore | Tipo |
+|---|---|
+| rosso | vano principale |
+| blu | bagno / wc |
+| arancio | accessorio a servizio diretto |
+| verde | accessorio a servizio indiretto |
+| grigio | escluso (non conta) |
+
+Il bordo tratteggiato segnala un locale senza nome, proposto come accessorio diretto **da verificare**.
+
+- **Cambiare tipo**: clic sul vano nel disegno e scelta dal menu (principale, bagno, diretto, indiretto, escluso),
+  oppure dal menu a tendina nella tabella sotto il disegno.
+- **Correggere la superficie**: nella tabella ogni vano ha i suoi m², modificabili. «Ripristina proposta»
+  rimette i valori calcolati.
+- In fondo ci sono i totali, la consistenza indicativa e, per confronto, i valori già presenti nel quadro C.
+- **«Conferma e inserisci nel quadro C»** scrive numero e superficie di vani principali, bagni, accessori
+  diretti e indiretti. **«Chiudi senza inserire»** non cambia nulla.
+- Dopo la conferma i campi del quadro C restano normali campi modificabili. Riaprendo la finestra si
+  ritrovano le scelte fatte; «Ricalcola» rilegge il disegno.
+
+**Come conta.**
+- Superficie utile netta di ogni vano, arrotondata al **m² intero** (da 0,5 per eccesso, sotto per difetto,
+  come vuole Docfa); i totali sono la somma dei vani già arrotondati.
+- Il tipo viene dal **nome scritto nel vano**. Dentro i poligoni B e C i locali sono accessori indiretti.
+- Le zone dentro i poligoni G e quelle barrate con una croce (X) non sono vani.
+- Una scala interna si conta una volta sola, intera, al piano dell'unità.
+- Due locali uniti da un'apertura più grande di 4 m² (larghezza × altezza) contano come un vano solo.
+- Un locale chiuso senza nome più grande di 1 m² (cabina armadi, ripostiglio…) non viene scartato: è proposto
+  come accessorio diretto da verificare.
+
+#### Come preparare il DXF perché il riconoscimento sbagli meno
+
+Il programma ricostruisce i locali dalle linee dei muri. Più il disegno è pulito e completo, meno correzioni
+servono. La regola più importante: **scrivi il nome dentro ogni locale.** Con tutte le destinazioni scritte il
+modulo fa molti meno errori; senza nome deve indovinare.
+
+1. **Poligoni**: come sempre, sul layer `DOCFA_POLIGONI` (A, B, C, G…). Servono anche a capire dove sta l'unità:
+   senza poligoni il riconoscimento non parte.
+2. **Muri**: linee o polilinee a **tratto continuo**, con le due facce del muro disegnate. I tratti si devono
+   toccare negli spigoli; i piccoli distacchi fino a 20 cm vengono chiusi da soli, ma è meglio non averne.
+   Non spezzare il contorno del muro con linee tratteggiate.
+3. **Porte e passaggi**: due modi riconosciuti, usane uno.
+   - il muro interrotto fra le due **spalle** (le due spalle uguali e parallele, luce fra 50 cm e 2,60 m);
+   - oppure un **segmento tratteggiato** nel vuoto del muro, allineato al muro, con gli estremi sulle spalle
+     (lunghezza fra 50 cm e 1,80 m).
+   Gli archi di apertura delle porte possono restare: non chiudono i locali.
+4. **Nomi dei locali**: un testo (TEXT o MTEXT) **dentro** ogni locale. Nomi riconosciuti:
+   - vani principali: camera, letto, soggiorno, pranzo, salotto, sala, studio, cucina, tinello, vano, stanza;
+   - bagni: bagno, wc, w.c., servizio, doccia;
+   - accessori diretti: ingresso, corridoio, disimpegno (disimp., dis.), ripostiglio (rip.), guardaroba,
+     cabina armadi, antibagno, cottura, lavanderia, dispensa, veranda, loggia chiusa, scala, vano scala;
+   - accessori indiretti: cantina, soffitta, sottotetto, locale tecnico, centrale termica, lavatoio, sgombero,
+     deposito, garage, autorimessa, magazzino.
+   Maiuscole e minuscole non contano; vale anche l'abbreviazione col punto. Un locale con un nome diverso
+   viene proposto «da verificare».
+5. **Altezze**: un testo nel locale come `h260`, `h=2,40`, `hmin 220` (cm o m). Le zone di altezza diversa dello
+   stesso locale si separano con una **linea tratteggiata**: non divide il vano (se però i due lati hanno
+   ciascuno il proprio nome, la linea tratteggiata è letta come porta e i vani restano due).
+   I retini (HATCH) vengono ignorati.
+6. **Zone che non sono vani** (cavedi, vuoti, parti di altre unità): poligono G oppure una croce (X) disegnata
+   nella zona con due linee continue che si incrociano a metà. I locali più stretti di 60 cm sono presi per
+   muri e non contano.
+7. **Scale interne**: disegna i gradini (almeno 8 alzate uguali) e scrivi «scala» nel vano scala; viene contata
+   una volta sola, al piano dell'unità.
+8. Una scheda per piano o più piani nella stessa scheda vanno bene entrambi: il riconoscimento lavora su tutte le
+   schede DXF dell'unità.
+
+Anche con un DXF ben preparato, **controlla sempre** la proposta prima di confermarla.
 
 ### Classamento
 Per ogni unità ordinaria, **classamento proposto** e **classamento automatico** affiancati: si sceglie quale

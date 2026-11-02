@@ -24,6 +24,11 @@ interface EntitaBase {
   colore: number;
   /** spessore di penna in unità del disegno (thickness 39 o larghezza costante 43); 0 = linea sottile */
   spessore: number;
+  /**
+   * tipo di linea risolto, in maiuscolo (gruppo 6; BYLAYER → quello del layer, BYBLOCK → quello dell'INSERT):
+   * «CONTINUOUS» o vuoto = continua; altri nomi (NASCOSTA, DASHED, TRATTEGGIO…) = tratteggiata
+   */
+  tipoLinea?: string;
 }
 
 export type Entita =
@@ -48,6 +53,8 @@ export type Entita =
 export interface LayerDxf {
   nome: string;
   colore: number;
+  /** tipo di linea del layer (gruppo 6), in maiuscolo */
+  tipoLinea?: string;
   spento: boolean;
   congelato: boolean;
 }
@@ -257,6 +264,7 @@ interface Contesto {
   /** layer e colore ereditati dall'INSERT per le entità sul layer 0 / BYBLOCK */
   layerPadre?: string;
   colorePadre?: number;
+  tipoLineaPadre?: string;
   profondita: number;
   nonGestiti: Record<string, number>;
 }
@@ -275,7 +283,9 @@ function interpreta(e: EntitaGrezza, t: Trasformazione | null, ctx: Contesto, ou
   if (num(e, 67, 0) === 1) return; // spazio carta
   const colore = risolviColore(e, layer, ctx);
   const k = scalaMedia(t);
-  const base: EntitaBase = { layer, colore, spessore: Math.abs(num(e, 39, 0)) * k };
+  const lt0 = (val(e, 6) ?? 'BYLAYER').trim().toUpperCase();
+  const tipoLinea = lt0 === 'BYLAYER' ? (ctx.layers[layer]?.tipoLinea ?? 'CONTINUOUS') : lt0 === 'BYBLOCK' ? (ctx.tipoLineaPadre ?? 'CONTINUOUS') : lt0;
+  const base: EntitaBase = { layer, colore, spessore: Math.abs(num(e, 39, 0)) * k, tipoLinea };
   const P = (cx: number, cy: number): Punto2 => applica(t, [num(e, cx), num(e, cy)]);
   const rotazione = (gradi: number): number => gradi + (t ? (t.rot * 180) / Math.PI : 0);
   switch (e.tipo) {
@@ -368,7 +378,7 @@ function interpreta(e: EntitaGrezza, t: Trasformazione | null, ctx: Contesto, ou
         for (let ci = 0; ci < colonne; ci++) {
           const l2: Trasformazione = { ...locale, tx: locale.tx + ci * dc * Math.cos(rot) - ri * dr * Math.sin(rot), ty: locale.ty + ci * dc * Math.sin(rot) + ri * dr * Math.cos(rot) };
           const comp = componi(t, l2, blocco.base);
-          const sotto: Contesto = { ...ctx, layerPadre: layer, colorePadre: colore, profondita: ctx.profondita + 1 };
+          const sotto: Contesto = { ...ctx, layerPadre: layer, colorePadre: colore, tipoLineaPadre: tipoLinea, profondita: ctx.profondita + 1 };
           for (const be of blocco.entita) interpreta(be, comp, sotto, out);
         }
       }
@@ -537,6 +547,7 @@ export function leggiDxf(testo: string): DxfLetto {
           if (x.codice === 2) { corrente.nome = x.valore.trim(); layers[corrente.nome] = corrente; }
           else if (x.codice === 70) corrente.congelato = (Number(x.valore) & 1) === 1;
           else if (x.codice === 62) { const c = Number(x.valore); corrente.spento = c < 0; corrente.colore = Math.abs(c); }
+          else if (x.codice === 6) corrente.tipoLinea = x.valore.trim().toUpperCase();
         }
       } else if (nome === 'BLOCKS') {
         for (; i < gruppi.length && !(gruppi[i].codice === 0 && gruppi[i].valore === 'ENDSEC'); ) {

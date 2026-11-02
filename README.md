@@ -23,6 +23,9 @@ ufficiale dell'Agenzia.
 - **Tutti gli archivi provinciali insieme** invece di una provincia alla volta.
 - **Salvataggio automatico** a ogni modifica, navigazione libera tra gli schermi, pagina «Cosa manca».
 - **DXF corretto in automatico**, superfici e rendita calcolate, classamento proposto e automatico affiancati.
+- **Vani proposti dalla planimetria** (sperimentale): il quadro C del modello 1N parte II si compila dal DXF,
+  con conferma del tecnico e valori sempre modificabili. Come preparare il DXF è spiegato nella
+  [guida](GUIDA.md#vani-dalla-planimetria-sperimentale).
 
 Il dettaglio è nella [guida all'uso](GUIDA.md#perché-usarlo-al-posto-di-docfa).
 
