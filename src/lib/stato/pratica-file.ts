@@ -22,6 +22,8 @@ export interface MetaPratica {
   ultimaEsportazione?: string;
   /** nome del PDF esportato (es. NCV002.PDF) */
   pdfEsportato?: string;
+  /** nome della cartella creata dal programma per la pratica (es. «NCV002 BANCO BPM»); prima era l'id */
+  cartella?: string;
 }
 
 export interface FilePratica {
@@ -166,4 +168,13 @@ export function titoloProposto(p: Pratica): string {
   if (u?.identificativo.foglio) parti.push(`fg. ${u.identificativo.foglio} p.lla ${u.identificativo.numero}${u.identificativo.subalterno ? ` sub ${u.identificativo.subalterno}` : ''}`);
   if (!parti.length) parti.push(`Pratica ${p.progressivo}`);
   return parti.join(' – ');
+}
+
+/** Nome della cartella di una pratica: sigla del documento (NCVnnn/NCAnnn) e titolo, senza caratteri vietati. */
+export function nomeCartellaPratica(p: Pratica, titolo: string): string {
+  const sigla = `${p.tipoDocumento === 'accatastamento' ? 'NCA' : 'NCV'}${String(p.progressivo).padStart(3, '0')}`;
+  const t = titolo.replace(/[\\/:*?"<>|\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ').trim().replace(/[. ]+$/, '').slice(0, 60).trim();
+  // titolo predefinito («Variazione NCV002»): basta la sigla
+  if (!t || new RegExp(`^(variazione|accatastamento)\\s+${sigla}$`, 'i').test(t)) return sigla;
+  return t.toUpperCase().startsWith(sigla) ? t : `${sigla} ${t}`;
 }

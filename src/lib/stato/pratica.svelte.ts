@@ -5,7 +5,7 @@
  */
 import type { Pratica } from '$lib/core/model';
 import { elencoFile, leggiFile, scriviFile, unisci, creaCartella, eliminaFile, cartellaDi, nomeFile } from '$lib/piattaforma';
-import { deserializzaPratica, serializzaPratica, nuovoId, ESTENSIONE_PRATICA, type FilePratica, type MetaPratica } from './pratica-file';
+import { deserializzaPratica, serializzaPratica, nuovoId, nomeCartellaPratica, ESTENSIONE_PRATICA, type FilePratica, type MetaPratica } from './pratica-file';
 
 export interface VocePratica {
   percorso: string;
@@ -18,6 +18,15 @@ export interface VocePratica {
 }
 
 /** Elenca le pratiche nella cartella di lavoro (file *.catasto.json nella cartella o nelle sottocartelle di primo livello). */
+/** Se la cartella esiste già (es. un altro NCV001 importato), aggiunge « (2)», « (3)»… */
+async function nomeCartellaLibero(cartellaPratiche: string, nome: string): Promise<string> {
+  let presenti = new Set<string>();
+  try { presenti = new Set((await elencoFile(cartellaPratiche)).filter((v) => v.cartella).map((v) => v.nome.toLowerCase())); } catch { /* cartella nuova */ }
+  if (!presenti.has(nome.toLowerCase())) return nome;
+  for (let k = 2; k < 1000; k++) if (!presenti.has(`${nome} (${k})`.toLowerCase())) return `${nome} (${k})`;
+  return `${nome} ${Date.now()}`;
+}
+
 export async function elencoPratiche(cartella: string): Promise<VocePratica[]> {
   const out: VocePratica[] = [];
   const voci = await elencoFile(cartella);
@@ -67,8 +76,10 @@ class StatoPratica {
   async crea(cartellaPratiche: string, pratica: Pratica, titolo: string): Promise<string> {
     const id = nuovoId();
     const adesso = new Date().toISOString();
-    const meta: MetaPratica = { id, titolo, stato: 'bozza', creata: adesso, modificata: adesso };
-    const dir = unisci(cartellaPratiche, id);
+    // cartella col numero del documento, come in Docfa (es. «NCV002 BANCO BPM BOLOGNA»): in ordine di redazione
+    const nomeCartella = await nomeCartellaLibero(cartellaPratiche, nomeCartellaPratica(pratica, titolo));
+    const meta: MetaPratica = { id, titolo, stato: 'bozza', creata: adesso, modificata: adesso, cartella: nomeCartella };
+    const dir = unisci(cartellaPratiche, nomeCartella);
     await creaCartella(dir);
     const percorso = unisci(dir, `${id}${ESTENSIONE_PRATICA}`);
     const f: FilePratica = { formato: 'fa-catasto-doc', versione: 1, meta, pratica };
@@ -127,7 +138,8 @@ class StatoPratica {
     const stessa = voce.cartella.replace(/[\\/]+$/, '') === cartellaPratiche.replace(/[\\/]+$/, '');
     // si elimina tutta la cartella solo se è quella creata dal programma per questa pratica (nome = id) e non
     // contiene altre pratiche; altrimenti (cartella del tecnico con altri file) si toglie solo il file della pratica
-    let propria = !stessa && nomeFile(voce.cartella.replace(/[\\/]+$/, '')) === voce.meta.id;
+    const nomeDir = nomeFile(voce.cartella.replace(/[\\/]+$/, ''));
+    let propria = !stessa && (nomeDir === voce.meta.id || (!!voce.meta.cartella && nomeDir === voce.meta.cartella));
     if (propria) {
       try {
         const altre = (await elencoFile(voce.cartella)).filter((v) => !v.cartella && v.nome.endsWith(ESTENSIONE_PRATICA) && v.percorso !== voce.percorso);

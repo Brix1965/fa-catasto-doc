@@ -4,7 +4,7 @@
    * estremi del titolo giustificativo dell'intestazione. Variazione: note relative al documento.
    */
   import type { BeneComuneNonCensibile, EstremiAtto, Pratica } from '$lib/core/model';
-  import { CAUSALI_ATTO, pianoValido } from '$lib/core/regole-docfa';
+  import { CAUSALI_ATTO, pianoValido, testoDocfa } from '$lib/core/regole-docfa';
   import { impostazioni } from '$lib/stato/impostazioni.svelte';
   import Campo from '../Campo.svelte';
   import CampoData from '../CampoData.svelte';
@@ -79,7 +79,7 @@
     {#snippet azioni()}
       <button type="button" class="btn btn-piccolo" onclick={() => (pratica.annotazioni = undefined)} disabled={!pratica.annotazioni}>Pulisci</button>
     {/snippet}
-    <textarea class="campo" rows="5" maxlength={MAX_NOTE} value={pratica.annotazioni ?? ''} oninput={(e) => (pratica.annotazioni = e.currentTarget.value || undefined)}></textarea>
+    <textarea class="campo" rows="5" maxlength={MAX_NOTE} value={pratica.annotazioni ?? ''} oninput={(e) => (pratica.annotazioni = e.currentTarget.value || undefined)} onchange={(e) => { const t = testoDocfa(e.currentTarget.value); if (t !== e.currentTarget.value) { e.currentTarget.value = t; pratica.annotazioni = t || undefined; } }}></textarea>
     <p class="mt-1 text-right text-xs {(pratica.annotazioni?.length ?? 0) > 380 ? 'text-amber-600' : 'text-fg-faint'}">{pratica.annotazioni?.length ?? 0} / 380 caratteri</p>
   </Sezione>
 

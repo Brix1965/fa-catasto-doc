@@ -11,7 +11,7 @@ import { FORMATO, intestazione, riquadroModello, type DatiCornice } from '../cor
 import { aCapo, aDestra, dataEstesa, decimali, intero } from '../formato';
 import { albo, CAUSALI_STAMPA, rigaAlbo } from '../tabelle';
 import { TITOLI } from '../../dati/docfa-tabelle.generated';
-import { CAUSALI_ATTO } from '../../regole-docfa';
+import { CAUSALI_ATTO, testoDocfa } from '../../regole-docfa';
 
 const X1 = 28.346; // bordo sinistro dei riquadri (10 mm)
 const X2 = 566.929; // bordo destro (200 mm)
@@ -399,7 +399,7 @@ export function pagineD1(pratica: Pratica, compilato: Compilato, cornice: DatiCo
   riquadro(topD - 5, topD - 30);
   B(29.764, topD - 4, ' Quadro D | ');
   B(85.039, topD - 4, 'Note Relative al Documento e Relazione Tecnica');
-  aCapo((pratica.annotazioni ?? '').replace(/[\r\n\t]+/g, ' ').toLowerCase().trim(), 100).slice(0, 4).forEach((riga, i) => stampa(34.016, topD - 9 - 5 * i, riga));
+  aCapo(testoDocfa(pratica.annotazioni ?? '').replace(/[\r\n\t]+/g, ' ').toLowerCase().trim(), 100).slice(0, 4).forEach((riga, i) => stampa(34.016, topD - 9 - 5 * i, riga));
   const t2 = topD - 33;
   riquadro(t2, t2 - 45);
   R(45.354, t2 - 4, "- Dichiaro di non essere nella condizione di sospensione o revoca dell'esercizio della professione.", 8);

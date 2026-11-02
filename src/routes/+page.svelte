@@ -24,12 +24,9 @@
   const cartella = $derived(impostazioni.dati.cartellaPratiche);
   const filtrate = $derived(pratiche.filter((p) => (filtroTipo === 'tutti' || p.tipo === filtroTipo) && (!filtro.trim() || `${p.meta.titolo} ${p.comune}`.toLowerCase().includes(filtro.toLowerCase()))));
   const sigla = (tipo: 'accatastamento' | 'variazione', n: number) => `${tipo === 'accatastamento' ? 'NCA' : 'NCV'}${String(n).padStart(3, '0')}`;
-  /** progressivo proposto: il primo libero per il tipo di documento */
+  /** progressivo proposto: in ordine di redazione, come Docfa (il successivo all'ultimo, per tipo di documento) */
   function progressivoProposto(tipo: 'accatastamento' | 'variazione'): number {
-    const usati = new Set(pratiche.filter((x) => x.tipo === tipo).map((x) => x.progressivo));
-    let n = 1;
-    while (usati.has(n) && n < 999) n++;
-    return n;
+    return impostazioni.proponiProgressivo(tipo, pratiche.filter((x) => x.tipo === tipo).map((x) => x.progressivo));
   }
   const progressivoUsato = $derived(pratiche.some((x) => x.tipo === nuovoTipo && x.progressivo === nuovoProgressivo));
 
@@ -62,6 +59,7 @@
     const p = nuovaPratica(impostazioni.dati.tecnico, nuovoTipo, nuovoProgressivo);
     const titolo = nuovaDescrizione.trim() || `${nuovoTipo === 'accatastamento' ? 'Accatastamento' : 'Variazione'} ${sigla(nuovoTipo, nuovoProgressivo)}`;
     dialogo = false;
+    await impostazioni.riservaProgressivo(nuovoTipo, nuovoProgressivo);
     const percorso = await statoPratica.crea(impostazioni.dati.cartellaPratiche, p, titolo);
     await goto(`/pratica?f=${encodeURIComponent(percorso)}`);
   }

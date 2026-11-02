@@ -221,6 +221,19 @@ export function normalizzaIndirizzo(s: string): string {
     .trim();
 }
 
+/**
+ * Testo libero (relazione tecnica, osservazioni, descrizioni) nella forma di Docfa: le accentate diventano lettera +
+ * apostrofo («è» → «e'», «À» → «A'»), apostrofi e virgolette tipografici diventano ' e ". Le maiuscole/minuscole
+ * restano come scritte (nel D1 Docfa stampa «l'unita' immobiliare e' stata…»).
+ */
+export function testoDocfa(s: string): string {
+  return s
+    .replace(/[’‘`´]/g, "'").replace(/[“”«»]/g, '"')
+    .replace(/[àáâä]/g, "a'").replace(/[èéêë]/g, "e'").replace(/[ìíîï]/g, "i'").replace(/[òóôö]/g, "o'").replace(/[ùúûü]/g, "u'")
+    .replace(/[ÀÁÂÄ]/g, "A'").replace(/[ÈÉÊË]/g, "E'").replace(/[ÌÍÎÏ]/g, "I'").replace(/[ÒÓÔÖ]/g, "O'").replace(/[ÙÚÛÜ]/g, "U'")
+    .replace(/[°º]/g, '.').replace(/[–—]/g, '-').replace(/…/g, '...');
+}
+
 /** Zona censuaria e classe come le scrive Docfa nel record 3: numeriche con gli zeri a sinistra (001, 02). */
 export function allineaZona(z: string | undefined): string {
   const t = (z ?? '').trim();

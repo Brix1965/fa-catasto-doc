@@ -34,6 +34,11 @@ export interface Impostazioni {
    * le immagini già presenti nell'archivio di Docfa (stesso numero → "alcune planimetrie non importate")
    */
   prossimaImmagine?: number;
+  /**
+   * prossimo numero di documento per tipo (NCVnnn, NCAnnn): come Docfa i documenti si numerano in ordine di
+   * redazione, senza riusare i numeri liberi
+   */
+  prossimoDocumento?: { variazione?: number; accatastamento?: number };
 }
 
 /** Primo numero immagine proposto: lontano dai numeri che assegna Docfa (partono da 1). */
@@ -77,6 +82,7 @@ class StatoImpostazioni {
           cartellaPratiche: letto.cartellaPratiche ?? '',
           archivi: { comuni: letto.archivi?.comuni, provinciali: letto.archivi?.provinciali ?? [] },
           prossimaImmagine: letto.prossimaImmagine,
+          prossimoDocumento: letto.prossimoDocumento,
         };
       }
       await this.caricaArchivi();
@@ -110,6 +116,23 @@ class StatoImpostazioni {
     this.dati.prossimaImmagine = n + 1 > 9999999 ? PRIMA_IMMAGINE : n + 1;
     void this.salva().catch(() => {});
     return n;
+  }
+
+  /**
+   * Numero proposto per un nuovo documento del tipo indicato: il successivo all'ultimo assegnato e al più alto
+   * presente nella cartella delle pratiche (mai un numero libero intermedio). Dopo 999 si riparte da 1.
+   */
+  proponiProgressivo(tipo: 'variazione' | 'accatastamento', usati: number[]): number {
+    const n = Math.max(this.dati.prossimoDocumento?.[tipo] ?? 1, ...usati.map((x) => x + 1), 1);
+    return n > 999 ? 1 : n;
+  }
+
+  /** Registra il numero usato per un nuovo documento: il prossimo sarà il successivo. */
+  async riservaProgressivo(tipo: 'variazione' | 'accatastamento', n: number): Promise<void> {
+    const attuale = this.dati.prossimoDocumento?.[tipo] ?? 1;
+    const prossimo = n >= 999 ? 1 : Math.max(attuale, n + 1);
+    this.dati.prossimoDocumento = { ...(this.dati.prossimoDocumento ?? {}), [tipo]: prossimo };
+    await this.salva().catch(() => {});
   }
 
   async salva(): Promise<void> {

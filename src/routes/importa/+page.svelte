@@ -5,7 +5,7 @@
   import { CAUSALI } from '$lib/core/model';
   import { importaPdfDocfa, type ImportazioneDocfa } from '$lib/core/pdf/importa';
   import { impostazioni } from '$lib/stato/impostazioni.svelte';
-  import { statoPratica } from '$lib/stato/pratica.svelte';
+  import { elencoPratiche, statoPratica } from '$lib/stato/pratica.svelte';
   import { titoloProposto } from '$lib/stato/pratica-file';
   import { scegliFile, leggiFile, nomeFile, scegliCartella } from '$lib/piattaforma';
   import { descriviUnita } from '$lib/stato/validazione';
@@ -33,6 +33,11 @@
       const c = impostazioni.comunePerCodiceAmministrativo(r.pratica.comune.codiceAmministrativo);
       if (c) r.pratica.comune = { ...c };
       else if (r.pratica.comune.codiceAmministrativo) r.avvisi.push(`Comune ${r.pratica.comune.codiceAmministrativo} non trovato negli archivi: nome e provincia vanno inseriti a mano (importa Comuni.dat nelle impostazioni)`);
+      // il documento importato prende il prossimo numero dell'archivio (NCV/NCA in ordine di redazione, come
+      // Docfa), non quello che aveva nel PDF: altrimenti tutte le pratiche importate restano NCV001
+      const tipo = r.pratica.tipoDocumento === 'accatastamento' ? 'accatastamento' : 'variazione';
+      const usati = impostazioni.dati.cartellaPratiche ? (await elencoPratiche(impostazioni.dati.cartellaPratiche).catch(() => [])).filter((x) => x.tipo === tipo).map((x) => x.progressivo) : [];
+      r.pratica.progressivo = impostazioni.proponiProgressivo(tipo, usati);
       esito = r;
       titolo = titoloProposto(r.pratica);
     } catch (e) {
@@ -51,6 +56,7 @@
       await impostazioni.salva();
     }
     try {
+      await impostazioni.riservaProgressivo(esito.pratica.tipoDocumento === 'accatastamento' ? 'accatastamento' : 'variazione', esito.pratica.progressivo);
       const p = await statoPratica.crea(impostazioni.dati.cartellaPratiche, esito.pratica, titolo || titoloProposto(esito.pratica));
       await goto(`/pratica?f=${encodeURIComponent(p)}`);
     } catch (e) {

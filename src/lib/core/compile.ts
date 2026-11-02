@@ -9,7 +9,7 @@ import { FixedRecord, FixedRecordLibero } from './tracciati/record';
 import { ELENCO_SUBALTERNI, ELENCO_SUBALTERNI_LENGTH } from './tracciati/schema';
 import type { Campi, Data, ElencoSubalterno, Identificativo, LocaleGruppoC, Pratica, UnitaImmobiliare } from './model';
 import { schedeElaborato, schedePlanimetria } from './model';
-import { CAUSALI_VARIAZIONE, normalizzaIndirizzo, allineaZona, allineaClasse, type CodiceVariazione } from './regole-docfa';
+import { CAUSALI_VARIAZIONE, normalizzaIndirizzo, testoDocfa, allineaZona, allineaClasse, type CodiceVariazione } from './regole-docfa';
 import { REC_H_GRUPPO_C_FIELDS, REC_H } from './tracciati/schema';
 
 /** Record H "virtuale" con i campi del gruppo C, usato per scrivere la zona 106-246. */
@@ -294,7 +294,8 @@ export function compilaDocumento(p: Pratica): Compilato {
 
   // --- tipo 9: annotazioni (una riga da 68 caratteri per record, sempre almeno una) ed estremi del titolo
   // i record sono a lunghezza fissa e separati da CR LF: un a capo scritto nella nota spezzerebbe il record
-  const note = unaRiga(p.annotazioni ?? '').trimEnd();
+  // accentate e apostrofi tipografici convertiti come in Docfa («è» → «e'»)
+  const note = testoDocfa(unaRiga(p.annotazioni ?? '')).trimEnd();
   const righe = [note.slice(0, 68), ...spezza(note.slice(68), 317).filter(Boolean)];
   const estremi = acc ? (p.estremi ?? []).slice(0, 3) : [];
   righe.forEach((riga, i) => {
@@ -432,7 +433,7 @@ export function compilaDocumento(p: Pratica): Compilato {
     recs.push(rI);
 
     if (m.osservazioni?.trim()) {
-      spezza(unaRiga(m.osservazioni).trim(), 300).slice(0, 2).forEach((riga, i) => {
+      spezza(testoDocfa(unaRiga(m.osservazioni)).trim(), 300).slice(0, 2).forEach((riga, i) => {
         const rL = new FixedRecord('L').key(prog, 'U', n2, 2 + i, md0);
         rL.assign({ osservazioni: riga, codice_comune: comune });
         recs.push(rL);
@@ -512,7 +513,7 @@ export function normalizza2N(campi: Campi): Campi {
     else if (cifre && /_subalterno$/.test(id)) out[id] = t.padStart(4, '0');
     else if (cifre && /^stima\d_corpo$/.test(id)) out[id] = t.padStart(3, '0');
     else if (cifre && id === 'servizi_igienici') out[id] = t.padStart(20, '0');
-    else out[id] = v.toUpperCase();
+    else out[id] = testoDocfa(v).toUpperCase();
   }
   return out;
 }
