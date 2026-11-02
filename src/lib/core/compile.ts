@@ -456,11 +456,14 @@ export function compilaDocumento(p: Pratica): Compilato {
       riempiGenerico(rO, { ...(d.stimaComparativa[k] ?? {}), tipo_stima: 0 }, comune);
       recs.push(rO);
     }
-    if (d.altroTipoStima?.length) {
+    // Le 3 righe «altro tipo di stima» (tipo 1) vanno scritte anche vuote quando non ci sono corpi di fabbrica:
+    // senza di esse e senza record P/Q/R la stampa del 2N di Docfa (NZST40) va in errore 163 (verificato il 02/11/2026
+    // sulla pratica BPM; NCV081, con i corpi e senza tipo 1, invece si stampa).
+    if (d.altroTipoStima?.length || !d.corpi.length) {
       for (let k = 0; k < 3; k++) {
         const rO = new FixedRecord('O').key(prog, 'W', n2, 5 + k, md0);
         riempiGenerico(rO, { tipo_stima: 1 }, comune);
-        rO.setRaw(19, (d.altroTipoStima[k] ?? '').padEnd(300, ' ').slice(0, 300));
+        rO.setRaw(19, (d.altroTipoStima?.[k] ?? '').padEnd(300, ' ').slice(0, 300));
         recs.push(rO);
       }
     }
