@@ -3,7 +3,7 @@
   import { dataIt } from '$lib/formato-data';
   import { goto } from '$app/navigation';
   import { CAUSALI } from '$lib/core/model';
-  import { importaPdfDocfa, type ImportazioneDocfa } from '$lib/core/pdf/importa';
+  import { estraiLogoD1, importaPdfDocfa, type ImportazioneDocfa } from '$lib/core/pdf/importa';
   import { impostazioni } from '$lib/stato/impostazioni.svelte';
   import { statoPratica } from '$lib/stato/pratica.svelte';
   import { titoloProposto } from '$lib/stato/pratica-file';
@@ -28,7 +28,10 @@
     inCorso = true;
     esito = null;
     try {
-      const r = await importaPdfDocfa(await leggiFile(f));
+      const dati = await leggiFile(f);
+      const r = await importaPdfDocfa(dati);
+      // il logo del D1 si prende dal primo PDF di Docfa importato
+      if (!impostazioni.dati.logoD1) await impostazioni.salvaLogoD1(await estraiLogoD1(dati)).catch(() => false);
       // nome del comune dagli archivi, se importati
       const c = impostazioni.comunePerCodiceAmministrativo(r.pratica.comune.codiceAmministrativo);
       if (c) r.pratica.comune = { ...c };

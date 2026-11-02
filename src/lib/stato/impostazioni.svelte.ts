@@ -8,6 +8,7 @@ import { leggiComuni, leggiStradario, leggiTariffe, leggiSetup, leggiZone, conta
 import { leggiProspetti, type Prospetti } from '$lib/core/classamento-automatico';
 import { appDataDir, leggiFile, scriviFile, esisteFile, unisci, nomeFile, elencoFile, eliminaFile, type VoceCartella } from '$lib/piattaforma';
 import { tecnicoVuoto } from './pratica-file';
+import type { LogoD1 } from '$lib/core/pdf/importa';
 
 export interface ArchivioProvinciale {
   /** sigla della provincia (dal nome dei file: FI-topo-com.dat → FI) */
@@ -34,6 +35,8 @@ export interface Impostazioni {
    * le immagini già presenti nell'archivio di Docfa (stesso numero → "alcune planimetrie non importate")
    */
   prossimaImmagine?: number;
+  /** logo del D1 preso da un PDF di Docfa (file logo-d1.jpg nella cartella dati dell'app): dimensioni in pixel */
+  logoD1?: { larghezza: number; altezza: number };
 }
 
 /** Primo numero immagine proposto: lontano dai numeri che assegna Docfa (partono da 1). */
@@ -77,6 +80,7 @@ class StatoImpostazioni {
           cartellaPratiche: letto.cartellaPratiche ?? '',
           archivi: { comuni: letto.archivi?.comuni, provinciali: letto.archivi?.provinciali ?? [] },
           prossimaImmagine: letto.prossimaImmagine,
+          logoD1: letto.logoD1,
         };
       }
       await this.caricaArchivi();
@@ -110,6 +114,29 @@ class StatoImpostazioni {
     this.dati.prossimaImmagine = n + 1 > 9999999 ? PRIMA_IMMAGINE : n + 1;
     void this.salva().catch(() => {});
     return n;
+  }
+
+  /**
+   * Memorizza il logo del D1 letto da un PDF di Docfa (non è nel programma: si prende dai PDF del tecnico).
+   * Restituisce true se è stato memorizzato.
+   */
+  async salvaLogoD1(logo: LogoD1 | null): Promise<boolean> {
+    if (!logo) return false;
+    if (!this.dir) this.dir = await appDataDir();
+    await scriviFile(unisci(this.dir, 'logo-d1.jpg'), logo.jpeg);
+    this.dati.logoD1 = { larghezza: logo.larghezza, altezza: logo.altezza };
+    await this.salva();
+    return true;
+  }
+
+  /** Logo del D1 memorizzato, o undefined. */
+  async logoD1(): Promise<LogoD1 | undefined> {
+    const d = this.dati.logoD1;
+    if (!d) return undefined;
+    if (!this.dir) this.dir = await appDataDir();
+    const p = unisci(this.dir, 'logo-d1.jpg');
+    if (!(await esisteFile(p))) return undefined;
+    return { jpeg: await leggiFile(p), larghezza: d.larghezza, altezza: d.altezza };
   }
 
   async salva(): Promise<void> {

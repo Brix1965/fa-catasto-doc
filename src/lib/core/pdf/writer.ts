@@ -221,6 +221,14 @@ export class PdfWriter {
     return this.aggiungi(`<<${f.font} /FontDescriptor ${fd} 0 R /ToUnicode ${tu} 0 R>>`);
   }
 
+  /** Immagine JPEG a colori (logo del D1, copiato così com'è dal PDF di Docfa). */
+  async aggiungiImmagineJPEG(jpeg: Uint8Array, larghezza: number, altezza: number): Promise<RifOggetto> {
+    return this.aggiungiStream(
+      `/Type /XObject /Subtype /Image /Width ${larghezza} /Height ${altezza} /ColorSpace /DeviceRGB /BitsPerComponent 8`,
+      jpeg, { filtro: '/DCTDecode' },
+    );
+  }
+
   /** Immagine bitonale compressa CCITT G4 (dati grezzi, come nello stream di un TIFF G4). */
   async aggiungiImmagineCCITT(g4: Uint8Array, larghezza: number, altezza: number): Promise<RifOggetto> {
     return this.aggiungiStream(

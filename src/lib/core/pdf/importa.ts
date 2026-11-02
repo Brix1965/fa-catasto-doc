@@ -528,6 +528,31 @@ export function unisciParti(file: FileEstratto[]): FileEstratto[] {
   return out;
 }
 
+/** Logo stampato da Docfa in alto a sinistra nel D1 (immagine JPEG della prima pagina). */
+export interface LogoD1 { jpeg: Uint8Array; larghezza: number; altezza: number }
+
+/**
+ * Legge il logo del modello D1 da un PDF prodotto da Docfa: immagine DCT (JPEG) della prima pagina, 502×178 nei
+ * PDF di Docfa 4.00.5 (NCV002, NCV081, BPM: sempre la stessa). Il logo non è nel repository: l'app lo prende dal
+ * PDF di Docfa del tecnico. Restituisce null se il PDF non lo contiene.
+ */
+export async function estraiLogoD1(bytes: Uint8Array): Promise<LogoD1 | null> {
+  if (latin1(bytes.subarray(0, 5)) !== '%PDF-') return null;
+  const doc = await DocumentoPdf.leggi(bytes);
+  const p = doc.pagine()[0];
+  if (!p) return null;
+  const xobj = doc.dizionario(doc.dizionario(p.dict.get('Resources'))?.get('XObject'));
+  if (!xobj) return null;
+  for (const [, rif] of xobj) {
+    const x = doc.risolvi(rif);
+    if (x?.t !== 'stream' || nome(x.dict.get('Subtype')) !== 'Image' || nome(doc.risolvi(x.dict.get('Filter'))) !== 'DCTDecode') continue;
+    const larghezza = numero(doc.risolvi(x.dict.get('Width')));
+    const altezza = numero(doc.risolvi(x.dict.get('Height')));
+    if (larghezza && altezza) return { jpeg: x.dati.slice(), larghezza, altezza };
+  }
+  return null;
+}
+
 export async function estraiContenutoPdf(bytes: Uint8Array): Promise<ContenutoPdfDocfa> {
   if (latin1(bytes.subarray(0, 5)) !== '%PDF-') throw new Error('Il file non è un PDF');
   const doc = await DocumentoPdf.leggi(bytes);

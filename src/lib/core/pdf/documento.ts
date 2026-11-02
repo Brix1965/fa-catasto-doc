@@ -51,6 +51,8 @@ export interface OpzioniDocumento {
   /** testo della versione nel piè di pagina */
   versione?: string;
   titolo?: string;
+  /** logo del D1 (preso dal PDF di Docfa del tecnico): in alto a sinistra della prima pagina, come Docfa */
+  logoD1?: { jpeg: Uint8Array; larghezza: number; altezza: number };
 }
 
 /** Nomi usati nel PDF per i font incorporati (non sono Times New Roman: Liberation Serif è metricamente compatibile). */
@@ -118,6 +120,14 @@ export async function renderDocumento(pratica: Pratica, compilato: Compilato, im
     }
   });
 
+  // logo: Docfa lo disegna solo sulla prima pagina del D1, 60 × 20 mm a 10 mm dal bordo (170.07874 × 56.69291
+  // in 28.34646, 765.3543: NCV002, NCV081, BPM)
+  let xobjectLogo: Record<string, number> | undefined;
+  if (opzioni.logoD1 && d1.length) {
+    xobjectLogo = { Im0: await w.aggiungiImmagineJPEG(opzioni.logoD1.jpeg, opzioni.logoD1.larghezza, opzioni.logoD1.altezza) };
+    d1[0].immagine('Im0', 28.34646, 765.3543, 170.07874, 56.69291);
+  }
+
   const indici: number[] = [];
   for (let i = 0; i < numerate.length; i++) {
     const p = numerate[i];
@@ -127,6 +137,7 @@ export async function renderDocumento(pratica: Pratica, compilato: Compilato, im
       altezza: p.altezza,
       contenuto: p.bytes(),
       font: await fontPagina(p),
+      xobject: i === 0 ? xobjectLogo : undefined,
       annotazioni: ultima ? annotazioniDati : undefined,
       rotate: p.larghezza === FORMATO.modello.larghezza && p.altezza === FORMATO.modello.altezza && !p.modello2N ? 0 : undefined,
       cropBox: p.larghezza === FORMATO.modello.larghezza && p.altezza === FORMATO.modello.altezza && !p.modello2N,

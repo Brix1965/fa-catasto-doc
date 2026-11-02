@@ -54,7 +54,7 @@ export function pagineD1(pratica: Pratica, compilato: Compilato, cornice: DatiCo
   const nuovaPagina = (): Pagina => {
     const p = new Pagina(FORMATO.d1.larghezza, FORMATO.d1.altezza);
     intestazione(p, cornice);
-    // intestazione del modello (al posto del logo dell'Agenzia: spazio vuoto)
+    // intestazione del modello (il logo, se c'è, lo aggiunge renderDocumento dal PDF di Docfa del tecnico)
     p.testo(113.386, 754.016, 'B', 9, 'MODELLO UNICO INFORMATICO DI AGGIORNAMENTO DEGLI ATTI CATASTALI');
     p.testo(127.559, 742.677, 'B', 10, "ACCERTAMENTO DELLA PROPRIETA' IMMOBILIARE URBANA");
     riquadroModello(p, 'mod. D1');
