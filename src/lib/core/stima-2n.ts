@@ -128,21 +128,27 @@ export const renditaCentesimi = (attribuitaCent: number, saggio: number): number
  */
 export function ricalcola2N(d: Mod2N, opz: { attribuitaDaTotale?: boolean } = {}): boolean {
   const n = d.recordN;
-  const prima = JSON.stringify(n);
+  let cambiato = false;
+  // si scrive solo se il valore cambia (nell'interfaccia ogni scrittura riattiva gli effetti)
+  const imposta = (id: string, v: number) => {
+    if (n[id] === v) return;
+    n[id] = v;
+    cambiato = true;
+  };
   const righe = leggiRighe(d);
   const totale = righe.reduce((s, r) => s + (r.valore || 0), 0);
-  if (righe.some((r) => !rigaVuota(r)) || num(n.valore_stima_comparativa)) n.valore_stima_comparativa = totale * 100;
+  if (righe.some((r) => !rigaVuota(r)) || num(n.valore_stima_comparativa)) imposta('valore_stima_comparativa', totale * 100);
   if (opz.attribuitaDaTotale) {
     const base = totale || num(n.valore_stima_sommaria) / 100;
-    n.valutazione_attribuita = Math.round(base * 100);
+    imposta('valutazione_attribuita', Math.round(base * 100));
   }
   const rc = renditaCentesimi(num(n.valutazione_attribuita), leggiSaggio(n));
-  n.rendita_catastale = rc;
+  imposta('rendita_catastale', rc);
   // «c.t.» = cifra tonda: nell'unico campione reale (NCV081) coincide con la rendita
-  n.rendita_catastale_tonda = rc;
+  imposta('rendita_catastale_tonda', rc);
   // l'anno di riferimento all'epoca censuaria Docfa lo scrive sempre 0000 (NCV081, pratica BPM)
-  delete n.anno_epoca_censuaria;
-  return JSON.stringify(n) !== prima;
+  if (Object.prototype.hasOwnProperty.call(n, 'anno_epoca_censuaria')) { delete n.anno_epoca_censuaria; cambiato = true; }
+  return cambiato;
 }
 
 /** Controlli di coerenza del quadro H (messaggi per il controllo formale). */

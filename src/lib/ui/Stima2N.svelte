@@ -6,6 +6,7 @@
   import type { Mod2N, UnitaImmobiliare } from '$lib/core/model';
   import { euro, numeroItaliano, leggiRighe, leggiSaggio, leggiStima, ricalcola2N, rigaVuota, RIGHE_STIMA, scriviRiga, scriviSaggio, valoreRiga, type RigaStima } from '$lib/core/stima-2n';
   import Icona from './Icona.svelte';
+  import { untrack } from 'svelte';
 
   let { unita = $bindable() }: { unita: UnitaImmobiliare } = $props();
   const d = $derived(unita.mod2N as Mod2N);
@@ -18,8 +19,19 @@
   const stima = $derived(leggiStima(d));
   const percento = $derived(Math.round(leggiSaggio(d.recordN) * 1000000) / 10000);
 
-  // all'apertura: totale e rendita riallineati (corregge le pratiche salvate con valori incoerenti)
-  $effect(() => { ricalcola2N(d); });
+  // all'apertura (e quando cambia l'unità): totale e rendita riallineati, per le pratiche salvate con valori
+  // incoerenti. Il ricalcolo legge e scrive gli stessi campi: va fatto fuori dal tracciamento (untrack), altrimenti
+  // l'effetto si richiama all'infinito (effect_update_depth_exceeded, segnalato da Fabrizio il 02/11/2026)
+  $effect(() => {
+    const m = d;
+    untrack(() => { ricalcola2N(m); allineaQuadroU(); });
+  });
+
+  /** la rendita del quadro U è quella del 2N: si aggiorna subito, senza dover riaprire il quadro U */
+  function allineaQuadroU(): void {
+    const r = leggiStima(unita.mod2N as Mod2N).rendita;
+    if (unita.classamento && r > 0 && unita.classamento.rendita !== r) unita.classamento.rendita = r;
+  }
 
   const numero = (s: string): number => numeroItaliano(s);
   const it = (v: number, dec = 2): string => (v ? v.toLocaleString('it-IT', { minimumFractionDigits: dec, maximumFractionDigits: dec }) : '');
@@ -32,24 +44,29 @@
     if (campo === 'consistenza' || campo === 'unitario') r.valore = valoreRiga(r.consistenza, r.unitario);
     scriviRiga(d, i, r);
     ricalcola2N(d, { attribuitaDaTotale: true });
+    allineaQuadroU();
   }
   function togli(i: number): void {
     const tutte = leggiRighe(d).filter((_, k) => k !== i);
     for (let k = 0; k < RIGHE_STIMA; k++) scriviRiga(d, k, tutte[k] ?? { rif: '', natura: '', descrizione: '', consistenza: 0, unitario: 0, valore: 0 });
     while (d.stimaComparativa.length > 3) d.stimaComparativa.pop();
     ricalcola2N(d, { attribuitaDaTotale: true });
+    allineaQuadroU();
   }
   function sommaria(v: string): void {
     d.recordN.valore_stima_sommaria = Math.round(numero(v) * 100);
     ricalcola2N(d, { attribuitaDaTotale: !totale });
+    allineaQuadroU();
   }
   function attribuita(v: string): void {
     d.recordN.valutazione_attribuita = Math.round(numero(v) * 100);
     ricalcola2N(d);
+    allineaQuadroU();
   }
   function saggio(v: string): void {
     scriviSaggio(d.recordN, numero(v) / 100);
     ricalcola2N(d);
+    allineaQuadroU();
   }
   function altroTesto(v: string): void {
     const righe3 = v.replace(/\r/g, '').split('\n').slice(0, 3).map((s) => s.slice(0, 300));
