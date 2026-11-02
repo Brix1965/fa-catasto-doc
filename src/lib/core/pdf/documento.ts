@@ -10,6 +10,7 @@ import { decodificaBase64 } from './base64';
 import { LIBERATION_SERIF_BOLD_B64, LIBERATION_SERIF_REGULAR_B64 } from './assets/fonts.generated';
 import { SRGB_ICC_B64 } from './assets/icc.generated';
 import { FONT_MODULO_2N } from './assets/modulo2n.generated';
+import { LOGO_D1 } from './assets/logo-d1.generated';
 import { NOME_FONT, Pagina } from './pagina';
 import { FORMATO, pieDiPagina, type DatiCornice } from './cornice';
 import { pagineD1 } from './pagine/d1';
@@ -51,8 +52,8 @@ export interface OpzioniDocumento {
   /** testo della versione nel piè di pagina */
   versione?: string;
   titolo?: string;
-  /** logo del D1 (preso dal PDF di Docfa del tecnico): in alto a sinistra della prima pagina, come Docfa */
-  logoD1?: { jpeg: Uint8Array; larghezza: number; altezza: number };
+  /** logo del D1 al posto di quello incorporato (null = nessun logo) */
+  logoD1?: { jpeg: Uint8Array; larghezza: number; altezza: number } | null;
 }
 
 /** Nomi usati nel PDF per i font incorporati (non sono Times New Roman: Liberation Serif è metricamente compatibile). */
@@ -123,8 +124,9 @@ export async function renderDocumento(pratica: Pratica, compilato: Compilato, im
   // logo: Docfa lo disegna solo sulla prima pagina del D1, 60 × 20 mm a 10 mm dal bordo (170.07874 × 56.69291
   // in 28.34646, 765.3543: NCV002, NCV081, BPM)
   let xobjectLogo: Record<string, number> | undefined;
-  if (opzioni.logoD1 && d1.length) {
-    xobjectLogo = { Im0: await w.aggiungiImmagineJPEG(opzioni.logoD1.jpeg, opzioni.logoD1.larghezza, opzioni.logoD1.altezza) };
+  const logo = opzioni.logoD1 === undefined ? { jpeg: decodificaBase64(LOGO_D1.jpegB64), larghezza: LOGO_D1.larghezza, altezza: LOGO_D1.altezza } : opzioni.logoD1;
+  if (logo && d1.length) {
+    xobjectLogo = { Im0: await w.aggiungiImmagineJPEG(logo.jpeg, logo.larghezza, logo.altezza) };
     d1[0].immagine('Im0', 28.34646, 765.3543, 170.07874, 56.69291);
   }
 

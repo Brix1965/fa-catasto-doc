@@ -48,7 +48,7 @@
     try {
       rinumeraImmagini();
       await statoPratica.salva();
-      const r = await esportaPratica(pratica, { logoD1: await impostazioni.logoD1() });
+      const r = await esportaPratica(pratica, {});
       const percorso = unisci(cartella, r.nomeFile);
       if (await esisteFile(percorso) && !(await conferma(`${r.nomeFile} esiste già nella cartella della pratica: sovrascriverlo?`))) return;
       await scriviFile(percorso, r.pdf);

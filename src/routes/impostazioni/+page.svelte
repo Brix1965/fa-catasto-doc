@@ -6,8 +6,6 @@
   import { PROGETTO } from '$lib/progetto';
   import { version } from '../../../package.json';
   import { VERSIONE_APP } from '$lib/versione';
-  import { estraiLogoD1 } from '$lib/core/pdf/importa';
-  import { leggiFile } from '$lib/piattaforma';
   import Campo from '$lib/ui/Campo.svelte';
   import Icona from '$lib/ui/Icona.svelte';
   import Intestazione from '$lib/ui/Intestazione.svelte';
@@ -65,17 +63,6 @@
     if (await conferma(`Rimuovere gli archivi della provincia ${prov}?`)) await impostazioni.rimuoviProvincia(prov);
   }
   const comuniPerProvincia = (prov: string) => impostazioni.comuni.filter((c) => c.provincia === prov).length;
-  let esitoLogo = $state('');
-  async function prendiLogo(): Promise<void> {
-    esitoLogo = '';
-    const f = await scegliFile('Scegli un PDF prodotto da Docfa', [{ nome: 'PDF Docfa', estensioni: ['pdf', 'PDF'] }]);
-    if (!f) return;
-    try {
-      esitoLogo = (await impostazioni.salvaLogoD1(await estraiLogoD1(await leggiFile(f)))) ? 'Logo caricato: comparirà nel D1 dei PDF esportati.' : 'Nel PDF scelto non c\'è il logo del D1.';
-    } catch (e) {
-      esitoLogo = `Logo non letto: ${e instanceof Error ? e.message : String(e)}`;
-    }
-  }
 </script>
 
 <div class="flex h-full flex-col">
@@ -121,14 +108,6 @@
           <input type="text" inputmode="numeric" class="campo w-32 font-mono" maxlength="7" value={String(impostazioni.dati.prossimaImmagine ?? PRIMA_IMMAGINE).padStart(7, '0')} onchange={async (e) => { const n = Number(e.currentTarget.value.replace(/\D/g, '')); if (n > 0 && n <= 9999999) { impostazioni.dati.prossimaImmagine = n; await salva(); } e.currentTarget.value = String(impostazioni.dati.prossimaImmagine ?? PRIMA_IMMAGINE).padStart(7, '0'); }} />
         </Campo>
       </div>
-    </Sezione>
-
-    <Sezione titolo="Logo del modello D1" descrizione="Docfa stampa il logo dell'Agenzia in alto a sinistra nella prima pagina del D1. Il logo non è incluso nel programma: si prende da un PDF prodotto da Docfa (anche in automatico, importando un PDF di Docfa).">
-      <div class="flex flex-wrap items-center gap-3 text-sm">
-        <span class={impostazioni.dati.logoD1 ? 'text-fg' : 'text-fg-muted'}>{impostazioni.dati.logoD1 ? `Logo presente (${impostazioni.dati.logoD1.larghezza} × ${impostazioni.dati.logoD1.altezza} pixel)` : 'Logo non ancora caricato'}</span>
-        <button type="button" class="btn btn-piccolo" onclick={prendiLogo}>Prendi da un PDF di Docfa</button>
-      </div>
-      {#if esitoLogo}<p class="mt-2 text-xs text-fg-muted">{esitoLogo}</p>{/if}
     </Sezione>
 
     <Sezione titolo="Archivi dell'Agenzia" descrizione="Come in Docfa: scegli la cartella della provincia scaricata dal sito dell'Agenzia (es. «fi») e vengono letti tutti i file: stradario, tariffe, zone e prospetti per il classamento. Puoi scegliere anche una cartella che contiene più province, o la cartella di installazione di Docfa per aggiornare i comuni.">
