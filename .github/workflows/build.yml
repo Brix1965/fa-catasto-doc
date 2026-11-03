@@ -93,6 +93,9 @@ jobs:
     permissions:
       contents: write
     steps:
+      # versione e messaggio del commit, per la nota della release (letti dall'app per l'avviso di nuova versione)
+      - uses: actions/checkout@v5
+        with: { path: sorgenti, fetch-depth: 1 }
       - uses: actions/download-artifact@v5
         with: { path: artefatti }
       - name: Raccolta e nomi dei file
@@ -115,8 +118,16 @@ jobs:
         run: |
           quando=$(TZ=Europe/Rome date '+%d/%m/%Y %H:%M')
           breve=$(echo "$GITHUB_SHA" | cut -c1-7)
-          cat > note.md <<'NOTE'
-          Ultima versione di Fa.Catasto.Doc, generata automaticamente il QUANDO (ora italiana) dal commit BREVE.
+          versione=$(node -p "require('./sorgenti/package.json').version")
+          # novità: il messaggio del commit, senza le righe di attribuzione
+          git -C sorgenti log -1 --format=%B | grep -v -E '^(Co-Authored-By|Claude-Session|Signed-off-by):' > messaggio.txt
+          { echo "<!-- fa-catasto-doc versione=$versione commit=$breve -->"; } > note.md
+          cat >> note.md <<'NOTE'
+          Ultima versione di Fa.Catasto.Doc (VERSIONE), generata automaticamente il QUANDO (ora italiana) dal commit BREVE.
+
+          ## Novità
+
+          NOVITA
 
           ## Installazione
 
@@ -140,7 +151,10 @@ jobs:
           Software libero (GPL-3.0) fornito **così com'è, senza alcuna garanzia**: il professionista resta responsabile
           dei documenti che presenta. Non è un software dell'Agenzia delle Entrate né di Sogei.
           NOTE
-          sed -i "s|QUANDO|$quando|; s|BREVE|$breve|" note.md
+          sed -i "s|QUANDO|$quando|; s|BREVE|$breve|; s|VERSIONE|$versione|" note.md
+          # NOVITA: titolo del commit e righe di elenco del messaggio, come punti
+          { head -1 messaggio.txt | sed 's/^/- /'; grep -E '^\s*[-*] ' messaggio.txt | sed -E 's/^\s*[-*] +/- /'; } > novita.md
+          python3 -c "import sys; n=open('note.md').read(); open('note.md','w').write(n.replace('NOVITA', open('novita.md').read().rstrip()))"
           gh release delete collaudo --yes --cleanup-tag || true
           gh release delete ultima --yes --cleanup-tag || true
-          gh release create ultima dist/* --target "$GITHUB_SHA" --title "Fa.Catasto.Doc – ultima versione ($quando)" --notes-file note.md --latest
+          gh release create ultima dist/* --target "$GITHUB_SHA" --title "Fa.Catasto.Doc $versione – ultima versione ($quando)" --notes-file note.md --latest

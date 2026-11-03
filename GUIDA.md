@@ -97,6 +97,11 @@ far sbagliare meno il tecnico.
 - Un **PDF prodotto da Docfa** si importa e diventa una pratica modificabile, con dati, planimetrie e poligoni.
 - L'elenco subalterni si può importare da un PDF Docfa o da un file `EPVnnn.DAT`.
 
+**Aggiornamenti**
+- **Avviso di nuova versione**: all'avvio (e ogni 6 ore) il programma controlla se è uscita una versione nuova e
+  lo dice con una barra in alto, con le novità e il pulsante «Scarica». Il controllo legge solo la pagina pubblica
+  delle release su GitHub: non invia nessun dato.
+
 **Piattaforme**
 - Windows, macOS (Apple Silicon) e Linux. Su Windows c'è anche la versione portatile, senza installazione.
 - Non serve Java né altro software. Nessun server: i file restano sul computer.

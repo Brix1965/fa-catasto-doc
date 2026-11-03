@@ -18,6 +18,8 @@ export const VERSIONE_APP = {
   /** data e ora del rilascio, es. «02/11/2026 15:30» (Europe/Rome) */
   rilascio: dataRoma(info.data),
   commit: info.commit,
+  /** data della build (ISO), per il confronto con le release */
+  data: info.data,
   /** testo breve: «v0.2.0 · 02/11/2026 15:30» */
   testo: [info.versione ? `v${info.versione}` : '', dataRoma(info.data)].filter(Boolean).join(' · '),
 };

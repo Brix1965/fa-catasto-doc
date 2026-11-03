@@ -3,6 +3,7 @@
   import '../app.css';
   import { onMount } from 'svelte';
   import { impostazioni } from '$lib/stato/impostazioni.svelte';
+  import AvvisoAggiornamento from '$lib/ui/AvvisoAggiornamento.svelte';
   let { children } = $props();
 
   onMount(() => {
@@ -16,7 +17,10 @@
 </script>
 
 {#if impostazioni.caricate}
-  {@render children()}
+  <div class="flex h-full flex-col">
+    <AvvisoAggiornamento />
+    <div class="min-h-0 flex-1">{@render children()}</div>
+  </div>
 {:else}
   <div class="flex h-full items-center justify-center text-sm text-fg-muted">Caricamento…</div>
 {/if}
