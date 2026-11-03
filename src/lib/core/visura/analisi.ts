@@ -197,6 +197,7 @@ export function analizzaVisura(pagine: PaginaTesto[]): Visura {
   let storicoImm = false;
   let storicoInt = false;
   let dichiarate: number | undefined;
+  let conTerreni = false;
 
   for (let i = 0; i < linee.length; i++) {
     const r = linee[i];
@@ -211,7 +212,8 @@ export function analizzaVisura(pagine: PaginaTesto[]): Visura {
       const colonne = colonneImm(band);
       margine = Math.min(...colonne.map((c) => c.sx)) - 3;
       if (!colonne.some((c) => c.chiave === 'categoria')) {
-        avviso('Tabelle del Catasto Terreni non lette: si leggono solo i fabbricati');
+        if (!conTerreni) avviso('Tabelle del Catasto Terreni non lette: si leggono solo i fabbricati');
+        conTerreni = true;
         modo = 'ignora';
       } else if (storicoImm) {
         avviso('Visura storica: lette solo le situazioni attuali');
@@ -311,7 +313,8 @@ export function analizzaVisura(pagine: PaginaTesto[]): Visura {
 
   if (!v.immobili.length) avviso('Nessun immobile del Catasto Fabbricati trovato');
   if (!v.intestati.length) avviso('Nessun intestato trovato');
-  if (dichiarate !== undefined && dichiarate !== v.immobili.length) avviso(`La visura dichiara ${dichiarate} unità immobiliari, lette ${v.immobili.length}`);
+  // il totale comprende anche i terreni: il confronto vale solo senza tabelle dei terreni
+  if (dichiarate !== undefined && !conTerreni && dichiarate !== v.immobili.length) avviso(`La visura dichiara ${dichiarate} unità immobiliari, lette ${v.immobili.length}`);
   if (v.tipo === 'altro') avviso(v.titolo ? `Tipo di visura non riconosciuto: "${v.titolo}"` : 'Titolo della visura non trovato');
   return v;
 }
@@ -335,8 +338,12 @@ function immobiliSezione(s: Sezione, avviso: (s: string) => void): ImmobileVisur
     const cella = (k: ChiaveImm) => g.filter((e) => col.get(e) === k);
     const txt = (k: ChiaveImm) => testoCella(cella(k));
     const progressivo = ancora === 'n' ? Number(ancoraEl.testo) : out.length + 1;
-    const foglio = txt('foglio');
-    const numero = txt('numero');
+    // identificativi graffati: più particelle (e sub) una sotto l'altra nella stessa riga; la prima è la principale
+    const righeNum = righeDi(cella('numero'));
+    const allineata = (k: ChiaveImm, y: number, pagina: number) => righeDi(cella(k)).find((r) => r.pagina === pagina && Math.abs(r.y - y) <= 2)?.testo.trim();
+    const ids = righeNum.map((r) => ({ numero: r.testo.trim(), foglio: allineata('foglio', r.y, r.pagina), sub: allineata('sub', r.y, r.pagina), sezione: allineata('sezione', r.y, r.pagina) })).filter((x) => /^\d+$/.test(x.numero));
+    const foglio = ids[0]?.foglio || txt('foglio');
+    const numero = ids.length > 1 ? ids[0].numero : txt('numero');
     const categoria = txt('categoria').replace(/\s+/g, '').toUpperCase();
     if (!foglio || !numero) {
       avviso(`Gruppo ${s.gruppo}, immobile ${progressivo}: foglio o numero non letti`);
@@ -346,7 +353,11 @@ function immobiliSezione(s: Sezione, avviso: (s: string) => void): ImmobileVisur
     const imm: ImmobileVisura = { foglio, numero, categoria, comune: s.comune, gruppo: s.gruppo, progressivo };
     const opz = (k: ChiaveImm) => txt(k) || undefined;
     imm.sezione = opz('sezione');
-    imm.subalterno = opz('sub');
+    imm.subalterno = ids.length > 1 ? ids[0].sub || undefined : opz('sub');
+    if (ids.length > 1) {
+      imm.sezione = ids[0].sezione || imm.sezione;
+      imm.graffati = ids.slice(1).map((x) => ({ sezione: x.sezione || imm.sezione, foglio: x.foglio || foglio, numero: x.numero, subalterno: x.sub || undefined }));
+    }
     imm.zonaCensuaria = opz('zona');
     imm.microzona = opz('micro');
     imm.classe = opz('classe');

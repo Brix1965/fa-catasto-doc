@@ -61,6 +61,7 @@
       else { u = nuovaUnita(acc ? 'C' : operazioni[k]); pratica.unita.push(u); idx = pratica.unita.length - 1; }
       if (!acc) u.operazione = operazioni[k];
       u.identificativo = { sezione: im.sezione || undefined, foglio: im.foglio, numero: im.numero, subalterno: im.subalterno || undefined };
+      if (im.graffati?.length) u.graffati = im.graffati.map((g) => ({ sezione: g.sezione || undefined, foglio: g.foglio, numero: g.numero, subalterno: g.subalterno || undefined }));
       if (!acc) u.inAtti = inAttiDaVisura(im);
       if (u.operazione === 'S') { u.classamento = undefined; u.mod1NParteII = undefined; }
       else if (im.indirizzo && (!u.indirizzo?.toponimo)) {
@@ -82,7 +83,7 @@
   $effect(() => { if (aperto && !MODULO) void import('$lib/core/visura').then((m) => (MODULO = m)); });
 
   const nScelti = $derived(scelti.filter(Boolean).length);
-  const idTesto = (i: ImmobileVisura) => `${i.sezione ? `sez. ${i.sezione} ` : ''}fg. ${i.foglio} p.lla ${i.numero}${i.subalterno ? ` sub ${i.subalterno}` : ''}`;
+  const idTesto = (i: ImmobileVisura) => `${i.sezione ? `sez. ${i.sezione} ` : ''}fg. ${i.foglio} p.lla ${i.numero}${i.subalterno ? ` sub ${i.subalterno}` : ''}${i.graffati?.length ? ` (graffata con ${i.graffati.map((g) => `p.lla ${g.numero}${g.subalterno ? ` sub ${g.subalterno}` : ''}`).join(', ')})` : ''}`;
   const euro = (n?: number) => (n === undefined ? '' : `€ ${n.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
   function tasti(e: KeyboardEvent): void { if (aperto && e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); aperto = false; } }
 </script>

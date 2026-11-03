@@ -23,6 +23,8 @@ export interface ImmobileVisura {
   foglio: string;
   numero: string;
   subalterno?: string;
+  /** identificativi graffati (particelle e sub scritti sotto il principale) */
+  graffati?: { sezione?: string; foglio: string; numero: string; subalterno?: string }[];
   zonaCensuaria?: string;
   microzona?: string;
   /** come stampata, es. "A/2" */

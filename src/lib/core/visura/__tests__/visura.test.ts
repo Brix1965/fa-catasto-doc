@@ -208,3 +208,17 @@ describe.skipIf(!existsSync(CAMPIONE))('visura sintetica per soggetto reale (fix
     }
   }, 30000);
 });
+
+describe.skipIf(!existsSync('fixtures-private/visure/privati.pdf'))('visura di persone fisiche (campione reale)', () => {
+  it('persone, quote, graffati, terreni saltati', async () => {
+    const v = await leggiVisura(new Uint8Array(readFileSync('fixtures-private/visure/privati.pdf')));
+    expect(v.immobili).toHaveLength(2);
+    expect(v.immobili[0].graffati).toHaveLength(2);
+    expect(v.immobili[1].subalterno).toBeTruthy();
+    expect(v.immobili[1].graffati?.[0].subalterno).toBeUndefined();
+    const persone = v.intestati.filter((x) => x.cognome && x.nome && x.dataNascita && x.luogoNascita);
+    expect(persone.length).toBe(v.intestati.length);
+    expect(v.intestati.some((x) => x.quota === '1/3')).toBe(true);
+    expect(v.avvisi).toEqual(['Tabelle del Catasto Terreni non lette: si leggono solo i fabbricati']);
+  });
+});
