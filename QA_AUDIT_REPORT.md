@@ -1,6 +1,8 @@
 # Fa.Catasto.Doc — Report di controllo qualità (QA)
 
-Data: 03/11/2026 · Ramo esaminato: `prova` (v0.5.0, contiene anche tutto `main` 0.4.2) · Metodo: lettura del
+Data: 03/11/2026 · Ramo esaminato: `prova` (v0.5.0, contiene anche tutto `main` 0.4.2). Le correzioni che riguardano
+le parti già presenti in `main` sono state portate nella **0.4.3**; quelle dell'editor del disegno, dei poligoni
+proposti e delle visure restano nella versione di prova (**0.5.1**) · Metodo: lettura del
 codice modulo per modulo, prove con script e con il browser (Playwright) sui flussi principali, suite di test.
 
 ## 1. Sintesi
