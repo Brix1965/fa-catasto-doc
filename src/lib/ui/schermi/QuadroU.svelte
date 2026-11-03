@@ -23,13 +23,15 @@
     const u = nuovaUnita(acc ? 'C' : 'V');
     const prec = pratica.unita[pratica.unita.length - 1];
     if (prec) {
-      u.identificativo = { sezione: prec.identificativo.sezione, foglio: prec.identificativo.foglio, numero: prec.identificativo.numero };
+      // foglio e particella della precedente si propongono nella riga da inserire, non come identificativo già
+      // dato: altrimenti l'identificativo scritto dal tecnico finiva tra i graffati (segnalato da Fabrizio)
       if (prec.indirizzo) u.indirizzo = clonaProfondo($state.snapshot(prec.indirizzo));
       if (acc) u.ditta = prec.ditta;
     }
     u.mod1NParteII = undefined;
     pratica.unita.push(u);
     selezionata = pratica.unita.length - 1;
+    if (prec) nuovoId = { sezione: prec.identificativo.sezione, foglio: prec.identificativo.foglio, numero: prec.identificativo.numero };
   }
   async function elimina(i: number): Promise<void> {
     if (!(await conferma(`Eliminare ${descriviUnita(pratica.unita[i], i)}?`))) return;
@@ -47,10 +49,30 @@
   // identificativi: il primo è quello principale, gli altri sono graffati
   let nuovoId = $state<Identificativo>({ foglio: '', numero: '' });
   let rigaId = $state(-1);
+  // cambiando unità la riga da inserire riparte da foglio e particella dell'unità (senza subalterno)
+  let ultimaSelezionata = -1;
+  $effect(() => {
+    const k = selezionata;
+    if (k === ultimaSelezionata) return;
+    ultimaSelezionata = k;
+    const id = pratica.unita[k]?.identificativo;
+    rigaId = -1;
+    if (id?.foglio) nuovoId = { sezione: id.sezione, foglio: id.foglio, numero: id.numero };
+  });
+  /**
+   * L'identificativo principale non è ancora completo: il primo inserito va lì, non tra i graffati. Vale anche per
+   * le unità salvate con foglio e particella proposti senza subalterno (versioni precedenti) quando si inserisce
+   * lo stesso foglio e la stessa particella con il subalterno.
+   */
+  function principaleDaCompletare(u: UnitaImmobiliare, id: Identificativo): boolean {
+    const p = u.identificativo;
+    if (!p.foglio || !p.numero) return true;
+    return !p.subalterno && !u.graffati.length && p.foglio === id.foglio && p.numero === id.numero && (p.sezione ?? '') === (id.sezione ?? '') && !!id.subalterno;
+  }
   function inserisciId(u: UnitaImmobiliare): void {
     if (!nuovoId.foglio || !nuovoId.numero) return;
     const id = { ...nuovoId, sezione: nuovoId.sezione || undefined, denominatore: nuovoId.denominatore || undefined, subalterno: nuovoId.subalterno || undefined };
-    if (rigaId === 0) u.identificativo = id;
+    if (rigaId === 0 || (rigaId < 0 && principaleDaCompletare(u, id))) u.identificativo = id;
     else if (rigaId > 0) u.graffati[rigaId - 1] = id;
     else u.graffati.push(id);
     nuovoId = { foglio: id.foglio, numero: id.numero, sezione: id.sezione };
@@ -143,7 +165,7 @@
           <Campo etichetta="Numero" obbligatorio><input type="text" class="campo uppercase" maxlength="5" bind:value={nuovoId.numero} /></Campo>
           <Campo etichetta="Denom."><input type="text" class="campo" maxlength="4" bind:value={nuovoId.denominatore} /></Campo>
           <Campo etichetta="Sub."><input type="text" class="campo uppercase" maxlength="4" bind:value={nuovoId.subalterno} onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); inserisciId(unita); } }} /></Campo>
-          <button type="button" class="btn mb-0.5" onclick={() => inserisciId(unita)} disabled={!nuovoId.foglio || !nuovoId.numero}><Icona nome={rigaId >= 0 ? 'spunta' : 'piu'} /> {rigaId >= 0 ? 'Modifica' : 'Inserisci'}</button>
+          <button type="button" class="btn mb-0.5" onclick={() => inserisciId(unita)} disabled={!nuovoId.foglio || !nuovoId.numero}><Icona nome={rigaId >= 0 ? 'spunta' : 'piu'} /> {rigaId >= 0 ? 'Modifica' : principaleDaCompletare(unita, nuovoId) ? 'Inserisci (principale)' : 'Inserisci (graffato)'}</button>
         </div>
         <table class="mt-2 w-full text-sm">
           <thead><tr class="text-left text-xs text-fg-muted"><th class="py-1 font-medium">#</th><th class="font-medium">Sez.</th><th class="font-medium">Foglio</th><th class="font-medium">Numero</th><th class="font-medium">Denom.</th><th class="font-medium">Sub.</th><th></th></tr></thead>
