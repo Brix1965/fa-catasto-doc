@@ -88,6 +88,10 @@ jobs:
   pubblica:
     name: Pubblica eseguibili
     needs: build
+    # due push ravvicinati non cancellano e ricreano la release insieme
+    concurrency:
+      group: pubblica-${{ github.ref }}
+      cancel-in-progress: false
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:

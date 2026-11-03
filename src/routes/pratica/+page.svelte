@@ -11,7 +11,8 @@
   import VersioneApp from '$lib/ui/VersioneApp.svelte';
   import { page } from '$app/state';
   import { goto } from '$app/navigation';
-  import { onDestroy } from 'svelte';
+  import { onDestroy, onMount, untrack } from 'svelte';
+  import { conferma, inTauri } from '$lib/piattaforma';
   import { statoPratica } from '$lib/stato/pratica.svelte';
   import { impostazioni } from '$lib/stato/impostazioni.svelte';
   import { controllaPratica, controllaSchermo, descriviUnita, motiviElaboratoObbligatorio, type SezionePratica } from '$lib/stato/validazione';
@@ -55,7 +56,8 @@
   $effect(() => {
     const p = percorsoRichiesto;
     if (!p) { errore = 'Nessuna pratica indicata'; return; }
-    if (statoPratica.percorso === p) return;
+    // pratica appena creata (già aperta): si entra nel primo schermo, così «Annulla» ha da dove ripartire
+    if (statoPratica.percorso === p) { if (!istantanea) untrack(() => entra('comune')); return; }
     statoPratica.apri(p).then(() => entra('comune')).catch((e) => (errore = `Pratica non apribile: ${e instanceof Error ? e.message : String(e)}`));
   });
 
@@ -66,7 +68,25 @@
     statoPratica.notificaModifica(s);
   });
 
-  onDestroy(() => { if (statoPratica.salvataggio === 'modificato') void statoPratica.salva(); });
+  onDestroy(() => { if (statoPratica.daSalvare) void statoPratica.salva(); });
+
+  // chiusura della finestra con modifiche non ancora scritte: si salva prima di chiudere (o si chiede)
+  onMount(() => {
+    if (!inTauri()) return;
+    let tolto = false;
+    let togli: (() => void) | undefined;
+    void import('@tauri-apps/api/window').then(async ({ getCurrentWindow }) => {
+      const w = getCurrentWindow();
+      const f = await w.onCloseRequested(async (ev) => {
+        if (!statoPratica.daSalvare) return;
+        ev.preventDefault();
+        const ok = await statoPratica.salva();
+        if (ok || (await conferma(`Il salvataggio non è riuscito (${statoPratica.errore ?? 'errore'}). Chiudere comunque? Le ultime modifiche andranno perse.`))) await w.destroy();
+      });
+      if (tolto) f(); else togli = f;
+    });
+    return () => { tolto = true; togli?.(); };
+  });
 
   const schermi = $derived(statoPratica.pratica ? schermiPratica(statoPratica.pratica) : []);
   const titoli = $derived(Object.fromEntries(schermi.map((s) => [s.id, s.titolo])) as Partial<Record<SezionePratica, string>>);
@@ -157,9 +177,11 @@
 
   async function chiudi(): Promise<void> {
     if (statoPratica.pratica && !(await confermaData.chiedi(statoPratica.pratica, 'Prima del salvataggio finale e della chiusura del documento.'))) return;
-    await statoPratica.salva();
-    statoPratica.chiudi();
+    const ok = await statoPratica.salva();
+    if (!ok && !(await conferma(`Il salvataggio non è riuscito (${statoPratica.errore ?? 'errore'}). Chiudere comunque? Le ultime modifiche andranno perse.`))) return;
+    // prima si lascia la pagina, poi si chiude: altrimenti l'effetto di apertura riapriva la pratica
     await goto('/');
+    statoPratica.chiudi();
   }
 
   const STATO_SALVATAGGIO: Record<typeof statoPratica.salvataggio, string> = { salvato: 'Salvato', modificato: 'Modifiche non salvate', salvataggio: 'Salvataggio…', errore: 'Errore di salvataggio' };

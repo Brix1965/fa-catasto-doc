@@ -65,3 +65,16 @@ describe('riconoscimento archivi e comuni incorporati', () => {
     ]);
   });
 });
+
+describe('rendita con l\'aritmetica di Docfa', () => {
+  it('coincide con il calcolo del classamento automatico (NZCT06)', async () => {
+    const { renditaNclas } = await import('../classamento/nzct06');
+    const { rendita } = await import('../archivi');
+    const tariffe = (lire: number) => ['I1AA ' + '001' + 'C02' + '03' + String(lire).padStart(7, '0'), 'I1AA ' + '001' + 'A03' + '02' + String(lire).padStart(7, '0')];
+    // casi in cui il calcolo in virgola mobile sbagliava il centesimo
+    expect(rendita(151, 1000)).toBe(Number(renditaNclas(tariffe(1000), 'I1AA ', '001', 'C02', '03', '    151', false)) / 100);
+    expect(rendita(13.5, 113000)).toBe(Number(renditaNclas(tariffe(113000), 'I1AA ', '001', 'A03', '02', '   13,5', true)) / 100);
+    expect(rendita(4.5, 315000)).toBe(732.08);
+    expect(rendita(0, 315000)).toBe(0);
+  });
+});

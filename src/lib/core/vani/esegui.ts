@@ -22,8 +22,10 @@ export async function riconosciInBackground(richiesta: RichiestaVani): Promise<R
   const w = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
   try {
     return await new Promise<RisultatoVani[]>((resolve, reject) => {
-      w.onmessage = (e: MessageEvent<RispostaVani>) => (e.data.ok ? resolve(e.data.risultati) : reject(new Error(e.data.errore)));
-      w.onerror = (e) => reject(new Error(e.message || 'errore nel calcolo dei vani'));
+      // un disegno enorme o guasto non lascia «Calcolo in corso…» per sempre
+      const scadenza = setTimeout(() => reject(new Error('il calcolo dei vani ha superato i 3 minuti: il DXF è troppo complesso o danneggiato')), 180000);
+      w.onmessage = (e: MessageEvent<RispostaVani>) => { clearTimeout(scadenza); if (e.data.ok) resolve(e.data.risultati); else reject(new Error(e.data.errore)); };
+      w.onerror = (e) => { clearTimeout(scadenza); reject(new Error(e.message || 'errore nel calcolo dei vani')); };
       w.postMessage(richiesta);
     });
   } finally {

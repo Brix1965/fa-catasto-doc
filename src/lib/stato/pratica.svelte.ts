@@ -4,13 +4,15 @@
  * contiene <id>.catasto.json e, dopo l'esportazione, il PDF NCVnnn.PDF.
  */
 import type { Pratica } from '$lib/core/model';
-import { elencoFile, leggiFile, scriviFile, unisci, creaCartella, eliminaFile, cartellaDi, nomeFile } from '$lib/piattaforma';
+import { elencoFile, leggiFile, scriviFile, scriviFileSicuro, unisci, creaCartella, eliminaFile, cartellaDi, nomeFile } from '$lib/piattaforma';
 import { deserializzaPratica, serializzaPratica, nuovoId, nomeCartellaPratica, ESTENSIONE_PRATICA, type FilePratica, type MetaPratica } from './pratica-file';
 
 export interface VocePratica {
   percorso: string;
   cartella: string;
   meta: MetaPratica;
+  /** il file c'è ma non si legge (troncato, versione più nuova…): si mostra lo stesso, con il motivo */
+  illeggibile?: string;
   comune: string;
   progressivo: number;
   unita: number;
@@ -43,7 +45,11 @@ export async function elencoPratiche(cartella: string): Promise<VocePratica[]> {
     try {
       const f = deserializzaPratica(new TextDecoder().decode(await leggiFile(p)));
       out.push({ percorso: p, cartella: cartellaDi(p), meta: f.meta, comune: f.pratica.comune.nome, progressivo: f.pratica.progressivo, unita: f.pratica.unita.length, tipo: f.pratica.tipoDocumento ?? 'variazione' });
-    } catch { /* file non valido: lo ignoriamo */ }
+    } catch (e) {
+      // un file guasto non deve sparire dall'elenco senza dire niente
+      const nome = nomeFile(p);
+      out.push({ percorso: p, cartella: cartellaDi(p), meta: { id: nome, titolo: nome, stato: 'bozza', creata: '', modificata: '' }, illeggibile: e instanceof Error ? e.message : String(e), comune: '', progressivo: 0, unita: 0, tipo: 'variazione' });
+    }
   }
   return out.sort((a, b) => b.meta.modificata.localeCompare(a.meta.modificata));
 }
@@ -60,6 +66,10 @@ class StatoPratica {
 
   private timer: ReturnType<typeof setTimeout> | null = null;
   private ultimoSerializzato = '';
+  /** salvataggi in coda: mai due scritture dello stesso file insieme (Ctrl+S durante l'autosalvataggio) */
+  private coda: Promise<boolean> = Promise.resolve(true);
+  /** ci sono modifiche non ancora scritte (o l'ultima scrittura è fallita) */
+  get daSalvare(): boolean { return this.salvataggio === 'modificato' || this.salvataggio === 'errore' || this.timer !== null; }
 
   async apri(percorso: string): Promise<FilePratica> {
     const testo = new TextDecoder().decode(await leggiFile(percorso));
@@ -99,25 +109,34 @@ class StatoPratica {
     this.salvataggio = 'salvato';
   }
 
-  /** Salva subito (aggiorna "modificata"). */
-  async salva(): Promise<void> {
-    if (!this.file || !this.percorso) return;
+  /** Salva subito (aggiorna "modificata"). Restituisce false se la scrittura non è riuscita. */
+  salva(): Promise<boolean> {
+    this.coda = this.coda.then(() => this.scrivi(), () => this.scrivi());
+    return this.coda;
+  }
+
+  private async scrivi(): Promise<boolean> {
+    if (!this.file || !this.percorso) return true;
     if (this.timer) { clearTimeout(this.timer); this.timer = null; }
     this.salvataggio = 'salvataggio';
     const precedente = this.ultimoSerializzato;
+    const percorso = this.percorso;
     try {
       this.file.meta.modificata = new Date().toISOString();
       const s = serializzaPratica($state.snapshot(this.file) as FilePratica);
       // va aggiornato PRIMA della scrittura: il cambio di "modificata" riattiva l'effetto dell'autosalvataggio,
       // che altrimenti vedrebbe una differenza e programmerebbe un altro salvataggio, all'infinito
       this.ultimoSerializzato = s;
-      await scriviFile(this.percorso, s);
-      this.salvataggio = 'salvato';
+      await scriviFileSicuro(percorso, s);
+      // modifiche arrivate durante la scrittura: restano «da salvare» (il timer è già ripartito)
+      this.salvataggio = this.timer ? 'modificato' : 'salvato';
       this.errore = null;
+      return true;
     } catch (e) {
       this.ultimoSerializzato = precedente;
       this.salvataggio = 'errore';
       this.errore = e instanceof Error ? e.message : String(e);
+      return false;
     }
   }
 
@@ -139,14 +158,18 @@ class StatoPratica {
     // si elimina tutta la cartella solo se è quella creata dal programma per questa pratica (nome = id) e non
     // contiene altre pratiche; altrimenti (cartella del tecnico con altri file) si toglie solo il file della pratica
     const nomeDir = nomeFile(voce.cartella.replace(/[\\/]+$/, ''));
-    let propria = !stessa && (nomeDir === voce.meta.id || (!!voce.meta.cartella && nomeDir === voce.meta.cartella));
-    if (propria) {
-      try {
-        const altre = (await elencoFile(voce.cartella)).filter((v) => !v.cartella && v.nome.endsWith(ESTENSIONE_PRATICA) && v.percorso !== voce.percorso);
-        if (altre.length) propria = false;
-      } catch { propria = false; }
-    }
-    await eliminaFile(propria ? voce.cartella : voce.percorso);
+    const propria = !stessa && (nomeDir === voce.meta.id || (!!voce.meta.cartella && nomeDir === voce.meta.cartella));
+    // si eliminano solo i file del programma (la pratica e il PDF esportato): file messi dal tecnico nella cartella
+    // (ricevute, firme, DXF) restano; la cartella si toglie solo se poi è vuota
+    await eliminaFile(voce.percorso);
+    if (!propria) return;
+    try {
+      if (voce.meta.pdfEsportato) {
+        const pdf = unisci(voce.cartella, voce.meta.pdfEsportato);
+        if ((await elencoFile(voce.cartella)).some((v) => v.percorso === pdf || v.nome === voce.meta.pdfEsportato)) await eliminaFile(pdf);
+      }
+      if (!(await elencoFile(voce.cartella)).length) await eliminaFile(voce.cartella);
+    } catch { /* la cartella resta */ }
   }
 
   /** Serializzazione corrente della pratica (per l'autosalvataggio). */

@@ -14,6 +14,7 @@
  * Il risultato è una PROPOSTA: il tecnico cambia il tipo di ogni vano, lo esclude, e corregge i totali.
  */
 import type { Entita } from '../raster/dxf';
+import { ampiezzaArco } from '../raster/bitmap';
 import type { Poligono } from '../model';
 import {
   anello, buffer, centro, coordinate, dividi, facce as faccePoligonizzate, intersezione, linea, parti,
@@ -84,14 +85,12 @@ export const m2Intero = (a: number): number => Math.floor(a + 0.5);
 
 /** Archi spezzati in segmenti (freccia massima 1 cm, come `flattening(0.01)` di ezdxf). */
 function puntiArco(c: XY, r: number, a0: number, a1: number): XY[] {
-  let fine = a1;
-  while (fine <= a0) fine += 360;
-  const sweep = ((fine - a0) * Math.PI) / 180;
+  const sweep = (ampiezzaArco(a0, a1) * Math.PI) / 180;
   const passo = r > 0.01 ? 2 * Math.acos(Math.max(-1, 1 - 0.01 / r)) : sweep;
-  const n = Math.max(2, Math.ceil(sweep / Math.max(passo, 1e-3)));
+  const n = Math.min(2000, Math.max(2, Math.ceil(sweep / Math.max(passo, 1e-3))));
   const out: XY[] = [];
   for (let i = 0; i <= n; i++) {
-    const a = (a0 * Math.PI) / 180 + (sweep * i) / n;
+    const a = ((a0 % 360) * Math.PI) / 180 + (sweep * i) / n;
     out.push([c[0] + r * Math.cos(a), c[1] + r * Math.sin(a)]);
   }
   return out;
@@ -123,8 +122,10 @@ function paralleli(a: G, b: G, tol = 0.05): boolean {
  */
 export function riconosciVani(entita: Entita[], poligoni: Poligono[]): RisultatoVani {
   const avvisi: string[] = [];
-  const pol = poligoni.filter((p) => p.vertici.length >= 3).map((p) => ({ tipo: p.tipo, g: poligono(p.vertici) }));
-  if (!pol.length) return { vani: [], linee: [], limiti: { x0: 0, y0: 0, x1: 1, y1: 1 }, avvisi: ['Nel DXF non ci sono poligoni DOCFA_POLIGONI: servono per sapere dove sta l\'unità.'] };
+  const pol = poligoni.filter((p) => p.vertici.length >= 3).map((p) => ({ tipo: p.tipo, g: poligono(p.vertici) })).filter((p) => !p.g.isEmpty() && p.g.getArea() > 1e-6);
+  const storti = pol.filter((p) => !p.g.isValid()).length;
+  if (storti) avvisi.push(`${storti} ${storti === 1 ? 'poligono si incrocia' : 'poligoni si incrociano'} (contorno «a farfalla»): le superfici e i vani dentro possono risultare sbagliati, correggili.`);
+  if (!pol.some((p) => 'ABCH'.includes(p.tipo))) return { vani: [], linee: [], limiti: { x0: 0, y0: 0, x1: 1, y1: 1 }, avvisi: [...avvisi, 'Nel DXF non ci sono poligoni A, B, C o A2 sul layer DOCFA_POLIGONI: servono per sapere dove sta l\'unità.'] };
   const di = (tipi: string) => pol.filter((p) => tipi.includes(p.tipo)).map((p) => p.g);
 
   // ---- segmenti continui e tratteggiati, testi, archi

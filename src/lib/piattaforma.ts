@@ -87,6 +87,19 @@ export async function scriviFile(percorso: string, dati: Uint8Array | string): P
   await browserScrivi(percorso, bytes);
 }
 
+/**
+ * Scrittura sicura: prima un file temporaneo accanto, poi la sostituzione con un rinomina (operazione atomica
+ * del sistema). Un'interruzione a metà (crash, disco pieno, cartella di rete che cade) lascia intatto il file di
+ * prima invece di un JSON troncato. Nel browser si scrive direttamente.
+ */
+export async function scriviFileSicuro(percorso: string, dati: Uint8Array | string): Promise<void> {
+  if (!inTauri()) return scriviFile(percorso, dati);
+  const { rename } = await import('@tauri-apps/plugin-fs');
+  const tmp = `${percorso}.tmp`;
+  await scriviFile(tmp, dati);
+  await rename(tmp, percorso);
+}
+
 export async function esisteFile(percorso: string): Promise<boolean> {
   if (inTauri()) {
     const { exists } = await import('@tauri-apps/plugin-fs');

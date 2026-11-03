@@ -62,6 +62,8 @@
     if (copia === null || !destinazioni.size) return;
     if (!(await conferma("ATTENZIONE – L'operazione di copia ricoprirà i dati già esistenti. Confermi?"))) return;
     const sorgente = pratica.unita[copia];
+    // il modello da copiare è stato eliminato (o l'unità non c'è più) dopo «Copia»: non si incolla niente
+    if (!sorgente?.mod1NParteII) { copia = null; destinazioni = new Set(); esitoCopia = 'Il modello 1N parte II da copiare non c\'è più: copia annullata'; return; }
     const saltate: string[] = [];
     for (const i of destinazioni) {
       const u = pratica.unita[i];
@@ -131,7 +133,7 @@
               <td class="text-right whitespace-nowrap">
                 <button type="button" class="btn btn-piccolo btn-ghost" onclick={() => compila1NII(i)} title="Compila"><Icona nome="modifica" /></button>
                 <button type="button" class="btn btn-piccolo btn-ghost" disabled={!u.mod1NParteII} onclick={() => { copia = i; destinazioni = new Set(); }} title="Copia"><Icona nome="copia" /></button>
-                <button type="button" class="btn btn-piccolo btn-ghost btn-pericolo" disabled={!u.mod1NParteII} onclick={async () => { if (await conferma('Eliminare il modello 1N parte II di questa unità?')) u.mod1NParteII = undefined; }} title="Elimina"><Icona nome="cestino" /></button>
+                <button type="button" class="btn btn-piccolo btn-ghost btn-pericolo" disabled={!u.mod1NParteII} onclick={async () => { if (await conferma('Eliminare il modello 1N parte II di questa unità?')) { u.mod1NParteII = undefined; if (copia === i) { copia = null; destinazioni = new Set(); } } }} title="Elimina"><Icona nome="cestino" /></button>
               </td>
             </tr>
           {/each}

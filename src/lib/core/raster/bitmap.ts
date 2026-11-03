@@ -31,6 +31,33 @@ export interface OpzioniTesto {
   larghezza?: number;
 }
 
+/**
+ * Ampiezza di un arco in gradi (0 < ampiezza ≤ 360) da inizio a fine in senso antiorario. Con il modulo e non con
+ * «while (fine <= inizio) fine += 360», che con angoli enormi (1e17 in un DXF guasto) non finisce mai.
+ */
+export function ampiezzaArco(inizio: number, fine: number): number {
+  if (!Number.isFinite(inizio) || !Number.isFinite(fine)) return 360;
+  const a = (((fine - inizio) % 360) + 360) % 360;
+  return a === 0 ? 360 : a;
+}
+
+/**
+ * Ritaglio di un segmento sul rettangolo [x0,x1]×[y0,y1] (Liang–Barsky): null se ne resta fuori. Evita di
+ * percorrere pixel per pixel linee lunghissime che escono dal foglio (un DXF con coordinate enormi bloccava il programma).
+ */
+export function ritagliaSegmento(ax: number, ay: number, bx: number, by: number, x0: number, y0: number, x1: number, y1: number): [number, number, number, number] | null {
+  let t0 = 0, t1 = 1;
+  const dx = bx - ax, dy = by - ay;
+  const p = [-dx, dx, -dy, dy], q = [ax - x0, x1 - ax, ay - y0, y1 - ay];
+  for (let i = 0; i < 4; i++) {
+    if (p[i] === 0) { if (q[i] < 0) return null; continue; }
+    const t = q[i] / p[i];
+    if (p[i] < 0) { if (t > t1) return null; if (t > t0) t0 = t; }
+    else { if (t < t0) return null; if (t < t1) t1 = t; }
+  }
+  return [ax + t0 * dx, ay + t0 * dy, ax + t1 * dx, ay + t1 * dy];
+}
+
 export class Bitmap {
   readonly width: number;
   readonly height: number;
@@ -143,6 +170,12 @@ export class Bitmap {
    * arrotondati, come una penna).
    */
   linea(x0: number, y0: number, x1: number, y1: number, spessore = 1, nero = true): void {
+    if (!Number.isFinite(x0) || !Number.isFinite(y0) || !Number.isFinite(x1) || !Number.isFinite(y1)) return;
+    // solo la parte dentro l'immagine (con il margine della penna)
+    const m = spessore + 2;
+    const r = ritagliaSegmento(x0, y0, x1, y1, -m, -m, this.width + m, this.height + m);
+    if (!r) return;
+    [x0, y0, x1, y1] = r;
     let xa = Math.round(x0), ya = Math.round(y0);
     const xb = Math.round(x1), yb = Math.round(y1);
     const dx = Math.abs(xb - xa), sx = xa < xb ? 1 : -1;
@@ -198,12 +231,13 @@ export class Bitmap {
    * Con fine = inizio + 360 disegna il cerchio completo.
    */
   arco(cx: number, cy: number, raggio: number, angoloInizio: number, angoloFine: number, spessore = 1, nero = true): void {
-    let a0 = angoloInizio;
-    let a1 = angoloFine;
-    while (a1 <= a0) a1 += 360;
-    const ampiezza = a1 - a0;
-    // passo angolare tale che la corda si discosti dall'arco meno di ~0,25 px
-    const passi = Math.max(8, Math.ceil((ampiezza / 360) * Math.max(16, 2 * Math.PI * raggio / 1.5)));
+    if (!Number.isFinite(cx) || !Number.isFinite(cy) || !Number.isFinite(raggio)) return;
+    // tutto fuori dall'immagine: niente da disegnare (e niente milioni di punti per un raggio enorme)
+    if (cx + raggio < 0 || cy + raggio < 0 || cx - raggio > this.width || cy - raggio > this.height) return;
+    const a0 = Number.isFinite(angoloInizio) ? angoloInizio % 360 : 0;
+    const ampiezza = ampiezzaArco(a0, angoloFine);
+    // passo angolare tale che la corda si discosti dall'arco meno di ~0,25 px (al massimo 20000 punti)
+    const passi = Math.min(20000, Math.max(8, Math.ceil((ampiezza / 360) * Math.max(16, 2 * Math.PI * raggio / 1.5))));
     const punti: Punto[] = [];
     for (let i = 0; i <= passi; i++) {
       const a = ((a0 + (ampiezza * i) / passi) * Math.PI) / 180;
@@ -318,7 +352,9 @@ export class Bitmap {
 function codiceAscii(s: string, i: number): number {
   const c = s.charCodeAt(i);
   if (c < 128) return c;
-  const ch = s[i].normalize('NFD');
+  // °, ² e ³ non si scompongono con NFD: «P. 1°», «m²» uscivano con il punto interrogativo
+  if (s[i] === '°' || s[i] === 'º') return 111; // o
+  const ch = s[i].normalize('NFKD');
   const base = ch.charCodeAt(0);
   return base < 128 ? base : 63;
 }

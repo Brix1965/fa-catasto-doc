@@ -28,9 +28,18 @@ export const linea = (a: XY, b: XY): G => gf.createLineString([C(a), C(b)]);
 export const spezzata = (pts: XY[]): G => gf.createLineString(pts.map(C));
 export const punto = (p: XY): G => gf.createPoint(C(p));
 export function poligono(pts: XY[]): G {
-  const c = pts.map(C);
-  if (!c[0].equals2D(c[c.length - 1])) c.push(c[0].copy());
+  // senza doppioni consecutivi e senza la chiusura ripetuta: con meno di 3 punti distinti (es. [a, b, a] da un
+  // vertice trascinato sopra un altro) JSTS lancia un'eccezione che bloccava tutto il riconoscimento
+  const c = pts.filter((p) => Number.isFinite(p[0]) && Number.isFinite(p[1])).map(C).filter((x, i, a) => i === 0 || !x.equals2D(a[i - 1]));
+  while (c.length > 1 && c[0].equals2D(c[c.length - 1])) c.pop();
+  if (c.length < 3) return gf.createPolygon();
+  c.push(c[0].copy());
   return gf.createPolygon(gf.createLinearRing(c));
+}
+
+/** Differenza a − b; in caso di errore topologico riprova con un buffer nullo, poi restituisce a. */
+export function differenza(a: G, b: G): G {
+  try { return a.difference(b); } catch { try { return a.buffer(0).difference(b.buffer(0)); } catch { return a; } }
 }
 export const vuoto = (): G => gf.createGeometryCollection([]);
 export const collezione = (gs: G[]): G => gf.createGeometryCollection(gs);

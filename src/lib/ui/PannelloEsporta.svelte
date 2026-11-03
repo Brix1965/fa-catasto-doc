@@ -47,7 +47,8 @@
     risultato = null;
     try {
       rinumeraImmagini();
-      await statoPratica.salva();
+      // il PDF si produce solo da una pratica salvata: altrimenti il PDF e il file della pratica sarebbero diversi
+      if (!(await statoPratica.salva())) throw new Error(`la pratica non è stata salvata (${statoPratica.errore ?? 'errore di scrittura'}): esportazione annullata`);
       const r = await esportaPratica(pratica, {});
       const percorso = unisci(cartella, r.nomeFile);
       if (await esisteFile(percorso) && !(await conferma(`${r.nomeFile} esiste già nella cartella della pratica: sovrascriverlo?`))) return;

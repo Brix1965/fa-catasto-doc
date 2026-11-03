@@ -20,6 +20,7 @@
   import { impostazioni } from '$lib/stato/impostazioni.svelte';
   import Campo from './Campo.svelte';
   import Icona from './Icona.svelte';
+  import { untrack } from 'svelte';
 
   /** $ACADVER → versione di AutoCAD */
   const VERSIONI_ACAD: Record<string, string> = { AC1009: 'R12', AC1012: 'R13', AC1014: 'R14', AC1015: 'AutoCAD 2000', AC1018: 'AutoCAD 2004', AC1021: 'AutoCAD 2007', AC1024: 'AutoCAD 2010', AC1027: 'AutoCAD 2013', AC1032: 'AutoCAD 2018' };
@@ -151,9 +152,12 @@
     };
   }
 
+  /** contatore delle anteprime: una generazione lenta di un'altra scheda non sovrascrive quella attuale */
+  let generazioneN = 0;
   async function genera(letto?: DxfLetto): Promise<void> {
     const p = sc;
     if (!p) return;
+    const mia = ++generazioneN;
     errore = null;
     if (p.tiff && !p.dxf) {
       try { bitmap = leggiTiff(p.tiff).bitmap; } catch (e) { errore = `TIFF importato non leggibile: ${e instanceof Error ? e.message : String(e)}`; }
@@ -163,6 +167,7 @@
     generazione = true;
     try {
       const composta = await componiPlanimetria({ dxf: letto ?? p.dxf, foglio: { formato: p.formato, scala: p.scala }, cartiglio: cartiglio() });
+      if (mia !== generazioneN) return;
       bitmap = composta.bitmap;
       ultimoDxfAnteprima = p.dxf;
     } catch (e) {
@@ -173,11 +178,17 @@
   }
 
   // all'apertura: anteprima del TIFF importato o analisi del DXF già salvato
+  // si legge solo la scheda e il suo disegno: analizza() scrive avvisi e poligoni e, se fosse tracciata, l'effetto
+  // si richiamerebbe all'infinito (un DXF senza poligoni bloccava lo schermo: effect_update_depth_exceeded)
   $effect(() => {
     const p = sc;
-    if (!p) { bitmap = null; return; }
-    if (p.tiff && !p.dxf) void genera();
-    else if (p.dxf && p.dxf !== ultimoDxfAnteprima) { analizza(p.dxf); void genera(); }
+    const dxf = p?.dxf, tiff = p?.tiff;
+    untrack(() => {
+      if (!p) { bitmap = null; return; }
+      if (tiff && !dxf) void genera();
+      else if (dxf && dxf !== ultimoDxfAnteprima) { ultimoDxfAnteprima = dxf; analizza(dxf); void genera(); }
+      else if (!dxf && !tiff) { bitmap = null; infoDxf = null; avvisiDxf = []; correzioniDxf = []; ultimoDxfAnteprima = ''; }
+    });
   });
 
   const area = areaPoligono;

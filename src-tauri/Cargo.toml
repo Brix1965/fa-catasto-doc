@@ -1,6 +1,6 @@
 [package]
 name = "fa-catasto-doc"
-version = "0.4.2"
+version = "0.4.3"
 description = "Fa.Catasto.Doc: alternativa open source a Docfa 4"
 authors = ["Fa.Catasto.Doc"]
 edition = "2024"

@@ -28,6 +28,16 @@ function pad(n: number | string, len: number): string {
   return String(n).padStart(len, '0');
 }
 
+/** Numero intero ≥ 0 da un campo che può essere vuoto (null/undefined/NaN dai campi numerici svuotati): 0. */
+function intero(v: unknown): number {
+  const n = Math.round(Number(v));
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+/** Campo numerico a larghezza fissa: intero ≥ 0, limitato alle cifre disponibili (mai più lungo del campo). */
+function cifre(v: unknown, len: number): string {
+  return pad(Math.min(intero(v), 10 ** len - 1), len);
+}
+
 function setIdentificativo(rec: FixedRecord, prefix: string, id: Identificativo | undefined): void {
   rec.assign({
     [`${prefix}_sezione`]: id?.sezione ?? '',
@@ -53,6 +63,11 @@ export interface Compilato {
 }
 
 /** Prefisso dei file: NCA per l'accatastamento, NCV per la variazione (e NMA/NMV, EPA/EPV). */
+/** U.i.u. soppresse e beni comuni non censibili (partita A): nel documento non hanno classamento né modelli. */
+export const senzaDati = (u: UnitaImmobiliare): boolean => u.operazione === 'S' || u.partitaSpeciale === 'A';
+/** U.i.u. con il modello 1N parte II nel documento (record H/I/L e dati metrici). */
+const con1N = (u: UnitaImmobiliare): boolean => !!u.mod1NParteII && !senzaDati(u);
+
 export function letteraDocumento(p: Pratica): 'A' | 'V' {
   return p.tipoDocumento === 'accatastamento' ? 'A' : 'V';
 }
@@ -81,7 +96,7 @@ export function compilaDocumento(p: Pratica): Compilato {
   const acc = p.tipoDocumento === 'accatastamento';
   const L = letteraDocumento(p);
   const conta = (op: 'C' | 'V' | 'S') => p.unita.filter((u) => u.operazione === op).length;
-  const n1NII = p.unita.filter((u) => u.mod1NParteII).length;
+  const n1NII = p.unita.filter(con1N).length;
   const ditte = acc ? (p.quadroA?.ditte.length ? p.quadroA.ditte : [undefined]) : [undefined];
   // modello D: 000 in variazione, numero della ditta in accatastamento (dedotto: 001, 002…)
   const modD = (k: number) => (acc ? k + 1 : 0);
@@ -121,8 +136,9 @@ export function compilaDocumento(p: Pratica): Compilato {
       var_vmi: !!p.tipiVariazione.VMI,
       var_altre: acc ? !!aff?.altro && p.quadroA?.causale === 'AFF' : p.presentazione === 'afferenti' ? !!affV?.altro : !!p.tipiVariazione.ALTRE,
       var_rur: !!p.tipiVariazione.RUR,
-      derivate_ordinarie: acc ? ditta?.unitaOrdinarie ?? 0 : p.derivate?.ordinarie ?? p.unita.filter((u) => u.operazione !== 'S' && !isSpeciale(u) && !u.partitaSpeciale).length,
-      derivate_speciali: acc ? ditta?.unitaSpeciali ?? 0 : p.derivate?.speciali ?? p.unita.filter((u) => u.operazione !== 'S' && isSpeciale(u)).length,
+      // come derivateCalcolate della validazione: le unità F si contano tra le speciali o particolari
+      derivate_ordinarie: acc ? ditta?.unitaOrdinarie ?? 0 : p.derivate?.ordinarie ?? p.unita.filter((u) => u.operazione !== 'S' && !isSpeciale(u) && !isF(u) && u.partitaSpeciale !== 'A').length,
+      derivate_speciali: acc ? ditta?.unitaSpeciali ?? 0 : p.derivate?.speciali ?? p.unita.filter((u) => u.operazione !== 'S' && (isSpeciale(u) || isF(u)) && u.partitaSpeciale !== 'A').length,
       derivate_bcnc: acc ? 0 : p.derivate?.bcnc ?? p.unita.filter((u) => u.operazione !== 'S' && u.partitaSpeciale === 'A').length,
       uiu_soppresse: acc ? 0 : p.dichiarate?.soppresse ?? conta('S'),
       uiu_variate: acc ? 0 : p.dichiarate?.variate ?? conta('V'),
@@ -131,7 +147,7 @@ export function compilaDocumento(p: Pratica): Compilato {
       numero_totale_ditte: acc ? ditte.length : 0,
       numero_intestati: acc && ditta?.intestazione === 'nuova' ? ditta.intestati.length : 0,
       n_mod_1n_i: p.mod1NParteI && k === 0 ? 1 : 0,
-      n_mod_1n_ii: acc ? uiu.filter((u) => u.mod1NParteII).length : n1NII,
+      n_mod_1n_ii: acc ? uiu.filter(con1N).length : n1NII,
       n_mod_2n_i: uiu.filter((u) => u.mod2N).length,
       n_mod_2n_ii: uiu.reduce((n, u) => n + (u.mod2N?.corpi.length ?? 0), 0),
       n_planimetrie: nPlan,
@@ -223,11 +239,14 @@ export function compilaDocumento(p: Pratica): Compilato {
       const uc = u.utilitaComuni ?? [];
       r3.assign({ uc_operazione: uc[0]?.operazione ?? '' });
       setIdentificativo(r3, 'uc', uc[0]?.identificativo);
-      const cl = u.classamento;
+      // soppresse e beni comuni non censibili: niente classamento né modelli, categoria " 00" (come Docfa:
+      // NCV065, NCV081, BPM), anche se nella pratica restano i dati di prima (u.i.u. passata da V a S)
+      const nulla = senzaDati(u);
+      const cl = nulla ? undefined : u.classamento;
       r3.assign({
-        rif_mod_1n_ii: u.rifMod1NParteI ?? (u.mod1NParteII || u.mod2N ? 1 : 0),
+        rif_mod_1n_ii: nulla ? 0 : u.rifMod1NParteI ?? (u.mod1NParteII || u.mod2N ? 1 : 0),
         zona_censuaria: allineaZona(cl?.zonaCensuaria),
-        categoria: cl?.categoria ?? (u.operazione === 'S' ? ' 00' : ''),
+        categoria: nulla ? ' 00' : cl?.categoria ?? '',
         classe: allineaClasse(cl?.classe),
         consistenza: cl ? cl.consistenza.padStart(7, ' ') : '',
         superficie_catastale: cl ? Math.round(cl.superficieCatastale) : 0,
@@ -350,9 +369,9 @@ export function compilaDocumento(p: Pratica): Compilato {
 
   // --- tipo H / I / L: modello 1N parte II per ogni u.i.u.
   p.unita.forEach((u, idx) => {
-    if (!u.mod1NParteII) return;
+    if (!con1N(u)) return;
     const n2 = idx + 1;
-    const m = u.mod1NParteII;
+    const m = u.mod1NParteII!;
     const rH = new FixedRecord('H').key(prog, 'U', n2, 0, md0);
     const ids = [u.identificativo, ...u.graffati];
     for (let k = 0; k < 4; k++) setIdentificativo(rH, `id${k + 1}`, ids[k]);
@@ -381,14 +400,14 @@ export function compilaDocumento(p: Pratica): Compilato {
       const c = m.gruppoC;
       const campiC = schemaGruppoC();
       const loc = (prefix: string, l: LocaleGruppoC | undefined) =>
-        campiC.setRaw(campiC.field(`${prefix}_piano`).start, (l?.piano ?? '').padEnd(3, ' ').slice(0, 3) + pad(l ? Math.round(l.lorda) : 0, 5) + pad(l ? Math.round(l.utile) : 0, 5));
+        campiC.setRaw(campiC.field(`${prefix}_piano`).start, (l?.piano ?? '').padEnd(3, ' ').slice(0, 3) + cifre(l?.lorda, 5) + cifre(l?.utile, 5));
       loc('c_princ1', c.principali[0]); loc('c_princ2', c.principali[1]);
       loc('c_accd1', c.accessoriDiretti[0]); loc('c_accd2', c.accessoriDiretti[1]);
       loc('c_acci1', c.accessoriIndiretti[0]); loc('c_acci2', c.accessoriIndiretti[1]);
-      campiC.set('c_dip_balconi', Math.round(c.balconiSup)).set('c_dip_coperte', Math.round(c.coperteSup))
-        .set('c_pert_sup', Math.round(c.pertinenzeSup)).set('c_posti_auto', c.postiAuto)
-        .set('c_accesso_carrabile', c.accessoCarrabile).set('c_altezza_media_cm', c.altezzaMediaCm)
-        .set('c_sup_altezza_inferiore_230', Math.round(c.supAltezzaInferiore230)).set('c_posto_auto_scoperto', c.postoAutoScoperto);
+      campiC.set('c_dip_balconi', intero(c.balconiSup)).set('c_dip_coperte', intero(c.coperteSup))
+        .set('c_pert_sup', intero(c.pertinenzeSup)).set('c_posti_auto', intero(c.postiAuto))
+        .set('c_accesso_carrabile', c.accessoCarrabile).set('c_altezza_media_cm', intero(c.altezzaMediaCm))
+        .set('c_sup_altezza_inferiore_230', intero(c.supAltezzaInferiore230)).set('c_posto_auto_scoperto', c.postoAutoScoperto);
       // zona 106-193: locali, balconi, coperte; 214-222: pertinenze e posti auto; 229, 231-238, 244: flag e altezze
       rH.setRaw(106, campiC.buf.subarray(105, 193));
       rH.setRaw(214, campiC.buf.subarray(213, 222));
@@ -397,18 +416,18 @@ export function compilaDocumento(p: Pratica): Compilato {
       rH.setRaw(244, campiC.buf.subarray(243, 244));
     } else {
       rH.assign({
-        vani_principali_n: m.vaniPrincipaliN, vani_principali_sup: m.vaniPrincipaliSup,
-        acc_diretti_bagni_n: m.bagniN, acc_diretti_bagni_sup: m.bagniSup,
-        acc_diretti_altri_n: m.accessoriDirettiN, acc_diretti_altri_sup: m.accessoriDirettiSup,
-        // superfici in mq interi: un valore con decimali (inserito a mano) farebbe fallire la compilazione
-        sup_lorda_principali_accessori: Math.round(m.superficieLorda || 0),
-        acc_indiretti_n: m.accessoriIndirettiN, acc_indiretti_sup: Math.round(m.accessoriIndirettiSup || 0),
-        dip_balconi_sup: Math.round(m.balconiSup || 0), dip_terrazzo_coperto_sup: Math.round(m.terrazziCopertiSup || 0),
-        pert_scoperte_sup: Math.round(m.pertinenzeScoperteSup || 0),
-        pert_altra_descrizione: m.pertAltraDescrizione ?? '', pert_altra_sup: m.pertAltraSup ?? 0, pert_sup_lorda: m.pertSupLorda ?? 0,
-        posti_auto: m.postiAuto ?? 0,
-        altezza_media_cm: m.altezzaMediaCm,
-        sup_altezza_inferiore_230: m.supAltezzaInferiore230,
+        // interi ≥ 0: un campo svuotato (null) o con decimali farebbe fallire la compilazione o scriverebbe NaN
+        vani_principali_n: intero(m.vaniPrincipaliN), vani_principali_sup: intero(m.vaniPrincipaliSup),
+        acc_diretti_bagni_n: intero(m.bagniN), acc_diretti_bagni_sup: intero(m.bagniSup),
+        acc_diretti_altri_n: intero(m.accessoriDirettiN), acc_diretti_altri_sup: intero(m.accessoriDirettiSup),
+        sup_lorda_principali_accessori: intero(m.superficieLorda),
+        acc_indiretti_n: intero(m.accessoriIndirettiN), acc_indiretti_sup: intero(m.accessoriIndirettiSup),
+        dip_balconi_sup: intero(m.balconiSup), dip_terrazzo_coperto_sup: intero(m.terrazziCopertiSup),
+        pert_scoperte_sup: intero(m.pertinenzeScoperteSup),
+        pert_altra_descrizione: m.pertAltraDescrizione ?? '', pert_altra_sup: intero(m.pertAltraSup), pert_sup_lorda: intero(m.pertSupLorda),
+        posti_auto: intero(m.postiAuto),
+        altezza_media_cm: intero(m.altezzaMediaCm),
+        sup_altezza_inferiore_230: intero(m.supAltezzaInferiore230),
       });
     }
     for (const k of ['riscaldamento', 'acqua_calda', 'condizionamento', 'citofono', 'videocitofono', 'ascensore_esclusivo', 'ascensore', 'ascensore_servizio', 'montacarichi'])
@@ -543,6 +562,17 @@ export function tipologiaMetrica(categoria: string): string {
   return MAPPA[c] ?? 'R1';
 }
 
+/**
+ * Codice tabella 6 dell'unità: quello letto da un documento importato se è dello stesso gruppo (R/P/T) della
+ * categoria attuale, altrimenti quello della categoria (cambiando categoria il codice importato non vale più).
+ */
+export function tipologiaUnita(u: UnitaImmobiliare): string {
+  const dedotto = tipologiaMetrica(u.classamento?.categoria ?? '');
+  return u.tipologiaMetrica && u.tipologiaMetrica.charAt(0) === dedotto.charAt(0) ? u.tipologiaMetrica : dedotto;
+}
+
+const isF = (u: UnitaImmobiliare): boolean => (u.classamento?.categoria ?? '').startsWith('F');
+
 function isSpeciale(u: UnitaImmobiliare): boolean {
   const c = u.classamento?.categoria ?? '';
   return c.startsWith('D') || c.startsWith('E');
@@ -617,7 +647,7 @@ export function ambientiDatiMetrici(u: UnitaImmobiliare): UnitaImmobiliare['ambi
 export function compilaDatiMetrici(p: Pratica): Uint8Array {
   const recs: Uint8Array[] = [];
   p.unita.forEach((u, i) => {
-    if (!u.mod1NParteII) return;
+    if (!con1N(u)) return;
     // modello D come nel record 3 dell'unità: 000 in variazione, numero della ditta in accatastamento
     const md = p.tipoDocumento === 'accatastamento' ? (p.quadroA?.ditte.length ?? 0) > 1 ? (u.ditta ?? 0) + 1 : 1 : 0;
     const key = `${pad(p.progressivo, 4)}${pad(md, 3)}C${pad(i + 1, 3)}`;
@@ -625,10 +655,10 @@ export function compilaDatiMetrici(p: Pratica): Uint8Array {
     // planimetria (NTF) ma nei dati metrici dei gruppi R e P Docfa li rifiuta (M0710, verificato su un'A/3): si omettono
     const amb = ambientiDatiMetrici(u);
     for (let r = 0; r < 2; r++) {
-      let s = key + pad(r, 5) + (r === 0 && u.spessoreMuri ? String(u.spessoreMuri) : '0') + (r === 0 ? (u.tipologiaMetrica ?? tipologiaMetrica(u.classamento?.categoria ?? '')) : '  ');
+      let s = key + pad(r, 5) + (r === 0 && u.spessoreMuri ? String(u.spessoreMuri) : '0') + (r === 0 ? tipologiaUnita(u) : '  ');
       for (let k = 0; k < 21; k++) {
         const a = r === 0 ? amb[k] : amb[21 + k];
-        s += a ? a.tipo + pad(Math.round(a.superficie), 5) + pad(a.altezzaMin, 4) + pad(a.altezzaMax, 4) : ' 0000000000000';
+        s += a ? a.tipo + cifre(a.superficie, 5) + cifre(a.altezzaMin, 4) + cifre(a.altezzaMax, 4) : ' 0000000000000';
       }
       recs.push(encode1252(s));
     }

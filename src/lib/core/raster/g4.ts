@@ -293,45 +293,48 @@ export function decodificaG4(dati: Uint8Array, width: number, height: number): B
   ref[0] = width; ref[1] = width;
   // annerisce i pixel [da, a) della riga y (nessun effetto se l'intervallo è vuoto)
   const annerisci = (da: number, a: number, y: number): void => { if (a > da) bm.rettangolo(da, y, a - 1, y, true); };
-  for (let y = 0; y < height; y++) {
-    if (r.finito) break;
-    // EOFB prima della fine dell'immagine
-    if (r.sbircia(24) === 0x001001) break;
-    let a0 = -1;
-    let colore: 0 | 1 = 0;
-    let ncod = 0;
-    let ib = 0;
-    while (a0 < width) {
-      ib = trovaB1(ref, nref, ib, a0, colore);
-      const b1 = ib < nref ? ref[ib] : width;
-      const b2 = ib + 1 < nref ? ref[ib + 1] : width;
-      const inizio = a0 < 0 ? 0 : a0;
-      const modo = leggiModo(r);
-      if (modo.tipo === 'P') {
-        if (colore) annerisci(inizio, b2, y);
-        a0 = b2;
-      } else if (modo.tipo === 'H') {
-        const r1 = leggiCorsa(r, colore);
-        const r2 = leggiCorsa(r, colore ? 0 : 1);
-        const a1 = Math.min(width, inizio + r1);
-        const a2 = Math.min(width, a1 + r2);
-        if (colore) annerisci(inizio, a1, y);
-        else annerisci(a1, a2, y);
-        cod[ncod++] = a1;
-        cod[ncod++] = a2;
-        a0 = a2;
-      } else if (modo.tipo === 'V') {
-        const a1 = Math.max(inizio, Math.min(width, b1 + modo.d));
-        if (colore) annerisci(inizio, a1, y);
-        cod[ncod++] = a1;
-        a0 = a1;
-        colore = colore ? 0 : 1;
-      } else {
-        return bm; // EOL/EOFB: fine dei dati
+  // uno stream troncato o guasto lascia bianche le righe che mancano (come dice la descrizione) invece di fallire
+  try {
+    for (let y = 0; y < height; y++) {
+      if (r.finito) break;
+      // EOFB prima della fine dell'immagine
+      if (r.sbircia(24) === 0x001001) break;
+      let a0 = -1;
+      let colore: 0 | 1 = 0;
+      let ncod = 0;
+      let ib = 0;
+      while (a0 < width) {
+        ib = trovaB1(ref, nref, ib, a0, colore);
+        const b1 = ib < nref ? ref[ib] : width;
+        const b2 = ib + 1 < nref ? ref[ib + 1] : width;
+        const inizio = a0 < 0 ? 0 : a0;
+        const modo = leggiModo(r);
+        if (modo.tipo === 'P') {
+          if (colore) annerisci(inizio, b2, y);
+          a0 = b2;
+        } else if (modo.tipo === 'H') {
+          const r1 = leggiCorsa(r, colore);
+          const r2 = leggiCorsa(r, colore ? 0 : 1);
+          const a1 = Math.min(width, inizio + r1);
+          const a2 = Math.min(width, a1 + r2);
+          if (colore) annerisci(inizio, a1, y);
+          else annerisci(a1, a2, y);
+          cod[ncod++] = a1;
+          cod[ncod++] = a2;
+          a0 = a2;
+        } else if (modo.tipo === 'V') {
+          const a1 = Math.max(inizio, Math.min(width, b1 + modo.d));
+          if (colore) annerisci(inizio, a1, y);
+          cod[ncod++] = a1;
+          a0 = a1;
+          colore = colore ? 0 : 1;
+        } else {
+          return bm; // EOL/EOFB: fine dei dati
+        }
       }
+      cod[ncod] = width; cod[ncod + 1] = width;
+      const t = ref; ref = cod; cod = t; nref = ncod;
     }
-    cod[ncod] = width; cod[ncod + 1] = width;
-    const t = ref; ref = cod; cod = t; nref = ncod;
-  }
+  } catch { /* righe mancanti: bianche */ }
   return bm;
 }

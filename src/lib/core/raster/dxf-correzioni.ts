@@ -14,6 +14,7 @@
  */
 import type { Poligono, TipoAmbientePoligono } from '../model';
 import { leggiDxf, rilevaFoglio, RIQUADRO_CM, type DxfLetto, type Entita, type FoglioRilevato, type Punto2 } from './dxf';
+import { ampiezzaArco } from './bitmap';
 
 export interface DxfPreparato {
   letto: DxfLetto;
@@ -58,11 +59,10 @@ function bboxPunti(punti: Punto2[]): [number, number, number, number] {
 }
 
 function puntiArco(c: Punto2, r: number, inizio: number, fine: number): Punto2[] {
-  let a1 = fine;
-  while (a1 <= inizio) a1 += 360;
-  const n = Math.max(8, Math.ceil(((a1 - inizio) / 360) * 64));
+  const a0 = inizio % 360, amp = ampiezzaArco(a0, fine);
+  const n = Math.max(8, Math.ceil((amp / 360) * 64));
   const out: Punto2[] = [];
-  for (let k = 0; k <= n; k++) { const a = ((inizio + ((a1 - inizio) * k) / n) * Math.PI) / 180; out.push([c[0] + r * Math.cos(a), c[1] + r * Math.sin(a)]); }
+  for (let k = 0; k <= n; k++) { const a = ((a0 + (amp * k) / n) * Math.PI) / 180; out.push([c[0] + r * Math.cos(a), c[1] + r * Math.sin(a)]); }
   return out;
 }
 

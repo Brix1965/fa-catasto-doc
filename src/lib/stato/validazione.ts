@@ -5,10 +5,10 @@
  */
 import { controlli2N } from '$lib/core/stima-2n';
 import { poligoniPlanimetria, schedePlanimetria, type Intestato, type Pratica, type UnitaImmobiliare } from '$lib/core/model';
-import { causaliBarrate } from '$lib/core/compile';
+import { causaliBarrate, unaRiga } from '$lib/core/compile';
 import {
   CAUSALI_VARIAZIONE, coppieIncompatibili, OPERAZIONI_CAUSALE, DESCRIZIONE_CAUSALE, TIPOLOGIE_PLANIMETRICHE,
-  ALBI_TECNICO, pianoValido, civicoValido, CARATTERI_INDIRIZZO, normalizzaIndirizzo, type CodiceVariazione,
+  ALBI_TECNICO, pianoValido, civicoValido, CARATTERI_INDIRIZZO, normalizzaIndirizzo, testoDocfa, type CodiceVariazione,
 } from '$lib/core/regole-docfa';
 import { TITOLI, DIAGNOSTICI } from '$lib/core/dati/docfa-tabelle.generated';
 import { aCapo } from '$lib/core/pdf/formato';
@@ -335,6 +335,8 @@ export function controllaPratica(p: Pratica): EsitoControlli {
           if (!cl.consistenza.trim()) err('unita', `${nome}: indicare la consistenza`, undefined, i);
           else if (/^A/.test(cat) ? !/^\d+(,[05])?$/.test(cl.consistenza.trim()) : !/^\d+$/.test(cl.consistenza.trim())) err('unita', `${nome}: consistenza non valida (${/^A/.test(cat) ? 'vani con mezzo vano, es. 4,5' : /^B/.test(cat) ? 'metri cubi' : 'metri quadri'})`, undefined, i);
         }
+        // rendita mancante o cancellata (campo svuotato): nel documento sarebbe 0
+        if ((isOrdinaria(u) || isSpeciale(u)) && cat !== 'A' && !(Number(cl.rendita) > 0)) err('unita', `${nome}: indicare la rendita catastale`, undefined, i);
         if (isSpeciale(u)) {
           if (cl.classe.trim()) err('unita', `${nome}: la classe non va dichiarata per le categorie D ed E`, undefined, i);
           if (cl.consistenza.trim()) err('unita', `${nome}: la consistenza non va indicata per le categorie D ed E`, undefined, i);
@@ -355,6 +357,13 @@ export function controllaPratica(p: Pratica): EsitoControlli {
     }
     if (causali.includes('VMI') && pl) err('elaborati', `${nome}: per modifica d'identificativo non va acquisita la planimetria`, undefined, i);
     if (pl) {
+      // poligoni che escono dal riquadro: nel file NTF le coordinate negative diventano 0 e la superficie cambia
+      [pl, ...(pl.altreSchede ?? [])].forEach((sc, k) => {
+        const [wcm, hcm] = sc.formato === 'A3' ? [26, 40.5] : [19.5, 23.5];
+        const W = (wcm / 100) * sc.scala, H = (hcm / 100) * sc.scala, t = 0.01;
+        const fuori = sc.poligoni.filter((pg) => pg.vertici.some(([x, y]) => x < -t || y < -t || x > W + t || y > H + t)).length;
+        if (fuori) avv('elaborati', `${nome}: scheda ${k + 1}, ${fuori} ${fuori === 1 ? 'poligono esce' : 'poligoni escono'} dal riquadro del foglio: la parte fuori non viene registrata, correggili`, undefined, i);
+      });
       if (!pl.dxf && !pl.tiff) err('elaborati', `${nome}: planimetria senza disegno (DXF o immagine)`, undefined, i);
       if (!(pl.progressivo >= 1)) err('elaborati', `${nome}: numero immagine della planimetria non valido`, undefined, i);
       (pl.altreSchede ?? []).forEach((s, k) => {
@@ -391,6 +400,9 @@ export function controllaPratica(p: Pratica): EsitoControlli {
       const segnalaE = m.gruppoC ? avv : err;
       if (!Object.values(m.pavimenti ?? {}).some(Boolean)) segnalaE('modelli', `${nome}: 1N parte II, quadro E1: indicare il tipo prevalente di pavimentazione`, undefined, i);
       if (!Object.values(m.infissi ?? {}).some(Boolean)) segnalaE('modelli', `${nome}: 1N parte II, quadro E2: indicare il tipo prevalente di infissi interni`, undefined, i);
+      // le accentate diventano lettera + apostrofo: il testo può superare i 600 caratteri del record anche se il campo li rispetta
+      const oss = m.osservazioni?.trim() ? testoDocfa(unaRiga(m.osservazioni)).trim().length : 0;
+      if (oss > 600) avv('modelli', `${nome}: 1N parte II, osservazioni di ${oss} caratteri dopo la conversione delle accentate: oltre 600 il testo viene tagliato`, undefined, i);
       if (m.dotazioni.altro && !m.dotazioniAltre?.trim()) err('modelli', `${nome}: 1N parte II, quadro D: descrivere l'altra dotazione`, undefined, i);
       if (/^C/.test(cat) && !m.gruppoC) err('modelli', `${nome}: categoria del gruppo C: compilare i locali del quadro C`, 'G0013', i);
     }

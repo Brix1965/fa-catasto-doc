@@ -11,6 +11,7 @@
  */
 import { decode1252 } from './bytes';
 import type { Comune } from './model';
+import { lireInEuro5 } from './classamento/comune';
 import { COMUNI_INCORPORATI, DATA_COMUNI_INCORPORATI } from './dati/comuni.generated';
 
 export function leggiComuni(data: Uint8Array): Comune[] {
@@ -81,9 +82,17 @@ export function leggiTariffe(data: Uint8Array): Tariffa[] {
   return out;
 }
 
-/** Rendita catastale in euro = consistenza × tariffa (lire) / 1936,27, arrotondata al centesimo (come Docfa). */
+/**
+ * Rendita catastale in euro = consistenza × tariffa, con l'aritmetica di Docfa (NZCT06): la tariffa in lire
+ * convertita in euro con 5 decimali, poi il prodotto in interi arrotondato al centesimo. Il calcolo diretto in
+ * virgola mobile (consistenza × lire / 1936,27) differiva di 1 centesimo in circa il 5% dei casi.
+ */
 export function rendita(consistenza: number, tariffaLire: number): number {
-  return Math.round((consistenza * tariffaLire) / LIRE_PER_EURO * 100) / 100;
+  if (!Number.isFinite(consistenza) || !Number.isFinite(tariffaLire) || consistenza <= 0 || tariffaLire <= 0) return 0;
+  const euro5 = lireInEuro5(Math.round(tariffaLire));
+  // consistenza in decimi (i vani hanno il mezzo vano): decimi × euro5 / 10^4 = centesimi
+  const centesimi = (BigInt(Math.round(consistenza * 10)) * BigInt(euro5) + 5000n) / 10000n;
+  return Number(centesimi) / 100;
 }
 
 /** Legge SETUP.DAT di Docfa (data + tecnico) per precompilare le impostazioni. */

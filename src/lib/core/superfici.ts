@@ -11,7 +11,7 @@
  */
 import type { Ambiente, Poligono, TipoAmbientePoligono, UnitaImmobiliare } from './model';
 import { poligoniPlanimetria } from './model';
-import { tipologiaMetrica } from './compile';
+import { tipologiaUnita } from './compile';
 
 /** Area di un poligono in m² (coordinate in metri, formula di Gauss). */
 export function areaPoligono(p: Pick<Poligono, 'vertici'>): number {
@@ -85,7 +85,7 @@ export function sincronizzaDaPoligoni(u: UnitaImmobiliare): boolean {
   // superficie catastale: compilata in automatico dai poligoni (categorie ordinarie)
   const cat = u.classamento?.categoria ?? '';
   if (u.classamento && /^[ABC]\d\d$/.test(cat)) {
-    const sc = superficieCatastale(amb, tipologiaMetrica(cat));
+    const sc = superficieCatastale(amb, tipologiaUnita(u));
     if (u.classamento.superficieCatastale !== sc) { u.classamento.superficieCatastale = sc; cambiato = true; }
   }
   const m = u.mod1NParteII;
@@ -135,7 +135,8 @@ export function superficieCatastale(ambienti: Ambiente[], tipologia: string): nu
     return Math.round(tot);
   }
   // gruppi R e P
-  const a = gruppo === 'R' && n === '4' ? A * 0.5 + A2 * 0.5 : A + A2;
+  // R/4 (box, posti auto): vani principali per intero, accessori diretti al 50% (DPR 138/98, all. C)
+  const a = A + (gruppo === 'R' && n === '4' ? A2 * 0.5 : A2);
   const b = B * 0.5 + C * 0.25;
   let c: number;
   if (gruppo === 'P') c = (D + E) * 0.1;

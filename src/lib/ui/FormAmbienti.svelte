@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { numeroCampo } from '$lib/ui/numeri';
   /** Dati metrici (NMVnnn.DAT): ambienti con tipo A-G, superficie e altezze. */
   import { poligoniPlanimetria, type Ambiente, type UnitaImmobiliare } from '$lib/core/model';
   import Icona from './Icona.svelte';
@@ -61,9 +62,9 @@
               <td class="py-1 pr-2">
                 <select class="campo py-1" bind:value={a.tipo}>{#each TIPI as t (t.tipo)}<option value={t.tipo}>{t.etichetta}</option>{/each}</select>
               </td>
-              <td class="py-1 pr-2"><input type="number" class="campo py-1 text-right" min="0" max="99999" bind:value={a.superficie} /></td>
-              <td class="py-1 pr-2"><input type="number" class="campo py-1 text-right" min="0" max="9999" bind:value={a.altezzaMin} /></td>
-              <td class="py-1 pr-2"><input type="number" class="campo py-1 text-right" min="0" max="9999" bind:value={a.altezzaMax} /></td>
+              <td class="py-1 pr-2"><input type="number" class="campo py-1 text-right" min="0" max="99999" bind:value={() => a.superficie, (v) => (a.superficie = numeroCampo(v))} /></td>
+              <td class="py-1 pr-2"><input type="number" class="campo py-1 text-right" min="0" max="9999" bind:value={() => a.altezzaMin, (v) => (a.altezzaMin = numeroCampo(v))} /></td>
+              <td class="py-1 pr-2"><input type="number" class="campo py-1 text-right" min="0" max="9999" bind:value={() => a.altezzaMax, (v) => (a.altezzaMax = numeroCampo(v))} /></td>
               <td class="py-1"><button type="button" class="btn btn-piccolo btn-pericolo" onclick={() => unita.ambienti.splice(i, 1)} title="Elimina"><Icona nome="cestino" /></button></td>
             {/if}
           </tr>

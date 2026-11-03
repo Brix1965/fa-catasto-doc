@@ -260,9 +260,10 @@ export class DocumentoPdf {
       const num = this.numeroOggettoPrima(i);
       const dopo = b[i + 3];
       if (num < 0 || (dopo !== undefined && !SPAZI.has(dopo) && !DELIM.has(dopo))) { i += 3; continue; }
-      if (this.posizioni.has(num)) { i += 3; continue; }
+      // aggiornamento incrementale (PDF salvato di nuovo, firma PAdES): vale l'ultima versione dell'oggetto
+      if (this.posizioni.has(num)) this.oggetti.delete(num);
+      else this.ordine.push(num);
       this.posizioni.set(num, i + 3);
-      this.ordine.push(num);
       // legge subito l'oggetto: se è uno stream salta i suoi dati binari (dove "obj" può comparire per caso)
       const v = this.oggetto(num);
       if (v?.t === 'stream') i = v.dati.byteOffset - b.byteOffset + v.dati.length;
@@ -347,10 +348,13 @@ export class DocumentoPdf {
     for (const num of [...this.ordine]) {
       const o = this.oggetti.get(num);
       if (o?.t !== 'stream' || nome(o.dict.get('Type')) !== 'ObjStm') continue;
-      const filtro = nome(o.dict.get('Filter'));
+      // il filtro può essere un nome, un array di un solo nome o un riferimento
+      const f0 = this.risolvi(o.dict.get('Filter'));
+      const filtri = f0?.t === 'arr' ? f0.v.map((x) => nome(this.risolvi(x))) : [nome(f0)];
       let dati = o.dati;
-      if (filtro === 'FlateDecode') dati = await inflate(dati);
-      else if (filtro) continue;
+      if (filtri.length === 1 && filtri[0] === 'FlateDecode') {
+        try { dati = await inflate(dati); } catch { continue; } // stream danneggiato: si saltano i suoi oggetti
+      } else if (filtri.some(Boolean)) continue;
       const n = numero(this.risolvi(o.dict.get('N')));
       const first = numero(this.risolvi(o.dict.get('First')));
       const testa = new Lettore(dati, 0);
@@ -519,6 +523,8 @@ export function unisciParti(file: FileEstratto[]): FileEstratto[] {
   }
   for (const [nome, parti] of gruppi) {
     parti.sort((x, y) => Number(/(\d+)$/.exec(x.nome)![1]) - Number(/(\d+)$/.exec(y.nome)![1]));
+    // le parti devono essere 1, 2, … n: con una parte mancante il file unito sarebbe corrotto senza saperlo
+    if (parti.some((x, k) => Number(/(\d+)$/.exec(x.nome)![1]) !== k + 1)) throw new Error(`Il file ${nome} è diviso in parti e ne manca qualcuna (${parti.map((x) => x.nome).join(', ')}): il PDF è incompleto`);
     const tot = new Uint8Array(parti.reduce((t, x) => t + x.dati.length, 0));
     let o = 0;
     for (const x of parti) { tot.set(x.dati, o); o += x.dati.length; }
@@ -598,6 +604,7 @@ export async function estraiContenutoPdf(bytes: Uint8Array): Promise<ContenutoPd
       const blackIs1 = doc.risolvi(dp?.get('BlackIs1'))?.t === 'bool' && (doc.risolvi(dp?.get('BlackIs1')) as { v: boolean }).v;
       if (k >= 0) { avvisi.push(`Pagina ${idx + 1}: immagine CCITT con K=${k} (non G4), saltata`); continue; }
       if (!width || !height) { avvisi.push(`Pagina ${idx + 1}: immagine senza dimensioni`); continue; }
+      if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0 || width > 20000 || height > 20000) { avvisi.push(`Pagina ${idx + 1}: immagine con dimensioni non valide (${width}×${height}), saltata`); continue; }
       const g4 = x.dati.slice();
       // lo stream del PDF è esattamente la strip del TIFF: lo reincapsuliamo senza ricodificare
       const tiff = scriviTiffG4(new Bitmap(width, height), {}, g4);

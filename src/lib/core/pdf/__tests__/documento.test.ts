@@ -107,7 +107,8 @@ describe.skipIf(!casoDisponibile('NCV002') || !PYTHON_OK)('documento NCV002 rige
   });
 });
 
-describe.skipIf(!casoDisponibile('NCV002') || !PYTHON_OK)('planimetria TIFF', () => {
+// il TIFF originale di Docfa (0000007.001) non sempre è tra i campioni: senza, la prova si salta
+describe.skipIf(!casoDisponibile('NCV002') || !PYTHON_OK || !existsSync(join(process.cwd(), 'fixtures-private', 'NCV002', '0000007.001')))('planimetria TIFF', () => {
   it('la strip G4 del TIFF di Docfa coincide con lo stream CCITT del PDF originale', () => {
     const caso = caricaCaso('NCV002');
     const tiff = new Uint8Array(readFileSync(join(caso.dir, '0000007.001')));

@@ -133,6 +133,9 @@ function val(e: EntitaGrezza, codice: number): string | undefined {
   const g = e.gruppi.find((x) => x.codice === codice);
   return g?.valore.trim();
 }
+/** Numero da un valore DXF (NaN se non è un numero finito). */
+const numero = (v: string): number => { const n = Number(v.trim()); return Number.isFinite(n) ? n : NaN; };
+
 function num(e: EntitaGrezza, codice: number, def = 0): number {
   const v = val(e, codice);
   if (v === undefined) return def;
@@ -144,22 +147,30 @@ function num(e: EntitaGrezza, codice: number, def = 0): number {
 // Geometria
 // ---------------------------------------------------------------------------------------------
 
-/** Trasformazione affine 2D usata per esplodere i blocchi: p' = origine + R·S·(p − base). */
-interface Trasformazione {
-  tx: number; ty: number; sx: number; sy: number; /** radianti */ rot: number;
-}
+/**
+ * Trasformazione affine 2D usata per esplodere i blocchi (matrice completa): x' = a·x + c·y + tx,
+ * y' = b·x + d·y + ty. Con la matrice intera la composizione di blocchi annidati è esatta anche con
+ * specchiature e rotazioni insieme (con «rotazione + scale» separate non lo era).
+ */
+interface Trasformazione { a: number; b: number; c: number; d: number; tx: number; ty: number }
 
 function applica(t: Trasformazione | null, p: Punto2): Punto2 {
   if (!t) return p;
-  const x = p[0] * t.sx, y = p[1] * t.sy;
-  const c = Math.cos(t.rot), s = Math.sin(t.rot);
-  return [t.tx + x * c - y * s, t.ty + x * s + y * c];
+  return [t.a * p[0] + t.c * p[1] + t.tx, t.b * p[0] + t.d * p[1] + t.ty];
 }
 
 /** Fattore di scala medio (per spessori, raggi e altezze dei testi). */
 function scalaMedia(t: Trasformazione | null): number {
-  return t ? Math.sqrt(Math.abs(t.sx * t.sy)) : 1;
+  return t ? Math.sqrt(Math.abs(t.a * t.d - t.b * t.c)) : 1;
 }
+
+/** Direzione (gradi) che assume, dopo la trasformazione, la direzione di `gradi`. */
+function direzione(t: Trasformazione | null, gradi: number): number {
+  if (!t) return gradi;
+  const r = (gradi * Math.PI) / 180, x = Math.cos(r), y = Math.sin(r);
+  return (Math.atan2(t.b * x + t.d * y, t.a * x + t.c * y) * 180) / Math.PI;
+}
+const specchiata = (t: Trasformazione | null): boolean => !!t && t.a * t.d - t.b * t.c < 0;
 
 /**
  * Espande un segmento con bulge in una sequenza di punti lungo l'arco (il punto finale incluso,
@@ -189,10 +200,11 @@ export function puntiBulge(p1: Punto2, p2: Punto2, bulge: number, segmentiMinimi
 function verticiLw(e: EntitaGrezza): { p: Punto2; bulge: number }[] {
   const out: { p: Punto2; bulge: number }[] = [];
   let x: number | null = null;
+  // un vertice con coordinate non numeriche (es. «1,5» con la virgola) si scarta: con NaN il disegno non finiva mai
   for (const g of e.gruppi) {
-    if (g.codice === 10) x = Number(g.valore);
-    else if (g.codice === 20 && x !== null) { out.push({ p: [x, Number(g.valore)], bulge: 0 }); x = null; }
-    else if (g.codice === 42 && out.length) out[out.length - 1].bulge = Number(g.valore);
+    if (g.codice === 10) x = numero(g.valore);
+    else if (g.codice === 20 && x !== null) { const y = numero(g.valore); if (Number.isFinite(x) && Number.isFinite(y)) out.push({ p: [x, y], bulge: 0 }); x = null; }
+    else if (g.codice === 42 && out.length) { const b = numero(g.valore); out[out.length - 1].bulge = Number.isFinite(b) ? b : 0; }
   }
   return out;
 }
@@ -235,7 +247,8 @@ export function righeMtext(s: string): string[] {
     .replace(/\\~/g, ' ')
     .replace(/\\S([^;^]*)[/^#]([^;]*);/g, '$1/$2') // frazioni impilate
     .replace(/\\[fF][^;]*;/g, '')
-    .replace(/\\[HhWwQqAaCcTtLlOoKkpX][^;]*;/g, '')
+    // \L \O \K (sottolineato, sopralineato, barrato) sono interruttori senza «;»: non vanno nella regola dei codici con «;»
+    .replace(/\\[HhWwQqAaCcTtpX][^;]*;/g, '')
     .replace(/\\[LlOoKk]/g, '')
     .replace(/[{}]/g, '');
   t = t.replace(/\u0001/g, '\\').replace(/\u0002/g, '{').replace(/\u0003/g, '}');
@@ -277,7 +290,17 @@ function risolviColore(e: EntitaGrezza, layer: string, ctx: Contesto): number {
 }
 
 /** Converte un'entità grezza (eventualmente trasformata) in entità disegnabili. */
-function interpreta(e: EntitaGrezza, t: Trasformazione | null, ctx: Contesto, out: Entita[]): void {
+/** Entità con coordinate nel sistema dell'oggetto (OCS): con l'estrusione verso il basso (230 = −1) la X è rovesciata. */
+const IN_OCS = new Set(['ARC', 'CIRCLE', 'LWPOLYLINE', 'POLYLINE', 'TEXT', 'INSERT', 'SOLID', 'TRACE', 'ATTRIB']);
+const SPECCHIO_X: Trasformazione = { a: -1, b: 0, c: 0, d: 1, tx: 0, ty: 0 };
+function componiMatrici(t: Trasformazione | null, l: Trasformazione): Trasformazione {
+  if (!t) return l;
+  return { a: t.a * l.a + t.c * l.b, b: t.b * l.a + t.d * l.b, c: t.a * l.c + t.c * l.d, d: t.b * l.c + t.d * l.d, tx: t.a * l.tx + t.c * l.ty + t.tx, ty: t.b * l.tx + t.d * l.ty + t.ty };
+}
+
+function interpreta(e: EntitaGrezza, t0: Trasformazione | null, ctx: Contesto, out: Entita[]): void {
+  // disegni fatti «da sotto» in alcuni CAD (estrusione 0,0,−1): senza correzione finivano specchiati, fuori dal riquadro
+  const t = IN_OCS.has(e.tipo) && num(e, 230, 1) < 0 ? componiMatrici(t0, SPECCHIO_X) : t0;
   let layer = val(e, 8) ?? '0';
   if (layer === '0' && ctx.layerPadre) layer = ctx.layerPadre;
   if (num(e, 67, 0) === 1) return; // spazio carta
@@ -287,7 +310,7 @@ function interpreta(e: EntitaGrezza, t: Trasformazione | null, ctx: Contesto, ou
   const tipoLinea = lt0 === 'BYLAYER' ? (ctx.layers[layer]?.tipoLinea ?? 'CONTINUOUS') : lt0 === 'BYBLOCK' ? (ctx.tipoLineaPadre ?? 'CONTINUOUS') : lt0;
   const base: EntitaBase = { layer, colore, spessore: Math.abs(num(e, 39, 0)) * k, tipoLinea };
   const P = (cx: number, cy: number): Punto2 => applica(t, [num(e, cx), num(e, cy)]);
-  const rotazione = (gradi: number): number => gradi + (t ? (t.rot * 180) / Math.PI : 0);
+  const rotazione = (gradi: number): number => direzione(t, gradi);
   switch (e.tipo) {
     case 'LINE':
       out.push({ ...base, tipo: 'linea', p1: P(10, 20), p2: P(11, 21) });
@@ -317,18 +340,19 @@ function interpreta(e: EntitaGrezza, t: Trasformazione | null, ctx: Contesto, ou
     case 'ARC': {
       // blocco specchiato (scala X o Y negativa, es. porte specchiate): gli angoli si riflettono e, se la
       // specchiatura è su un solo asse, l'arco cambia verso (inizio e fine si scambiano)
-      let a0 = num(e, 50, 0), a1 = num(e, 51, 360);
-      if (t && (t.sx < 0 || t.sy < 0)) {
-        const m = (a: number) => (t.sx < 0 && t.sy < 0 ? a + 180 : t.sx < 0 ? 180 - a : -a);
-        [a0, a1] = t.sx * t.sy < 0 ? [m(a1), m(a0)] : [m(a0), m(a1)];
-      }
-      out.push({ ...base, tipo: 'arco', centro: P(10, 20), raggio: num(e, 40) * k, inizio: rotazione(a0), fine: rotazione(a1) });
+      const a0 = num(e, 50, 0), a1 = num(e, 51, 360);
+      // con una specchiatura il verso si inverte: inizio e fine si scambiano
+      const [i0, i1] = specchiata(t) ? [rotazione(a1), rotazione(a0)] : [rotazione(a0), rotazione(a1)];
+      out.push({ ...base, tipo: 'arco', centro: P(10, 20), raggio: num(e, 40) * k, inizio: i0, fine: i1 });
       break;
     }
     case 'TEXT': {
       const h = num(e, 72, 0), v = num(e, 73, 0);
       const usaSecondo = (h !== 0 || v !== 0) && val(e, 11) !== undefined;
-      const punto = usaSecondo ? P(11, 21) : P(10, 20);
+      // «allineato» e «adattato» (72 = 3, 5): il testo sta fra il punto 10 e il punto 11, centrato a metà
+      const fraDue = (h === 3 || h === 5) && usaSecondo;
+      const p10 = P(10, 20), p11 = usaSecondo ? P(11, 21) : p10;
+      const punto: Punto2 = fraDue ? [(p10[0] + p11[0]) / 2, (p10[1] + p11[1]) / 2] : usaSecondo ? p11 : p10;
       const testo = pulisciTesto(val(e, 1) ?? '');
       if (!testo.trim()) break;
       out.push({ ...base, tipo: 'testo', testo, punto, altezza: num(e, 40, 1) * k, rotazione: rotazione(num(e, 50, 0)), larghezza: num(e, 41, 1) || 1, ...allineamentoText(h, v) });
@@ -370,14 +394,13 @@ function interpreta(e: EntitaGrezza, t: Trasformazione | null, ctx: Contesto, ou
       const sx = num(e, 41, 1) || 1, sy = num(e, 42, 1) || 1;
       const rot = (num(e, 50, 0) * Math.PI) / 180;
       const ins: Punto2 = [num(e, 10), num(e, 20)];
-      // trasformazione locale del blocco: p' = ins + R(rot)·S·(p − base)
-      const locale: Trasformazione = { tx: ins[0], ty: ins[1], sx, sy, rot };
-      const colonne = Math.max(1, num(e, 70, 1)), righe = Math.max(1, num(e, 71, 1));
+      // MINSERT: al massimo 10000 copie (un file guasto con 70/71 enormi bloccava il programma)
+      const colonne = Math.min(1000, Math.max(1, Math.round(num(e, 70, 1)))), righe = Math.min(Math.max(1, Math.floor(10000 / colonne)), Math.max(1, Math.round(num(e, 71, 1))));
       const dc = num(e, 44, 0), dr = num(e, 45, 0);
       for (let ri = 0; ri < righe; ri++) {
         for (let ci = 0; ci < colonne; ci++) {
-          const l2: Trasformazione = { ...locale, tx: locale.tx + ci * dc * Math.cos(rot) - ri * dr * Math.sin(rot), ty: locale.ty + ci * dc * Math.sin(rot) + ri * dr * Math.cos(rot) };
-          const comp = componi(t, l2, blocco.base);
+          const o: Punto2 = [ins[0] + ci * dc * Math.cos(rot) - ri * dr * Math.sin(rot), ins[1] + ci * dc * Math.sin(rot) + ri * dr * Math.cos(rot)];
+          const comp = componi(t, o, rot, sx, sy, blocco.base);
           const sotto: Contesto = { ...ctx, layerPadre: layer, colorePadre: colore, tipoLineaPadre: tipoLinea, profondita: ctx.profondita + 1 };
           for (const be of blocco.entita) interpreta(be, comp, sotto, out);
         }
@@ -396,8 +419,10 @@ function interpreta(e: EntitaGrezza, t: Trasformazione | null, ctx: Contesto, ou
     case 'ELLIPSE': {
       const c: Punto2 = [num(e, 10), num(e, 20)];
       const ax = num(e, 11), ay = num(e, 21), ratio = num(e, 40, 1);
-      let a0 = num(e, 41, 0), a1 = num(e, 42, 2 * Math.PI);
-      if (a1 <= a0) a1 += 2 * Math.PI;
+      const a0 = num(e, 41, 0);
+      // ampiezza fra 0 e 2π anche con parametri enormi in un file guasto
+      const giro = 2 * Math.PI, amp0 = (((num(e, 42, giro) - a0) % giro) + giro) % giro;
+      const a1 = a0 + (amp0 === 0 ? giro : amp0);
       const n = Math.max(16, Math.ceil(((a1 - a0) / (2 * Math.PI)) * 96));
       const punti: Punto2[] = [];
       for (let j = 0; j <= n; j++) {
@@ -440,13 +465,13 @@ function interpreta(e: EntitaGrezza, t: Trasformazione | null, ctx: Contesto, ou
 /** Punti di una SPLINE: curva B-spline valutata dai punti di controllo e dai nodi (o i punti di passaggio). */
 function puntiSpline(e: EntitaGrezza): Punto2[] {
   const grado = num(e, 71, 3);
-  const nodi = e.gruppi.filter((g) => g.codice === 40).map((g) => Number(g.valore));
+  const nodi = e.gruppi.filter((g) => g.codice === 40).map((g) => numero(g.valore)).filter(Number.isFinite);
   const coppie = (cx: number, cy: number): Punto2[] => {
     const out: Punto2[] = [];
     let x: number | null = null;
     for (const g of e.gruppi) {
-      if (g.codice === cx) x = Number(g.valore);
-      else if (g.codice === cy && x !== null) { out.push([x, Number(g.valore)]); x = null; }
+      if (g.codice === cx) x = numero(g.valore);
+      else if (g.codice === cy && x !== null) { const y = numero(g.valore); if (Number.isFinite(x) && Number.isFinite(y)) out.push([x, y]); x = null; }
     }
     return out;
   };
@@ -482,21 +507,14 @@ function deBoor(u: number, p: number, nodi: number[], ctrl: Punto2[], pesi: numb
   return [q[0] / (q[2] || 1), q[1] / (q[2] || 1)];
 }
 
-/**
- * Compone la trasformazione esterna `t` con quella locale `l` del blocco (che sottrae il punto
- * base). Il risultato è una trasformazione "rotazione uniforme + scale sugli assi" solo se le
- * scale sono uguali; per blocchi con scale diverse e rotazioni annidate il risultato è approssimato
- * (caso praticamente assente nelle planimetrie catastali).
- */
-function componi(t: Trasformazione | null, l: Trasformazione, base: Punto2): Trasformazione {
-  // prima: p1 = ins + R(rot)·S·(p − base)  →  tx' = ins − R·S·base
-  const c = Math.cos(l.rot), s = Math.sin(l.rot);
-  const bx = base[0] * l.sx, by = base[1] * l.sy;
-  const loc: Trasformazione = { tx: l.tx - (bx * c - by * s), ty: l.ty - (bx * s + by * c), sx: l.sx, sy: l.sy, rot: l.rot };
-  if (!t) return loc;
-  // poi t: p2 = T + R(t.rot)·S_t·p1
-  const o = applica(t, [loc.tx, loc.ty]);
-  return { tx: o[0], ty: o[1], sx: loc.sx * t.sx, sy: loc.sy * t.sy, rot: loc.rot + t.rot };
+/** Compone la trasformazione esterna `t` con quella locale dell'INSERT (punto di inserimento, rotazione, scale, punto base). */
+function componi(t: Trasformazione | null, ins: Punto2, rot: number, sx: number, sy: number, base: Punto2): Trasformazione {
+  // locale: p' = ins + R(rot)·S·(p − base)
+  const c = Math.cos(rot), sn = Math.sin(rot);
+  const a = c * sx, b = sn * sx, cc = -sn * sy, d = c * sy;
+  const loc: Trasformazione = { a, b, c: cc, d, tx: ins[0] - (a * base[0] + cc * base[1]), ty: ins[1] - (b * base[0] + d * base[1]) };
+  // poi quella del blocco che lo contiene: t ∘ loc
+  return componiMatrici(t, loc);
 }
 
 // ---------------------------------------------------------------------------------------------

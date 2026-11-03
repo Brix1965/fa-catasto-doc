@@ -38,12 +38,18 @@
     else { x.cognome = undefined; x.nome = undefined; x.sesso = undefined; x.nascita = undefined; }
     if (t === 'bcc') { x.denominazione = 'BENI COMUNI CENSIBILI'; x.codiceFiscale = undefined; x.comune = undefined; x.provincia = undefined; x.regime = undefined; x.riferimento = undefined; }
   }
-  let codiceNascita = $state<string | undefined>();
+  /** codice del comune scelto dall'elenco, legato al soggetto: passando a un altro soggetto non vale più */
+  let codiceNascita = $state.raw<{ x: Intestato; codice: string } | undefined>();
   function calcola(x: Intestato): void {
-    const c = codiceNascita ?? impostazioni.comuni.find((k) => k.provincia === x.provincia && k.nome === x.comune)?.codice;
+    const scelto = codiceNascita && codiceNascita.x === x ? codiceNascita.codice : undefined;
+    const c = impostazioni.comuni.find((k) => k.provincia === x.provincia && k.nome === x.comune)?.codice ?? scelto;
     if (!x.cognome || !x.nome || !x.sesso || !x.nascita?.aaaa || !c) { erroreCf = 'Per il calcolo servono cognome, nome, sesso, data e comune di nascita'; return; }
-    erroreCf = '';
-    x.codiceFiscale = calcolaCodiceFiscale(x.cognome, x.nome, x.sesso, x.nascita, c);
+    try {
+      x.codiceFiscale = calcolaCodiceFiscale(x.cognome, x.nome, x.sesso, x.nascita, c);
+      erroreCf = '';
+    } catch (e) {
+      erroreCf = e instanceof Error ? e.message : String(e);
+    }
   }
   let erroreCf = $state('');
   const titolo = $derived(TITOLI.find((t) => t.codice === it?.titolo));
@@ -98,7 +104,7 @@
               <Campo etichetta="Sesso" obbligatorio>
                 <select class="campo" value={it.sesso ?? ''} onchange={(e) => (it.sesso = (e.currentTarget.value || undefined) as Intestato['sesso'])}><option value=""></option><option value="M">M</option><option value="F">F</option></select>
               </Campo>
-              <div class="sm:col-span-2"><ComuneProvincia bind:provincia={it.provincia as string} bind:comune={it.comune as string} etichettaComune="Comune di nascita" obbligatorio scelto={(c: Comune | undefined) => (codiceNascita = c?.codice)} /></div>
+              <div class="sm:col-span-2"><ComuneProvincia bind:provincia={it.provincia as string} bind:comune={it.comune as string} etichettaComune="Comune di nascita" obbligatorio scelto={(c: Comune | undefined) => (codiceNascita = c && it ? { x: it, codice: c.codice } : undefined)} /></div>
               <Campo etichetta="Codice fiscale" obbligatorio errore={erroreCf}>
                 <div class="flex gap-2">
                   <input type="text" class="campo font-mono uppercase" maxlength="16" value={it.codiceFiscale ?? ''} oninput={(e) => (it.codiceFiscale = maiuscolo(e.currentTarget.value))} />
