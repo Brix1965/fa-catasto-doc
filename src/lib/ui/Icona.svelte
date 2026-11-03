@@ -3,13 +3,22 @@
   export type NomeIcona =
     | 'home' | 'piu' | 'importa' | 'impostazioni' | 'salva' | 'esporta' | 'cestino' | 'copia' | 'destra' | 'sinistra' | 'giu'
     | 'spunta' | 'attenzione' | 'errore' | 'cartella' | 'file' | 'pdf' | 'ricarica' | 'apri' | 'casa' | 'persona' | 'edificio'
-    | 'unita' | 'mappa' | 'elenco' | 'info' | 'x' | 'cerca' | 'immagine' | 'orologio' | 'modifica' | 'tastiera' | 'scudo' | 'calcolo' | 'righello';
+    | 'unita' | 'mappa' | 'elenco' | 'info' | 'x' | 'cerca' | 'immagine' | 'orologio' | 'modifica' | 'tastiera' | 'scudo' | 'calcolo' | 'righello'
+    | 'cursore' | 'linea' | 'poligono' | 'testo' | 'annulla' | 'ripeti' | 'adatta' | 'bacchetta';
 
   let { nome, classe = 'size-4' }: { nome: NomeIcona; classe?: string } = $props();
 
   const TRATTI: Record<NomeIcona, string> = {
     home: 'M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',
     piu: 'M12 5v14M5 12h14',
+    cursore: 'M4 3l7 17 2.5-7.5L21 10z',
+    linea: 'M5 19L19 5M5 19a1.5 1.5 0 1 0 0 .01M19 5a1.5 1.5 0 1 0 0 .01',
+    poligono: 'M4 7l8-4 8 5-2 11H6z',
+    testo: 'M5 5h14M12 5v14M9 19h6',
+    annulla: 'M9 14L4 9l5-5M4 9h11a5 5 0 0 1 0 10h-3',
+    ripeti: 'M15 14l5-5-5-5M20 9H9a5 5 0 0 0 0 10h3',
+    adatta: 'M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5',
+    bacchetta: 'M15 4V2M15 10V8M11 6h2M17 6h2M3 21l12-12M18 13l1 1M13 2l-1-1',
     importa: 'M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2',
     impostazioni: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z',
     salva: 'M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2zM17 21v-8H7v8M7 3v5h8',

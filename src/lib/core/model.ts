@@ -200,6 +200,8 @@ export interface Planimetria {
   scala: 100 | 200 | 500;
   /** file DXF importato (contenuto testuale) */
   dxf?: string;
+  /** DXF com'era prima delle modifiche fatte con l'editor del disegno (per ripristinarlo) */
+  dxfOriginale?: string;
   poligoni: Poligono[];
   /** i poligoni sono già stati letti dal DXF: un elenco vuoto vuol dire «eliminati dal tecnico», non «da leggere» */
   poligoniLetti?: boolean;
@@ -223,6 +225,8 @@ export interface SchedaGrafica {
   formato: 'A4' | 'A3';
   scala: 100 | 200 | 500;
   dxf?: string;
+  /** come in Planimetria: il DXF prima delle modifiche con l'editor */
+  dxfOriginale?: string;
   poligoni: Poligono[];
   /** come in Planimetria: poligoni già letti dal DXF */
   poligoniLetti?: boolean;

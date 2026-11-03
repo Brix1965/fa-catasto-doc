@@ -6,8 +6,9 @@
    * modificabili a mano come sempre.
    */
   import type { Mod1NParteII, PropostaVani, UnitaImmobiliare, VanoProposto } from '$lib/core/model';
-  import { m2Intero, totaliVani, type RisultatoVani, type TipoVano, type VanoRiconosciuto } from '$lib/core/vani/riconosci';
+  import { altezzeUnita, m2Intero, totaliVani, type RisultatoVani, type TipoVano, type VanoRiconosciuto } from '$lib/core/vani/riconosci';
   import { riconosciInBackground, schedeConDxf } from '$lib/core/vani/esegui';
+  import { consistenzaVani } from '$lib/core/vani/totali';
   import Icona from './Icona.svelte';
   import { untrack } from 'svelte';
 
@@ -34,12 +35,10 @@
 
   const tutti = $derived(vani.flat());
   const totali = $derived(totaliVani(tutti));
+  /** altezza media utile e superficie con h < 2,30 dai testi «h…» del disegno */
+  const altezze = $derived(altezzeUnita(tutti));
   /** consistenza indicativa del gruppo A: principali + accessori diretti 1/3 + indiretti 1/4, al mezzo vano */
-  const consistenza = $derived.by(() => {
-    const v = totali.principaliN + (totali.bagniN + totali.direttiN) / 3 + totali.indirettiN / 4;
-    const intera = Math.floor(v), d = v - intera;
-    return d < 0.25 ? intera : d < 0.75 ? intera + 0.5 : intera + 1;
-  });
+  const consistenza = $derived(consistenzaVani(totali));
   const verificare = (v: VanoRiconosciuto) => !!v.nota?.includes('verificare') && v.tipo !== 'escluso' && v.tipo === v.tipoProposto;
   const daVerificare = $derived(tutti.filter(verificare).length);
 
@@ -90,6 +89,8 @@
     m.accessoriIndirettiN = t.indirettiN;
     // la superficie degli accessori indiretti, se ci sono i poligoni, la calcola il programma dai poligoni B/C
     if (!auto) m.accessoriIndirettiSup = t.indirettiSup;
+    // dati metrici: solo se il disegno ha le altezze scritte
+    if (altezze) { m.altezzaMediaCm = altezze.altezzaMediaCm; m.supAltezzaInferiore230 = altezze.supInferiore230; }
     const proposta: PropostaVani = { confermata: new Date().toISOString(), schede: $state.snapshot(vani).map((vs) => ({ vani: vs as VanoProposto[] })) };
     m.propostaVani = proposta;
     aperto = false;
@@ -222,7 +223,11 @@
                 <dt>Altri accessori diretti</dt><dd class="text-right">{totali.direttiN}</dd><dd class="text-right">{totali.direttiSup} m²</dd>
                 <dt>Accessori indiretti</dt><dd class="text-right">{totali.indirettiN}</dd><dd class="text-right">{auto ? 'dai poligoni' : `${totali.indirettiSup} m²`}</dd>
               </dl>
-              <p class="mt-2 text-xs text-fg-muted">Consistenza indicativa (gruppo A): <strong class="text-fg">{consistenza.toLocaleString('it-IT')} vani</strong> — principali + accessori diretti ⅓ + indiretti ¼, al mezzo vano. Totali di tutte le schede; m² interi vano per vano.</p>
+              <p class="mt-2 text-xs text-fg-muted">
+                {#if altezze}Altezza media utile <strong class="text-fg">{altezze.altezzaMediaCm} cm</strong>, superficie con h &lt; 2,30 m <strong class="text-fg">{altezze.supInferiore230} m²</strong> (dai testi «h…»{altezze.senzaAltezza ? `; ${altezze.senzaAltezza} vani senza altezza scritta non contano` : ''}).
+                {:else}Nessuna altezza scritta nel disegno (testi come «h270»): altezza media da inserire a mano.{/if}
+              </p>
+              <p class="mt-1 text-xs text-fg-muted">Consistenza indicativa (gruppo A): <strong class="text-fg">{consistenza.toLocaleString('it-IT')} vani</strong> — principali + accessori diretti ⅓ + indiretti ¼, al mezzo vano. Totali di tutte le schede; m² interi vano per vano.</p>
               {#if m.vaniPrincipaliN || m.vaniPrincipaliSup}
                 <p class="mt-1 text-xs text-fg-muted">Ora nel quadro: principali {m.vaniPrincipaliN} / {m.vaniPrincipaliSup} m², bagni {m.bagniN} / {m.bagniSup} m², altri accessori {m.accessoriDirettiN} / {m.accessoriDirettiSup} m².</p>
               {/if}

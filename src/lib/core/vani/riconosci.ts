@@ -34,6 +34,8 @@ export interface VanoRiconosciuto {
   testi: string[];
   /** altezze lette dai testi «h260», «h=2,40» (m) */
   altezze: number[];
+  /** zone di altezza diversa (pezzi del vano divisi dai tratteggi) con l'altezza scritta, se c'è */
+  zone?: { superficie: number; altezza: number | null }[];
   /** contorni (uno o più) in coordinate del DXF, per l'anteprima */
   contorni: XY[][];
   centro: XY;
@@ -43,8 +45,17 @@ export interface VanoRiconosciuto {
   nota?: string;
 }
 
+export interface OpzioniVani {
+  /** vertici del riquadro del disegno: se il DXF non ha poligoni, i vani si cercano qui dentro */
+  riquadro?: XY[] | null;
+}
+
 export interface RisultatoVani {
+  /** il DXF non aveva poligoni: i vani sono stati cercati in tutto il riquadro */
+  senzaPoligoni?: boolean;
   vani: VanoRiconosciuto[];
+  /** facce sottili dei muri (contorni), per generare i poligoni DOCFA_POLIGONI e gli spessori */
+  muri: XY[][];
   /** linee del disegno (per l'anteprima) */
   linee: { a: XY; b: XY; tratteggiata: boolean }[];
   limiti: { x0: number; y0: number; x1: number; y1: number };
@@ -58,6 +69,8 @@ const NOMI: [TipoVano, string[]][] = [
   ['principale', ['camera', 'letto', 'soggiorno', 'pranzo', 'studio', 'sala', 'salotto', 'cucina', 'tinello', 'vano', 'stanza']],
   ['bagno', ['bagno', 'wc', 'w.c.', 'servizio', 'doccia']],
   ['diretto', ['ingresso', 'corridoio', 'disimpegno', 'disimp', 'dis.', 'dis', 'rip', 'ripostiglio', 'guardaroba', 'cottura', 'lavanderia', 'dispensa', 'cabina armadio', 'cabina armadi', 'cab. armadi', 'antibagno', 'anti', 'veranda', 'loggia chiusa', 'scala', 'vano scala']],
+  // spazi che non sono vani: balconi e terrazzi (poligoni D/E), parti comuni e altre proprietà
+  ['escluso', ['balcone', 'terrazzo', 'terrazza', 'lastrico', 'portico', 'corte', 'cortile', 'resede', 'giardino', 'scale a comune', 'scale comuni', 'scala comune', 'scala condominiale', 'vano scala comune', 'pianerottolo', 'androne', 'ballatoio comune', 'parti comuni', 'comune', 'b.c.n.c', 'bcnc', 'altra proprietà', 'altra proprieta', 'altra u.i.u', 'altra uiu', 'altra ditta', 'proprietà di terzi', 'vuoto', 'cavedio', 'chiostrina']],
   ['indiretto', ['soffitta', 'cantina', 'sottotetto', 'soffitte', 'locale tecnico', 'centrale termica', 'lavatoio', 'sgombero', 'deposito', 'garage', 'autorimessa', 'magazzino']],
 ];
 
@@ -97,6 +110,16 @@ function puntiArco(c: XY, r: number, a0: number, a1: number): XY[] {
   return out;
 }
 
+function rettangoloEntita(entita: Entita[]): XY[] | null {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  const p = ([x, y]: XY) => { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); };
+  for (const e of entita) {
+    if (e.tipo === 'linea') { p(e.p1); p(e.p2); } else if (e.tipo === 'polilinea') e.punti.forEach(p);
+  }
+  if (!Number.isFinite(x0)) return null;
+  return [[x0 - 1, y0 - 1], [x1 + 1, y0 - 1], [x1 + 1, y1 + 1], [x0 - 1, y1 + 1]];
+}
+
 const dist = (a: XY, b: XY) => Math.hypot(a[0] - b[0], a[1] - b[1]);
 /**
  * Tratto che unisce un estremo libero alla linea vicina, prolungato di 2 mm oltre il punto d'arrivo: così
@@ -121,10 +144,17 @@ function paralleli(a: G, b: G, tol = 0.05): boolean {
  * Riconosce i vani di una planimetria. `entita`: entità del DXF (senza il riquadro, già esplose);
  * `poligoni`: poligoni DOCFA_POLIGONI dell'unità (servono per sapere dov'è l'unità e cosa è B/C/G).
  */
-export function riconosciVani(entita: Entita[], poligoni: Poligono[]): RisultatoVani {
+export function riconosciVani(entita: Entita[], poligoni: Poligono[], opzioni: OpzioniVani = {}): RisultatoVani {
   const avvisi: string[] = [];
-  const pol = poligoni.filter((p) => p.vertici.length >= 3).map((p) => ({ tipo: p.tipo, g: poligono(p.vertici) }));
-  if (!pol.length) return { vani: [], linee: [], limiti: { x0: 0, y0: 0, x1: 1, y1: 1 }, avvisi: ['Nel DXF non ci sono poligoni DOCFA_POLIGONI: servono per sapere dove sta l\'unità.'] };
+  let pol = poligoni.filter((p) => p.vertici.length >= 3).map((p) => ({ tipo: p.tipo, g: poligono(p.vertici) }));
+  // senza poligoni (DXF appena disegnato): l'unità è tutto il riquadro, ogni locale chiuso è un possibile vano
+  const senzaPoligoni = !pol.length;
+  if (senzaPoligoni) {
+    const zona = opzioni.riquadro && opzioni.riquadro.length >= 3 ? opzioni.riquadro : rettangoloEntita(entita);
+    if (!zona) return { vani: [], linee: [], limiti: { x0: 0, y0: 0, x1: 1, y1: 1 }, avvisi: ['Il DXF non contiene linee.'], senzaPoligoni, muri: [] };
+    pol = [{ tipo: 'A', g: poligono(zona) }];
+    avvisi.push('Il DXF non ha poligoni DOCFA_POLIGONI: i vani sono cercati in tutto il riquadro (controlla che non ci siano locali di altre unità).');
+  }
   const di = (tipi: string) => pol.filter((p) => tipi.includes(p.tipo)).map((p) => p.g);
 
   // ---- segmenti continui e tratteggiati, testi, archi
@@ -234,9 +264,11 @@ export function riconosciVani(entita: Entita[], poligoni: Poligono[]): Risultato
   }
 
   // ---- facce: muri continui + chiusure + contorno dei poligoni dell'unità (chiude i muri esterni interrotti)
-  const bordi = di('ABCH').map((p) => p.getExteriorRing());
+  // il contorno dei poligoni chiude i muri esterni interrotti; senza poligoni non c'è (il riquadro non è un muro)
+  const bordi = senzaPoligoni ? [] : di('ABCH').map((p) => p.getExteriorRing());
   const reteLinee = rete([...cont, ...chiusure, ...bordi]);
-  const facce = faccePoligonizzate(reteLinee).filter((f) => f.getArea() > 0.05);
+  const tutteFacce = faccePoligonizzate(reteLinee);
+  const facce = tutteFacce.filter((f) => f.getArea() > 0.05);
 
   // ---- croci (X) e G: nessun vano
   const croci: G[] = [];
@@ -306,7 +338,7 @@ export function riconosciVani(entita: Entita[], poligoni: Poligono[]): Risultato
   }
 
   // ---- vani
-  type V = { tipo: TipoVano; g: G; testi: string[]; nota?: string; scala?: boolean };
+  type V = { tipo: TipoVano; g: G; testi: string[]; nota?: string; scala?: boolean; zone?: { superficie: number; altezza: number | null }[] };
   const gruppi = new Map<number, G[]>();
   validi.forEach((f, i) => { const r = radice(i); gruppi.set(r, [...(gruppi.get(r) ?? []), f]); });
   const apri = (g: G, r = 0.3): G => { const o = buffer(buffer(g, -r, true), r, true); return o.isEmpty() ? o : intersezione(o, g); };
@@ -319,9 +351,24 @@ export function riconosciVani(entita: Entita[], poligoni: Poligono[]): Risultato
     // zone senza testo fatte di triangoli (X dei vuoti): non sono vani
     if (!tt.length && parti(u).every((g) => (g.getGeometryType() === 'Polygon' ? anello(semplifica(g, 0.05)).length <= 4 : true))) continue;
     const tipi = tt.map(tipoDaTesto).filter((x): x is TipoVano => !!x);
-    let tipo: TipoVano = tipi.includes('principale') ? 'principale' : tipi[0] ?? (u.getArea() >= 4 ? 'principale' : 'verificare');
-    if (PBC.contains(puntoInterno(u)) && tipo !== 'verificare') tipo = 'indiretto';
-    vani.push({ tipo, g: u, testi: tt });
+    let tipo: TipoVano = tipi.includes('principale') ? 'principale' : tipi[0] ?? (u.getArea() >= 4 && !senzaPoligoni ? 'principale' : 'verificare');
+    let nota: string | undefined;
+    if (tipo === 'escluso') nota = 'il nome indica uno spazio che non è un vano (balcone, terrazzo, parti comuni, altra proprietà…)';
+    // senza poligoni un locale grande senza nome può essere di un'altra unità: escluso, da controllare
+    else if (tipo === 'verificare' && senzaPoligoni && u.getArea() >= 4) { tipo = 'escluso'; nota = 'locale senza nome: escluso perché potrebbe non far parte dell\'unità, da verificare'; }
+    else if (PBC.contains(puntoInterno(u)) && tipo !== 'verificare') tipo = 'indiretto';
+    // zone di altezza: ogni pezzo del vano (diviso dai tratteggi) con la sua altezza scritta; i pezzi senza
+    // altezza prendono quella del vano se è una sola
+    const hVano = [...new Set(tt.map(altezzaDaTesto).filter((h): h is number => h !== null))];
+    // i pezzi: le facce del vano divise anche dalle linee tratteggiate che lo attraversano
+    const trattDentro = tratt.filter((t) => t.intersects(u0));
+    const pezziVano = trattDentro.length ? faccePoligonizzate(rete([u0.getBoundary(), ...trattDentro])).filter((f) => f.getArea() > 0.05 && u0.contains(puntoInterno(f))) : fs;
+    const zone = (pezziVano.length ? pezziVano : fs).map((f) => {
+      const hs = testi.filter((x) => f.contains(x.p)).map((x) => altezzaDaTesto(x.t)).filter((h): h is number => h !== null);
+      const h = hs.length ? hs.reduce((a, b) => a + b, 0) / hs.length : hVano.length === 1 ? hVano[0] : null;
+      return { superficie: f.getArea(), altezza: h };
+    });
+    vani.push({ tipo, g: u, testi: tt, nota, zone });
   }
 
   // ---- scale: gradini (almeno 8 pezzi quasi uguali) e vani senza nome che li contengono, contate una volta
@@ -357,8 +404,12 @@ export function riconosciVani(entita: Entita[], poligoni: Poligono[]): Risultato
   const usati = residui.filter((v) => scale.some((c) => buffer(v.g, -0.02).intersects(c)));
   const PA = buffer(unione(di('AH')), 0.05);
   vani = vani.filter((v) => !usati.includes(v));
+  // senza poligoni non si sa qual è il piano dell'unità: la scala si conta una volta sola, quella più grande
+  // (al piano di partenza comprende l'inizio della rampa); le altre sono l'arrivo ai piani superiori
+  const piuGrande = scale.reduce<G | null>((m, c) => (!m || c.getArea() > m.getArea() ? c : m), null);
   for (const c of scale) {
-    if (PA.contains(puntoInterno(c))) vani.push({ tipo: 'diretto', g: c, testi: ['scala'], scala: true, nota: 'scala interna: contata intera a questo piano' });
+    if (senzaPoligoni && c !== piuGrande) vani.push({ tipo: 'escluso', g: c, testi: ['scala'], scala: true, nota: 'arrivo della scala a un piano superiore: la scala si conta una volta, al piano di partenza' });
+    else if (PA.contains(puntoInterno(c))) vani.push({ tipo: 'diretto', g: c, testi: ['scala'], scala: true, nota: 'scala interna: contata intera a questo piano' });
     else avvisi.push(`Scala di ${c.getArea().toFixed(2).replace('.', ',')} m² non contata: è l'arrivo al piano superiore (la scala si conta una volta, al piano dell'unità).`);
   }
   // vani senza nome rimasti: accessorio diretto da verificare (es. cabina armadi senza testo)
@@ -384,6 +435,7 @@ export function riconosciVani(entita: Entita[], poligoni: Poligono[]): Risultato
         m2: m2Intero(v.g.getArea()),
         testi: v.testi.filter((t) => altezzaDaTesto(t) === null),
         altezze: v.testi.map(altezzaDaTesto).filter((h): h is number => h !== null),
+        zone: v.zone?.map((z) => ({ superficie: Math.round(z.superficie * 100) / 100, altezza: z.altezza })),
         contorni: parti(v.g).filter((g) => g.getGeometryType() === 'Polygon').map(anello),
         centro: c,
         scala: v.scala,
@@ -391,24 +443,34 @@ export function riconosciVani(entita: Entita[], poligoni: Poligono[]): Risultato
       };
     });
   if (porte) avvisi.push(`${porte} porte disegnate con linea tratteggiata riconosciute.`);
-  return { vani: risultato, linee: lineeAnteprima, limiti, avvisi };
+  const muri = tutteFacce.filter((f) => f.getArea() > 1e-4 && eMuro(f) && DENTRO.contains(puntoInterno(f)) && !Gz.contains(puntoInterno(f))).map(anello);
+  return { vani: risultato, muri, linee: lineeAnteprima, limiti, avvisi, senzaPoligoni };
 }
 
-export interface TotaliVani {
-  principaliN: number; principaliSup: number;
-  bagniN: number; bagniSup: number;
-  direttiN: number; direttiSup: number;
-  indirettiN: number; indirettiSup: number;
-}
+export { totaliVani, type TotaliVani } from './totali';
 
-/** Totali del quadro C (1N parte II): numero e somma dei m² interi per tipo; i vani esclusi non contano. */
-export function totaliVani(vani: VanoRiconosciuto[]): TotaliVani {
-  const t: TotaliVani = { principaliN: 0, principaliSup: 0, bagniN: 0, bagniSup: 0, direttiN: 0, direttiSup: 0, indirettiN: 0, indirettiSup: 0 };
+/**
+ * Altezze per il modello 1N parte II (dati metrici): altezza media utile in cm (media pesata sulla superficie
+ * delle zone con l'altezza scritta) e superficie con altezza inferiore a 2,30 m (m² interi). Vani esclusi e
+ * scale non contano. null se nessun vano ha l'altezza.
+ */
+export function altezzeUnita(vani: VanoRiconosciuto[]): { altezzaMediaCm: number; supInferiore230: number; conAltezza: number; senzaAltezza: number } | null {
+  let s = 0, sh = 0, basse = 0, con = 0, senza = 0;
   for (const v of vani) {
-    if (v.tipo === 'principale') { t.principaliN++; t.principaliSup += v.m2; }
-    else if (v.tipo === 'bagno') { t.bagniN++; t.bagniSup += v.m2; }
-    else if (v.tipo === 'diretto' || v.tipo === 'verificare') { t.direttiN++; t.direttiSup += v.m2; }
-    else if (v.tipo === 'indiretto') { t.indirettiN++; t.indirettiSup += v.m2; }
+    if (v.tipo === 'escluso' || v.scala) continue;
+    const zone = v.zone?.length ? v.zone : [{ superficie: v.superficie, altezza: v.altezze.length ? v.altezze.reduce((a, b) => a + b, 0) / v.altezze.length : null }];
+    // la superficie corretta dal tecnico (m²) si ripartisce sulle zone in proporzione
+    const tot = zone.reduce((a, z) => a + z.superficie, 0) || 1;
+    let conH = false;
+    for (const z of zone) {
+      if (z.altezza === null) continue;
+      conH = true;
+      const a = (z.superficie / tot) * v.m2;
+      s += a; sh += a * z.altezza;
+      if (z.altezza < 2.3) basse += a;
+    }
+    if (conH) con++; else senza++;
   }
-  return t;
+  if (!s) return null;
+  return { altezzaMediaCm: Math.round((sh / s) * 100), supInferiore230: m2Intero(basse), conAltezza: con, senzaAltezza: senza };
 }

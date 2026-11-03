@@ -2,7 +2,7 @@ name: Build
 
 on:
   push:
-    branches: [main]
+    branches: [main, prova]
     tags: ['v*']
   pull_request:
   workflow_dispatch:
@@ -84,11 +84,13 @@ jobs:
             src-tauri/target/release/bundle/**/*.deb
 
   # ad ogni push su main: release "ultima" con gli eseguibili scaricabili direttamente (senza zip),
-  # visibile nella colonna di destra del repository alla voce Releases
+  # visibile nella colonna di destra del repository alla voce Releases.
+  # Su prova: release "prova" segnata come pre-release, per il collaudo prima di main: non è l'«ultima versione»
+  # e l'avviso di nuova versione dell'app non la vede.
   pubblica:
     name: Pubblica eseguibili
     needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/prova')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -155,6 +157,12 @@ jobs:
           # NOVITA: titolo del commit e righe di elenco del messaggio, come punti
           { head -1 messaggio.txt | sed 's/^/- /'; grep -E '^\s*[-*] ' messaggio.txt | sed -E 's/^\s*[-*] +/- /'; } > novita.md
           python3 -c "import sys; n=open('note.md').read(); open('note.md','w').write(n.replace('NOVITA', open('novita.md').read().rstrip()))"
-          gh release delete collaudo --yes --cleanup-tag || true
-          gh release delete ultima --yes --cleanup-tag || true
-          gh release create ultima dist/* --target "$GITHUB_SHA" --title "Fa.Catasto.Doc $versione – ultima versione ($quando)" --notes-file note.md --latest
+          if [ "$GITHUB_REF_NAME" = prova ]; then
+            sed -i "s|^Ultima versione di Fa.Catasto.Doc|VERSIONE DI PROVA, da collaudare, di Fa.Catasto.Doc|" note.md
+            gh release delete prova --yes --cleanup-tag || true
+            gh release create prova dist/* --target "$GITHUB_SHA" --title "Fa.Catasto.Doc $versione – PROVA ($quando)" --notes-file note.md --prerelease --latest=false
+          else
+            gh release delete collaudo --yes --cleanup-tag || true
+            gh release delete ultima --yes --cleanup-tag || true
+            gh release create ultima dist/* --target "$GITHUB_SHA" --title "Fa.Catasto.Doc $versione – ultima versione ($quando)" --notes-file note.md --latest
+          fi

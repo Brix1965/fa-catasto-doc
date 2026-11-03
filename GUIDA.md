@@ -73,6 +73,12 @@ far sbagliare meno il tecnico.
 - **Superfici calcolate in automatico** dai poligoni: dati metrici, superficie catastale DPR 138/98 e superfici
   lorde del modello 1N parte II.
 - Planimetrie ed elaborato planimetrico **su più schede**, ognuna dal proprio DXF.
+- **Editor del disegno** dentro il programma: linee, testi e poligoni si correggono senza tornare al CAD, con
+  aggancio agli spigoli, ortogonale, misura e annulla. Vedi [Modifica disegno](#modifica-disegno-editor).
+- **Automatismi sul disegno** (sperimentali): poligoni DOCFA_POLIGONI proposti dai vani riconosciuti e spessore
+  dei muri sezionati, da controllare e correggere.
+- **Riquadro DXF di partenza**: il modello A4/A3 dell'Agenzia alla scala scelta, con i layer già pronti e un
+  esempio di locale disegnato come lo vuole il riconoscimento dei vani.
 - Numerazione delle immagini che parte da 9000001, lontana da quella di Docfa (che parte da 1): evita il
   messaggio «alcune planimetrie non importate» quando si importa il documento in Docfa.
 
@@ -190,6 +196,13 @@ associati, indirizzi (fino a 4, dallo stradario), piani, scala, interno, e il cl
 La **superficie catastale** viene dai poligoni della planimetria e la **rendita** dalle tariffe: non si scrivono.
 «Nuova U.I.U.» propone foglio, particella, indirizzo e piano dell'unità precedente.
 
+**«Da visura»** legge una visura catastale in PDF scaricata da Sister (visura sintetica per soggetto o visura per
+immobile, Catasto Fabbricati) e mostra gli immobili trovati. Quelli spuntati diventano u.i.u. della pratica (o
+aggiornano quelle con lo stesso identificativo) con identificativo, indirizzo, civici e piani; in variazione anche
+il **classamento in atti** (variata o soppressa, a scelta riga per riga) e, se spuntato, le **classi più elevate
+per categoria** del fabbricato per il classamento automatico. L'indirizzo letto dalla visura non è quello dello
+stradario certificato: va confermato. Tutto resta modificabile.
+
 ### Quadro D (accatastamento) / Note
 Beni comuni non censibili (fino a 20) ed estremi del titolo giustificativo; note e relazione tecnica
 (massimo 380 caratteri).
@@ -206,6 +219,29 @@ Tecnico compilatore (scegliendolo dalla tendina dei tecnici memorizzati) e dichi
 4. Controlla l'anteprima e la tabella dei poligoni: tipo, superficie, altezza inferiore a 1,50 m.
    I dati metrici si compilano da soli.
 5. Per una planimetria su più fogli usa **«Aggiungi scheda»**.
+6. **«Riquadro DXF di partenza»** salva il riquadro dell'Agenzia del formato e della scala scelti (vertice in 0,0),
+   con il layer `DOCFA_POLIGONI` già spento, un esempio di locale (layer ESEMPIO, da cancellare) e le istruzioni
+   (layer ISTRUZIONI, spento). Partire da qui evita quasi tutti gli errori di importazione.
+
+#### Modifica disegno (editor)
+**«Modifica disegno»** apre il disegno della scheda in una finestra a tutto schermo.
+- Strumenti: **Seleziona** (S), **Linea** (L), **Poligono** (P), **Testo** (T), **Misura** (M). Rotella = zoom,
+  trascinare = spostare la vista, F = adatta alla finestra.
+- **Aggancio** a estremi, punti medi, centri, vertici dei poligoni e punto più vicino su una linea (quadratino
+  verde). **Ortogonale**: casella oppure tasto Maiusc tenuto premuto.
+- Oggetto selezionato: per le linee si cambia **tratteggiata/continua** e **muro sezionato** (spessore), si
+  spostano gli estremi trascinando i quadratini; per i testi si corregge il testo e l'altezza; per i poligoni si
+  cambia il tipo e l'altezza < 1,50 m, si trascinano i vertici, doppio clic sul bordo aggiunge un vertice, Canc
+  toglie il vertice selezionato (o tutto il poligono). Ctrl+Z annulla, Ctrl+Y ripete.
+- **Automatismi (sperimentali)**: «Riconosci i vani» trova i locali dalle linee e dai nomi scritti; poi
+  «Applica i poligoni proposti» disegna i poligoni (A con i muri, B per gli accessori indiretti, D per balconi e
+  terrazzi) e «Spessore ai muri sezionati» ingrossa le linee dei muri tagliati (0,07 a 1:200, in proporzione
+  alle altre scale). Funziona anche su un DXF **senza poligoni**: i vani si cercano in tutto il riquadro e i
+  locali senza nome restano esclusi, da controllare. Sono proposte: i muri in comune con altre unità sono
+  compresi per intero (il DPR 138/98 ne conta metà), gli infissi possono risultare ingrossati: correggi a mano.
+- **«Salva nella scheda»** riscrive il DXF della scheda (formato R12) e i poligoni, e rigenera l'anteprima.
+  Il DXF di prima resta conservato: **«DXF originale»** lo ripristina. **«Esporta DXF»** salva una copia da
+  riaprire nel CAD.
 
 Il numero immagine si può modificare se coincide con un'immagine già presente in Docfa.
 
@@ -245,9 +281,11 @@ Il bordo tratteggiato segnala un locale senza nome, proposto come accessorio dir
   oppure dal menu a tendina nella tabella sotto il disegno.
 - **Correggere la superficie**: nella tabella ogni vano ha i suoi m², modificabili. «Ripristina proposta»
   rimette i valori calcolati.
-- In fondo ci sono i totali, la consistenza indicativa e, per confronto, i valori già presenti nel quadro C.
+- In fondo ci sono i totali, la consistenza indicativa, l'**altezza media utile** e la **superficie con altezza
+  inferiore a 2,30 m** (dai testi «h…» del disegno, media pesata sulla superficie) e, per confronto, i valori già
+  presenti nel quadro C.
 - **«Conferma e inserisci nel quadro C»** scrive numero e superficie di vani principali, bagni, accessori
-  diretti e indiretti. **«Chiudi senza inserire»** non cambia nulla.
+  diretti e indiretti, e l'altezza media e la superficie con h < 2,30 m se il disegno ha le altezze scritte. **«Chiudi senza inserire»** non cambia nulla.
 - Dopo la conferma i campi del quadro C restano normali campi modificabili. Riaprendo la finestra si
   ritrovano le scelte fatte; «Ricalcola» rilegge il disegno.
 
@@ -267,8 +305,9 @@ Il programma ricostruisce i locali dalle linee dei muri. Più il disegno è puli
 servono. La regola più importante: **scrivi il nome dentro ogni locale.** Con tutte le destinazioni scritte il
 modulo fa molti meno errori; senza nome deve indovinare.
 
-1. **Poligoni**: come sempre, sul layer `DOCFA_POLIGONI` (A, B, C, G…). Servono anche a capire dove sta l'unità:
-   senza poligoni il riconoscimento non parte.
+1. **Poligoni**: sul layer `DOCFA_POLIGONI` (A, B, C, G…): dicono dove sta l'unità. Senza poligoni i vani si
+   cercano in tutto il riquadro (i locali senza nome restano esclusi, da controllare) e i poligoni si possono far
+   proporre dall'editor del disegno.
 2. **Muri**: linee o polilinee a **tratto continuo**, con le due facce del muro disegnate. I tratti si devono
    toccare negli spigoli; i piccoli distacchi fino a 20 cm vengono chiusi da soli, ma è meglio non averne.
    Non spezzare il contorno del muro con linee tratteggiate.
@@ -283,7 +322,10 @@ modulo fa molti meno errori; senza nome deve indovinare.
    - accessori diretti: ingresso, corridoio, disimpegno (disimp., dis.), ripostiglio (rip.), guardaroba,
      cabina armadi, antibagno, cottura, lavanderia, dispensa, veranda, loggia chiusa, scala, vano scala;
    - accessori indiretti: cantina, soffitta, sottotetto, locale tecnico, centrale termica, lavatoio, sgombero,
-     deposito, garage, autorimessa, magazzino.
+     deposito, garage, autorimessa, magazzino;
+   - non sono vani (esclusi; balconi e terrazzi diventano poligoni D): balcone, terrazzo, terrazza, portico,
+     cortile, giardino, scale a comune, pianerottolo, androne, parti comuni, altra proprietà, altra u.i.u.,
+     cavedio, vuoto.
    Maiuscole e minuscole non contano; vale anche l'abbreviazione col punto. Un locale con un nome diverso
    viene proposto «da verificare».
 5. **Altezze**: un testo nel locale come `h260`, `h=2,40`, `hmin 220` (cm o m). Le zone di altezza diversa dello
@@ -311,6 +353,10 @@ variate o soppresse e le categorie presenti nel fabbricato con la classe più el
 conservando le righe inserite a mano. **«Importa»** legge l'elenco da un PDF Docfa o da un file `EPVnnn.DAT`.
 
 ### Cosa manca
+Oltre ai controlli di Docfa, due confronti fra dichiarato e calcolato (avvisi, non bloccano):
+il **quadro C** diverso dai vani confermati dal disegno, e la **consistenza** del classamento (gruppo A) diversa
+di oltre il 10% da quella che risulta dal quadro C (principali + accessori diretti ⅓ + indiretti ¼).
+
 Tutto quello che va completato o corretto, con il codice diagnostico di Docfa e la sua spiegazione.
 Un clic porta al punto da correggere. Quando non manca niente: «Non manca niente: il documento si può esportare.»
 

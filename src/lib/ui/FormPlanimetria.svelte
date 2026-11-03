@@ -14,12 +14,14 @@
   import { ALBI, capitalizza } from '$lib/core/esporta';
   import { nomeProvincia } from '$lib/core/pdf/tabelle';
   import { decode1252 } from '$lib/core/bytes';
-  import { scegliFile, leggiFile, nomeFile, conferma } from '$lib/piattaforma';
+  import { scegliFile, leggiFile, nomeFile, conferma, scegliDestinazione, scriviFile } from '$lib/piattaforma';
   import AnteprimaBitmap from './AnteprimaBitmap.svelte';
   import Avvisi from './Avvisi.svelte';
   import { impostazioni } from '$lib/stato/impostazioni.svelte';
   import Campo from './Campo.svelte';
   import Icona from './Icona.svelte';
+  import EditorDisegno from './EditorDisegno.svelte';
+  import { riquadroDiPartenza } from '$lib/core/raster/riquadro';
 
   /** $ACADVER → versione di AutoCAD */
   const VERSIONI_ACAD: Record<string, string> = { AC1009: 'R12', AC1012: 'R13', AC1014: 'R14', AC1015: 'AutoCAD 2000', AC1018: 'AutoCAD 2004', AC1021: 'AutoCAD 2007', AC1024: 'AutoCAD 2010', AC1027: 'AutoCAD 2013', AC1032: 'AutoCAD 2018' };
@@ -182,6 +184,32 @@
 
   const area = areaPoligono;
 
+  let editorAperto = $state(false);
+  /** disegno salvato dall'editor: nuovo DXF e poligoni; il DXF di prima si conserva (una volta sola) */
+  function salvaDisegno(dxf: string, poligoni: Planimetria['poligoni']): void {
+    const s = sc;
+    if (!s) return;
+    if (!s.dxfOriginale) s.dxfOriginale = s.dxf;
+    s.dxf = dxf;
+    s.poligoni = poligoni;
+    s.poligoniLetti = true;
+  }
+  async function scaricaRiquadro(): Promise<void> {
+    const s = sc;
+    if (!s) return;
+    const nome = `riquadro-${s.formato}-1-${s.scala}.dxf`;
+    const percorso = await scegliDestinazione('Salva il riquadro DXF di partenza', nome, [{ nome: 'Disegni DXF', estensioni: ['dxf'] }]);
+    if (percorso) await scriviFile(percorso, riquadroDiPartenza(s.formato, s.scala));
+  }
+  async function ripristinaOriginale(): Promise<void> {
+    const s = sc;
+    if (!s?.dxfOriginale || !(await conferma('Tornare al DXF caricato all\'inizio? Le modifiche fatte con l\'editor (linee, testi, poligoni) andranno perse.'))) return;
+    s.dxf = s.dxfOriginale;
+    s.dxfOriginale = undefined;
+    const letto = analizza(s.dxf, undefined, true);
+    if (letto) await genera(letto);
+  }
+
   /** poligono selezionato (indice in sc.poligoni), evidenziato sull'anteprima e nella tabella */
   let selezionato = $state<number | null>(null);
   /** colori dei tipi come nel DXF di Docfa (1 rosso … 8 grigio) */
@@ -246,8 +274,11 @@
       <div class="flex flex-wrap items-center gap-2">
         <button type="button" class="btn" onclick={caricaDxf}><Icona nome="importa" /> {sc.dxf ? 'Sostituisci DXF' : 'Carica DXF'}</button>
         {#if sc.dxf}
+          <button type="button" class="btn btn-primario" onclick={() => (editorAperto = true)} title="Modifica linee, testi e poligoni; proponi i poligoni e lo spessore dei muri"><Icona nome="modifica" /> Modifica disegno</button>
           <button type="button" class="btn" onclick={() => genera()} disabled={generazione}><Icona nome="ricarica" /> {generazione ? 'Generazione…' : 'Rigenera anteprima'}</button>
+          {#if sc.dxfOriginale}<button type="button" class="btn" onclick={ripristinaOriginale} title="Torna al DXF caricato, senza le modifiche dell'editor"><Icona nome="annulla" /> DXF originale</button>{/if}
         {/if}
+        <button type="button" class="btn" onclick={scaricaRiquadro} title={`Riquadro ${sc.formato} 1:${sc.scala} dell'Agenzia, con i layer pronti e un esempio di locale`}><Icona nome="file" /> Riquadro DXF di partenza</button>
         <button type="button" class="btn btn-pericolo" onclick={rimuovi}><Icona nome="cestino" /> Rimuovi planimetria</button>
       </div>
 
@@ -324,4 +355,8 @@
       {/if}
     </div>
   </div>
+{/if}
+
+{#if sc?.dxf}
+  <EditorDisegno scheda={sc} bind:aperto={editorAperto} titolo={`Disegno della scheda ${schedaCorrente + 1}`} onsalva={salvaDisegno} />
 {/if}
