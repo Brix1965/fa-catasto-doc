@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { numeroCampo } from '$lib/ui/numeri';
   /**
    * Classamento proposto del quadro U: zona censuaria, categoria (tendina di Docfa; per D ed E la destinazione
    * d'uso), classe, consistenza, superficie catastale (dai poligoni) e rendita (calcolata dalle tariffe).
@@ -87,14 +88,14 @@
       </Campo>
     {/if}
     <Campo etichetta="Superf. cat. (mq)" aiuto={superficieAutomatica ? 'calcolata dai poligoni' : ordinaria ? 'serve la planimetria con i poligoni' : 'facoltativa'}>
-      <input type="number" class="campo" min="0" max="99999" bind:value={classamento.superficieCatastale} disabled={superficieAutomatica || (!gruppoF && !gruppoDE && !ordinaria)} />
+      <input type="number" class="campo" min="0" max="99999" bind:value={() => classamento.superficieCatastale, (v) => (classamento.superficieCatastale = numeroCampo(v))} disabled={superficieAutomatica || (!gruppoF && !gruppoDE && !ordinaria)} />
     </Campo>
     {#if gruppoDE}
       <Campo etichetta="n° Mod. 2N II parte" aiuto="corpi di fabbrica"><input type="number" class="campo" value={nCorpi} disabled /></Campo>
     {/if}
     {#if richiesto === 'completo' && !gruppoF}
       <Campo etichetta="Rendita (€)" aiuto={tariffa ? `tariffa ${tariffa.lire.toLocaleString('it-IT')} lire (${(tariffa.lire / LIRE_PER_EURO).toFixed(2)} €) × ${consistenzaNumero}` : gruppoDE ? (rendita2N !== null ? 'dal modello 2N parte I (Va × saggio)' : 'si calcola nel modello 2N parte I, «Stima e rendita»') : conTariffe ? 'zona, categoria e classe non presenti nelle tariffe del comune' : 'tariffe non caricate: rendita da indicare a mano'}>
-        <input type="number" class="campo" step="0.01" min="0" bind:value={classamento.rendita} disabled={renditaCalcolata !== null || rendita2N !== null || (ordinaria && conTariffe)} />
+        <input type="number" class="campo" step="0.01" min="0" bind:value={() => classamento.rendita, (v) => (classamento.rendita = numeroCampo(v))} disabled={renditaCalcolata !== null || rendita2N !== null || (ordinaria && conTariffe)} />
       </Campo>
     {/if}
   </div>

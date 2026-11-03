@@ -23,8 +23,10 @@ async function nelWorker<T>(richiesta: RichiestaVani | RichiestaDisegno, estrai:
   const w = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
   try {
     return await new Promise<T>((resolve, reject) => {
-      w.onmessage = (e: MessageEvent) => (e.data.ok ? resolve(estrai(e.data)) : reject(new Error(e.data.errore)));
-      w.onerror = (e) => reject(new Error(e.message || 'errore nel calcolo sul disegno'));
+      // un disegno enorme o guasto non lascia «Calcolo in corso…» per sempre
+      const scadenza = setTimeout(() => reject(new Error('il calcolo sul disegno ha superato i 3 minuti: il DXF è troppo complesso o danneggiato')), 180000);
+      w.onmessage = (e: MessageEvent) => { clearTimeout(scadenza); if (e.data.ok) resolve(estrai(e.data)); else reject(new Error(e.data.errore)); };
+      w.onerror = (e) => { clearTimeout(scadenza); reject(new Error(e.message || 'errore nel calcolo sul disegno')); };
       w.postMessage(richiesta);
     });
   } finally {

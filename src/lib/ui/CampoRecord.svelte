@@ -73,7 +73,7 @@
     <label class="mb-1 flex items-center gap-2 text-sm"><input type="checkbox" class="check" checked={ante} onchange={(e) => { if (e.currentTarget.checked) campi[campo.id] = 1900; else delete campi[campo.id]; }} /> Anteriore al 1942</label>
     <label class="block">
       <span class="etichetta">{campo.etichetta}</span>
-      <input type="text" inputmode="numeric" class="campo text-right" maxlength={len} value={ante ? '' : leggiNumero(campo.id)} disabled={ante} oninput={(e) => scriviNumero(campo.id, len, e)} title="dal 1942 in poi; prima, spuntare «Anteriore al 1942»" />
+      <input type="text" inputmode="numeric" class="campo text-right" maxlength={len} value={ante ? '' : leggiNumero(campo.id)} disabled={ante} onchange={(e) => scriviNumero(campo.id, len, e)} title="dal 1942 in poi; prima, spuntare «Anteriore al 1942». Il valore vale quando si esce dal campo" />
     </label>
   </div>
 {:else if tipo === 'numero'}

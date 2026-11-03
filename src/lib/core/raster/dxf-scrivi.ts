@@ -7,6 +7,7 @@
  */
 import type { Poligono, TipoAmbientePoligono } from '../model';
 import { LAYER_POLIGONI, LAYER_RIQUADRO, type Entita, type Punto2 } from './dxf';
+import { encode1252 } from '../bytes';
 
 export interface DisegnoDxf {
   entita: Entita[];
@@ -47,6 +48,8 @@ export function scriviDxf(d: DisegnoDxf): string {
   // ---- HEADER
   g(0, 'SECTION'); g(2, 'HEADER');
   g(9, '$ACADVER'); g(1, 'AC1009');
+  // i file salvati per il CAD si scrivono in Windows-1252 (dxfPerFile): così le accentate arrivano giuste
+  g(9, '$DWGCODEPAGE'); g(3, 'ANSI_1252');
   g(9, '$INSUNITS'); g(70, 6);
   g(0, 'ENDSEC');
   // ---- TABLES: tipi di linea e layer
@@ -107,4 +110,9 @@ export function scriviDxf(d: DisegnoDxf): string {
   g(0, 'ENDSEC');
   g(0, 'EOF');
   return r.join('\r\n') + '\r\n';
+}
+
+/** Il DXF come byte da salvare su disco per il CAD: Windows-1252, come dichiarato in $DWGCODEPAGE. */
+export function dxfPerFile(testo: string): Uint8Array {
+  return encode1252(testo);
 }

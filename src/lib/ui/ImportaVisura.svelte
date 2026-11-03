@@ -21,8 +21,9 @@
   let classi = $state(true);
   const acc = $derived(pratica.tipoDocumento === 'accatastamento');
 
+  // stesso identificativo e stesso comune della pratica (una visura per soggetto può avere più comuni)
   const stessoId = (u: UnitaImmobiliare, i: ImmobileVisura) =>
-    (u.identificativo.sezione ?? '') === (i.sezione ?? '') && u.identificativo.foglio === i.foglio && u.identificativo.numero === i.numero && (u.identificativo.subalterno ?? '') === (i.subalterno ?? '');
+    (!pratica.comune.codice || !i.comune.codice || i.comune.codice === pratica.comune.codice) && (u.identificativo.sezione ?? '') === (i.sezione ?? '') && u.identificativo.foglio === i.foglio && u.identificativo.numero === i.numero && (u.identificativo.subalterno ?? '') === (i.subalterno ?? '');
   const esistente = (i: ImmobileVisura) => pratica.unita.findIndex((u) => stessoId(u, i));
 
   async function scegli(): Promise<void> {
@@ -71,7 +72,8 @@
       if (prima < 0) prima = idx;
     });
     if (!acc && classi) {
-      const c = classiPiuElevate(visura.immobili);
+      // solo gli immobili scelti e del comune della pratica: altri comuni o fabbricati falserebbero il classamento automatico
+      const c = classiPiuElevate(visura.immobili.filter((im, k) => scelti[k] && (!pratica.comune.codice || im.comune.codice === pratica.comune.codice)));
       if (c.length) pratica.classiFabbricato = c;
     }
     aperto = false;

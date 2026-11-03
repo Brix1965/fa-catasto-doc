@@ -37,6 +37,9 @@
     if (!(await conferma(`Eliminare ${descriviUnita(pratica.unita[i], i)}?`))) return;
     pratica.unita.splice(i, 1);
     selezionata = Math.max(0, Math.min(selezionata, pratica.unita.length - 1));
+    // una modifica di identificativo in corso apparteneva all'unità eliminata
+    rigaId = -1;
+    ultimaSelezionata = -1;
   }
   function operazione(u: UnitaImmobiliare, v: string): void {
     if (v === 'R') { u.operazione = 'C'; u.recuperata = true; }
@@ -72,6 +75,7 @@
   function inserisciId(u: UnitaImmobiliare): void {
     if (!nuovoId.foglio || !nuovoId.numero) return;
     const id = { ...nuovoId, sezione: nuovoId.sezione || undefined, denominatore: nuovoId.denominatore || undefined, subalterno: nuovoId.subalterno || undefined };
+    if (rigaId > u.graffati.length) rigaId = -1; // la riga in modifica non c'è più
     if (rigaId === 0 || (rigaId < 0 && principaleDaCompletare(u, id))) u.identificativo = id;
     else if (rigaId > 0) u.graffati[rigaId - 1] = id;
     else u.graffati.push(id);
@@ -83,6 +87,7 @@
     nuovoId = { ...(k === 0 ? u.identificativo : u.graffati[k - 1]) };
   }
   function eliminaId(u: UnitaImmobiliare, k: number): void {
+    rigaId = -1;
     if (k === 0) { if (!u.graffati.length) return; u.identificativo = u.graffati.shift()!; }
     else u.graffati.splice(k - 1, 1);
   }

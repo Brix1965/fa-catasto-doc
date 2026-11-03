@@ -6,7 +6,7 @@
 import type { Comune, Tecnico } from '$lib/core/model';
 import { leggiComuni, leggiStradario, leggiTariffe, leggiSetup, leggiZone, contaRighe, riconosciArchivio, comuniIncorporati, type Strada, type Tariffa, type ZonaFoglio, type ArchivioRiconosciuto } from '$lib/core/archivi';
 import { leggiProspetti, type Prospetti } from '$lib/core/classamento-automatico';
-import { appDataDir, leggiFile, scriviFile, esisteFile, unisci, nomeFile, elencoFile, eliminaFile, type VoceCartella } from '$lib/piattaforma';
+import { appDataDir, leggiFile, scriviFile, esisteFile, unisci, nomeFile, elencoFile, eliminaFile, type VoceCartella, scriviFileSicuro } from '$lib/piattaforma';
 import { tecnicoVuoto } from './pratica-file';
 
 export interface ArchivioProvinciale {
@@ -75,7 +75,17 @@ class StatoImpostazioni {
       this.dir = await appDataDir();
       const p = unisci(this.dir, 'impostazioni.json');
       if (await esisteFile(p)) {
-        const letto = JSON.parse(new TextDecoder().decode(await leggiFile(p))) as Partial<Impostazioni>;
+        const grezzo = await leggiFile(p);
+        let letto: Partial<Impostazioni>;
+        try {
+          letto = JSON.parse(new TextDecoder().decode(grezzo)) as Partial<Impostazioni>;
+        } catch (e) {
+          // file guasto: se ne tiene una copia (il primo salvataggio lo riscriverebbe con le impostazioni vuote,
+          // perdendo tecnico, cartella delle pratiche, archivi e contatore delle immagini)
+          const copia = unisci(this.dir, `impostazioni-illeggibile-${new Date().toISOString().replace(/[:.]/g, '-')}.json`);
+          try { await scriviFile(copia, grezzo); } catch { /* niente copia */ }
+          throw new Error(`il file delle impostazioni è danneggiato (${e instanceof Error ? e.message : String(e)}); una copia è in ${copia}`);
+        }
         this.dati = {
           tecnico: { ...tecnicoVuoto(), ...(letto.tecnico ?? {}) },
           tecnici: letto.tecnici ?? [],
@@ -112,7 +122,9 @@ class StatoImpostazioni {
 
   /** Assegna un nuovo numero immagine, unico tra le pratiche e diverso da quelli già usati nella pratica. */
   nuovaImmagine(usati: number[]): number {
-    const n = Math.max(this.dati.prossimaImmagine ?? PRIMA_IMMAGINE, ...usati.map((x) => x + 1));
+    let n = Math.max(this.dati.prossimaImmagine ?? PRIMA_IMMAGINE, ...usati.map((x) => x + 1));
+    // il numero immagine ha 7 cifre: oltre 9999999 si riparte dal primo
+    if (n > 9999999) n = PRIMA_IMMAGINE;
     this.dati.prossimaImmagine = n + 1 > 9999999 ? PRIMA_IMMAGINE : n + 1;
     void this.salva().catch(() => {});
     return n;
@@ -135,9 +147,16 @@ class StatoImpostazioni {
     await this.salva().catch(() => {});
   }
 
-  async salva(): Promise<void> {
-    if (!this.dir) this.dir = await appDataDir();
-    await scriviFile(unisci(this.dir, 'impostazioni.json'), JSON.stringify($state.snapshot(this.dati), null, 2));
+  private codaSalva: Promise<void> = Promise.resolve();
+  /** Salvataggi in coda (mai due insieme: l'ultimo scritto è sempre il più recente) e scrittura sicura. */
+  salva(): Promise<void> {
+    const scrivi = async () => {
+      if (!this.dir) this.dir = await appDataDir();
+      await scriviFileSicuro(unisci(this.dir, 'impostazioni.json'), JSON.stringify($state.snapshot(this.dati), null, 2));
+    };
+    const r = this.codaSalva.then(scrivi, scrivi);
+    this.codaSalva = r.catch(() => {});
+    return r;
   }
 
   /** Percorso di un archivio dato il percorso relativo alla cartella archivi (es. "FI/FI-tar.dat"). */

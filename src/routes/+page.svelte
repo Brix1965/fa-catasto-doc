@@ -55,13 +55,18 @@
   }
 
   async function creaNuova(): Promise<void> {
-    if (nuovoProgressivo < 1 || nuovoProgressivo > 999) return;
+    if (!Number.isInteger(nuovoProgressivo) || nuovoProgressivo < 1 || nuovoProgressivo > 999) return;
     const p = nuovaPratica(impostazioni.dati.tecnico, nuovoTipo, nuovoProgressivo);
     const titolo = nuovaDescrizione.trim() || `${nuovoTipo === 'accatastamento' ? 'Accatastamento' : 'Variazione'} ${sigla(nuovoTipo, nuovoProgressivo)}`;
     dialogo = false;
-    await impostazioni.riservaProgressivo(nuovoTipo, nuovoProgressivo);
-    const percorso = await statoPratica.crea(impostazioni.dati.cartellaPratiche, p, titolo);
-    await goto(`/pratica?f=${encodeURIComponent(percorso)}`);
+    try {
+      const percorso = await statoPratica.crea(impostazioni.dati.cartellaPratiche, p, titolo);
+      // il numero si riserva solo se la pratica è stata davvero creata
+      await impostazioni.riservaProgressivo(nuovoTipo, nuovoProgressivo);
+      await goto(`/pratica?f=${encodeURIComponent(percorso)}`);
+    } catch (e) {
+      errore = `Pratica non creata: ${e instanceof Error ? e.message : String(e)}`;
+    }
   }
 
   function tasti(e: KeyboardEvent): void {
@@ -71,7 +76,7 @@
   }
 
   async function elimina(v: VocePratica): Promise<void> {
-    if (!(await conferma(`Eliminare la pratica "${v.meta.titolo}" e i suoi file?`))) return;
+    if (!(await conferma(`Eliminare la pratica "${v.meta.titolo}"? Si eliminano il file della pratica e il PDF esportato; gli altri file della cartella restano.`))) return;
     try { await statoPratica.elimina(v, cartella); await ricarica(); }
     catch (e) { errore = e instanceof Error ? e.message : String(e); }
   }
@@ -115,6 +120,7 @@
         <button type="button" class="btn btn-ghost text-xs text-fg-muted" onclick={scegli} title={cartella}><Icona nome="cartella" /> <span class="max-w-64 truncate">{cartella}</span></button>
       </div>
       {#if errore}<p class="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">{errore}</p>{/if}
+      {#if impostazioni.errore}<p class="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">Impostazioni: {impostazioni.errore}. Controlla tecnico, cartella delle pratiche e archivi in Impostazioni.</p>{/if}
       {#if !impostazioni.dati.tecnico.cognome}
         <p class="mb-4 flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
           <Icona nome="attenzione" /> I dati del tecnico non sono impostati: <a href="/impostazioni" class="underline">compila le impostazioni</a>.
@@ -134,7 +140,11 @@
                 <span class="flex size-9 shrink-0 items-center justify-center rounded-md bg-surface-2 text-fg-muted"><Icona nome="file" /></span>
                 <span class="min-w-0 flex-1">
                   <span class="block truncate font-medium">{v.meta.titolo}</span>
-                  <span class="block truncate text-xs text-fg-muted">{v.tipo === 'accatastamento' ? 'Accatastamento' : 'Variazione'} {sigla(v.tipo, v.progressivo)} · {v.comune || 'comune non indicato'} · {v.unita} unità · modificata {data(v.meta.modificata)}</span>
+                  {#if v.illeggibile}
+                    <span class="block truncate text-xs text-red-700 dark:text-red-300" title={v.illeggibile}>File non leggibile: {v.illeggibile}</span>
+                  {:else}
+                    <span class="block truncate text-xs text-fg-muted">{v.tipo === 'accatastamento' ? 'Accatastamento' : 'Variazione'} {sigla(v.tipo, v.progressivo)} · {v.comune || 'comune non indicato'} · {v.unita} unità · modificata {data(v.meta.modificata)}</span>
+                  {/if}
                 </span>
                 <span class="pill {v.meta.stato === 'esportata' ? 'bg-accent-100 text-accent-800 dark:bg-accent-900 dark:text-accent-100' : 'bg-surface-2 text-fg-muted'}">{v.meta.stato === 'esportata' ? 'Esportata' : 'Bozza'}</span>
               </a>

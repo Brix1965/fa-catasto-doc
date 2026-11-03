@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { numeroCampo } from '$lib/ui/numeri';
   /**
    * Accatastamento: quadro D – beni comuni non censibili, note relative al documento e relazione tecnica,
    * estremi del titolo giustificativo dell'intestazione. Variazione: note relative al documento.
@@ -93,8 +94,8 @@
           {#each pratica.estremi ?? [] as e, k (k)}
             <div class="rounded-md border border-line p-3">
               <div class="grid gap-3 sm:grid-cols-4 xl:grid-cols-8">
-                <Campo etichetta="U.I.U. da" obbligatorio><input type="number" class="campo" min="1" max={pratica.unita.length} bind:value={e.uiuDa} /></Campo>
-                <Campo etichetta="a" obbligatorio><input type="number" class="campo" min="1" max={pratica.unita.length} bind:value={e.uiuA} /></Campo>
+                <Campo etichetta="U.I.U. da" obbligatorio><input type="number" class="campo" min="1" max={pratica.unita.length} bind:value={() => e.uiuDa, (v) => (e.uiuDa = numeroCampo(v))} /></Campo>
+                <Campo etichetta="a" obbligatorio><input type="number" class="campo" min="1" max={pratica.unita.length} bind:value={() => e.uiuA, (v) => (e.uiuA = numeroCampo(v))} /></Campo>
                 <Campo etichetta="Causale" classe="sm:col-span-2" obbligatorio>
                   <select class="campo" bind:value={e.causale}><option value=""></option>{#each CAUSALI_ATTO as [c, d] (c)}<option value={c}>{d}</option>{/each}</select>
                 </Campo>

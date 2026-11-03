@@ -79,6 +79,15 @@ export function normalizzaPratica(p: Pratica): Pratica {
   p.tipiVariazione ??= {};
   p.dataVariazione ??= { gg: 0, mm: 0, aaaa: 0 };
   if (p.tipoDocumento === 'variazione') p.presentazione ??= 'variazione';
+  for (const u of p.unita ?? []) {
+    // file salvati con un graffato vuoto (riga in modifica rimasta dopo un'eliminazione) o con numeri cancellati
+    // (un campo numerico svuotato vale null): si ripuliscono all'apertura
+    u.graffati = (u.graffati ?? []).filter((g) => !!g && typeof g === 'object');
+    if (u.classamento) {
+      if (!Number.isFinite(u.classamento.rendita)) u.classamento.rendita = 0;
+      if (!Number.isFinite(u.classamento.superficieCatastale)) u.classamento.superficieCatastale = 0;
+    }
+  }
   return p;
 }
 

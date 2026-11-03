@@ -3,6 +3,7 @@
    * Elaborato planimetrico: una o più schede, ognuna dal suo DXF (formato e scala dal riquadro), con l'anteprima
    * composta sul modello dell'Agenzia (EP2_A4 / EP2_A3) o l'immagine importata da Docfa.
    */
+  import { untrack } from 'svelte';
   import type { DisegnoElaborato, ElaboratoPlanimetrico, Pratica } from '$lib/core/model';
   import { preparaDxf } from '$lib/core/raster/dxf-correzioni';
   import { componiElaborato, type CartiglioElaborato } from '$lib/core/raster/planimetria';
@@ -51,8 +52,10 @@
     };
   }
 
+  let anteprimaN = 0;
   async function anteprima(): Promise<void> {
     const x = d;
+    const mia = ++anteprimaN;
     errore = null;
     if (!x) { bitmap = null; return; }
     if (x.tiff && !x.dxf) {
@@ -63,6 +66,8 @@
     generazione = true;
     try {
       const r = await componiElaborato({ dxf: x.dxf, foglio: { formato: x.formato, scala: x.scala }, cartiglio: cartiglio(x.scala) });
+      // un'anteprima lenta di un'altra scheda non sovrascrive quella mostrata ora
+      if (mia !== anteprimaN) return;
       bitmap = r.bitmap;
       ultimo = x.dxf;
     } catch (e) {
@@ -74,8 +79,12 @@
 
   $effect(() => {
     const x = d;
-    if (!x) { bitmap = null; return; }
-    if ((x.tiff && !x.dxf) || (x.dxf && x.dxf !== ultimo)) void anteprima();
+    const dxf = x?.dxf, tiff = x?.tiff;
+    untrack(() => {
+      if (!x) { bitmap = null; return; }
+      if ((tiff && !dxf) || (dxf && dxf !== ultimo)) void anteprima();
+      else if (!dxf && !tiff) { bitmap = null; ultimo = ''; }
+    });
   });
 
   function vai(k: number): void {

@@ -8,7 +8,7 @@
  */
 import type { Poligono, TipoAmbientePoligono } from '../model';
 import type { TipoVano } from './riconosci';
-import { anello, buffer, facce, intersezione, linea, parti, poligono, punto, puntoInterno, rete, semplifica, unione, type G, type XY } from './geo';
+import { anello, buffer, differenza, facce, intersezione, linea, parti, poligono, punto, puntoInterno, rete, semplifica, unione, type G, type XY } from './geo';
 
 export interface VanoPerPoligoni { tipo: TipoVano; contorni: XY[][]; testi?: string[] }
 
@@ -58,9 +58,9 @@ export function generaPoligoni(vani: VanoPerPoligoni[], linee: [XY, XY][], spess
   };
   const A = impronta('A');
   let B = impronta('B');
-  if (A && B) B = B.difference(A);
+  if (A && B) B = differenza(B, A);
   const scoperti = unisciVani(vani.filter((v) => v.tipo === 'escluso' && v.testi?.some((t) => /^(balcon|terrazz|loggia(?! chiusa))/i.test(t.trim()))));
-  const D = scoperti && A ? scoperti.difference(A) : scoperti;
+  const D = scoperti && A ? differenza(scoperti, A) : scoperti;
   const out: Poligono[] = [];
   for (const [tipo, g] of [['A', A], ['B', B], ['D', D]] as [TipoAmbientePoligono, G | null][]) {
     if (!g || g.isEmpty()) continue;

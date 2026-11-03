@@ -19,6 +19,7 @@
 </script>
 
 <script lang="ts">
+  import { numeroCampo } from '$lib/ui/numeri';
   /** Modello 1N parte II della u.i.u.: un quadro alla volta, come nella finestra di Docfa. */
   import { poligoniPlanimetria, type LocaleGruppoC, type Mod1NParteII } from '$lib/core/model';
   import { DESTINAZIONI_1N } from '$lib/core/dati/docfa-tabelle.generated';
@@ -27,6 +28,7 @@
   import Icona from './Icona.svelte';
   import VaniDaDisegno from './VaniDaDisegno.svelte';
   import { schedeConDxf } from '$lib/core/vani/esegui';
+  import { untrack } from 'svelte';
 
   let { unita = $bindable(), pratica, quadro }: { unita: UnitaImmobiliare; pratica: Pratica; quadro: string } = $props();
   const m = $derived(unita.mod1NParteII as Mod1NParteII);
@@ -36,6 +38,8 @@
   const ids = $derived([unita.identificativo, ...unita.graffati].slice(0, 4));
   const destinazioni = $derived(DESTINAZIONI_1N[categoria] ?? []);
   const sottoMetro50 = $derived(unita.ambienti.filter((a) => a.altezzaMin === 149).reduce((s, a) => s + a.superficie, 0));
+  // l'anno si scrive all'uscita dal campo (onchange): con oninput la prima cifra (1) contava già come anno < 1942
+  // e il campo si disattivava, impossibile scrivere 1985 (segnalato nel controllo QA)
   const ante1942 = $derived(!!m.annoCostruzione && m.annoCostruzione < 1942);
   /** proposta dei vani dal DXF (sperimentale) */
   let propostaAperta = $state(false);
@@ -45,10 +49,17 @@
   $effect(() => {
     if (destinazioni.length === 1 && m.destinazioneUso !== destinazioni[0]) m.destinazioneUso = destinazioni[0];
   });
-  // anno di costruzione proposto dal modello 1N parte I
+  // anno di costruzione proposto dal modello 1N parte I, una volta per modello aperto: se fosse reattivo, togliendo
+  // «Anteriore al 1942» o cancellando l'anno lo rimetterebbe subito (non si riusciva a cambiarlo)
+  let annoPropostoPer: Mod1NParteII | null = null;
   $effect(() => {
-    const anno = Number(pratica.mod1NParteI?.recordB.anno_costruzione);
-    if (!m.annoCostruzione && anno) m.annoCostruzione = anno;
+    const mm = m;
+    if (!mm || annoPropostoPer === mm) return;
+    annoPropostoPer = mm;
+    untrack(() => {
+      const anno = Number(pratica.mod1NParteI?.recordB.anno_costruzione);
+      if (!mm.annoCostruzione && anno) mm.annoCostruzione = anno;
+    });
   });
 
   const DOTAZIONI: [string, string][] = [
@@ -90,7 +101,7 @@
       <h3 class="mb-2 text-xs font-semibold obbligatorio">[B] Riferimenti temporali dell'unità immobiliare</h3>
       <div class="flex flex-wrap items-end gap-4">
         <label class="mb-2 flex items-center gap-2 text-sm"><input type="checkbox" class="check" checked={ante1942} onchange={(e) => (m.annoCostruzione = e.currentTarget.checked ? 1900 : undefined)} /> Anteriore al 1942</label>
-        <Campo etichetta="Anno di costruzione" obbligatorio><input type="number" class="campo w-32" min="1942" max="2100" value={ante1942 ? '' : m.annoCostruzione ?? ''} disabled={ante1942} oninput={(e) => (m.annoCostruzione = numero(e.currentTarget.value))} /></Campo>
+        <Campo etichetta="Anno di costruzione" obbligatorio><input type="number" class="campo w-32" min="1942" max="2100" value={ante1942 ? '' : m.annoCostruzione ?? ''} disabled={ante1942} onchange={(e) => (m.annoCostruzione = numero(e.currentTarget.value))} title="dal 1942 in poi; il valore vale quando si esce dal campo" /></Campo>
         <Campo etichetta="Anno di ristrutturazione"><input type="number" class="campo w-32" min="1800" max="2100" value={m.annoRistrutturazione ?? ''} oninput={(e) => (m.annoRistrutturazione = numero(e.currentTarget.value))} /></Campo>
       </div>
     </div>
@@ -114,16 +125,16 @@
           {#each lista as l, i (i)}
             <div class="mb-2 grid grid-cols-[6rem_1fr_1fr_auto] items-end gap-2">
               <Campo etichetta="Piano"><input type="text" class="campo uppercase" maxlength="3" bind:value={l.piano} /></Campo>
-              <Campo etichetta="Sup. lorda (mq)" aiuto={auto && i === 0 ? 'dai poligoni' : undefined}><input type="number" class="campo" min="0" max="99999" bind:value={l.lorda} disabled={auto && i === 0} /></Campo>
-              <Campo etichetta="Sup. utile (mq)"><input type="number" class="campo" min="0" max="99999" bind:value={l.utile} /></Campo>
+              <Campo etichetta="Sup. lorda (mq)" aiuto={auto && i === 0 ? 'dai poligoni' : undefined}><input type="number" class="campo" min="0" max="99999" bind:value={() => l.lorda, (v) => (l.lorda = numeroCampo(v))} disabled={auto && i === 0} /></Campo>
+              <Campo etichetta="Sup. utile (mq)"><input type="number" class="campo" min="0" max="99999" bind:value={() => l.utile, (v) => (l.utile = numeroCampo(v))} /></Campo>
               <button type="button" class="btn btn-piccolo btn-pericolo mb-0.5" onclick={() => lista.splice(i, 1)} title="Elimina"><Icona nome="cestino" /></button>
             </div>
           {/each}
         </div>
       {/each}
       <div class="grid gap-4 sm:grid-cols-3">
-        <Campo etichetta="4) Balconi (mq)" aiuto={auto ? 'dai poligoni' : undefined}><input type="number" class="campo" min="0" bind:value={c.balconiSup} disabled={auto} /></Campo>
-        <Campo etichetta="Tettoie e coperte (mq)"><input type="number" class="campo" min="0" bind:value={c.coperteSup} /></Campo>
+        <Campo etichetta="4) Balconi (mq)" aiuto={auto ? 'dai poligoni' : undefined}><input type="number" class="campo" min="0" bind:value={() => c.balconiSup, (v) => (c.balconiSup = numeroCampo(v))} disabled={auto} /></Campo>
+        <Campo etichetta="Tettoie e coperte (mq)"><input type="number" class="campo" min="0" bind:value={() => c.coperteSup, (v) => (c.coperteSup = numeroCampo(v))} /></Campo>
       </div>
     </div>
   {:else}
@@ -177,7 +188,7 @@
       <h3 class="mb-2 text-xs font-semibold text-fg-muted">5) Pertinenze scoperte esclusive</h3>
       {#if c}
         <div class="grid gap-4 sm:grid-cols-4">
-          <Campo etichetta="Superficie (mq)" aiuto="dai poligoni"><input type="number" class="campo" min="0" bind:value={c.pertinenzeSup} disabled={auto} /></Campo>
+          <Campo etichetta="Superficie (mq)" aiuto="dai poligoni"><input type="number" class="campo" min="0" bind:value={() => c.pertinenzeSup, (v) => (c.pertinenzeSup = numeroCampo(v))} disabled={auto} /></Campo>
           <Campo etichetta="Posti auto n."><input type="number" class="campo" min="0" value={c.postiAuto} oninput={(e) => (c.postiAuto = intero(e.currentTarget.value))} /></Campo>
           <label class="mt-6 flex items-center gap-2 text-sm"><input type="checkbox" class="check" bind:checked={c.accessoCarrabile} /> Accesso carrabile</label>
           <label class="mt-6 flex items-center gap-2 text-sm"><input type="checkbox" class="check" bind:checked={c.postoAutoScoperto} /> Posto auto scoperto</label>

@@ -54,17 +54,22 @@ export interface Decompilato {
 
 export function decompilaDocumento(ncv: Uint8Array, nmv?: Uint8Array, att?: Uint8Array, epv?: Uint8Array): Decompilato {
   const lines = splitCRLF(ncv).filter((l) => l.length > 0);
-  const recs = lines.map((l) => FixedRecord.parse(l));
   const nonInterpretati: string[] = [];
+  // un record di tipo non previsto (o di lunghezza sbagliata) non blocca l'importazione: si segnala
+  const recs = lines.flatMap((l) => {
+    try { return [FixedRecord.parse(l)]; } catch { nonInterpretati.push(l.length > 16 ? String.fromCharCode(l[16]) : '?'); return []; }
+  });
   const byType = (t: string) => recs.filter((r) => r.type === t).map((r) => r.record);
 
   const r1 = byType('1')[0];
   if (!r1) throw new Error('Manca il record di testata (tipo 1)');
 
   const unita: UnitaImmobiliare[] = [];
+  /** le u.i.u. per progressivo del record 3 (in accatastamento i record 3 sono raggruppati per ditta) */
+  const perProgressivo = new Map<number, UnitaImmobiliare>();
   for (const r3 of byType('3')) {
     const prog = Number(r3.get('progressivo'));
-    const categoria = r3.getTrimmed('categoria');
+    const categoria = r3.getTrimmed('categoria').trim();
     const rendita = Number(r3.get('rendita_centesimi')) / 100;
     const u: UnitaImmobiliare = {
       operazione: r3.get('operazione') as 'C' | 'V' | 'S',
@@ -150,13 +155,14 @@ export function decompilaDocumento(ncv: Uint8Array, nmv?: Uint8Array, att?: Uint
       }
     }
     unita.push(u);
+    perProgressivo.set(prog, u);
   }
 
   // 1N parte II
   const num = (r: FixedRecord, id: string) => { const n = Number(r.get(id)); return Number.isFinite(n) ? n : 0; };
   for (const rH of byType('H')) {
     const prog = num(rH, 'progressivo');
-    const u = unita[prog - 1];
+    const u = perProgressivo.get(prog);
     if (!u) continue;
     const rI = byType('I').find((r) => Number(r.get('progressivo')) === prog);
     const rLs = byType('L').filter((r) => Number(r.get('progressivo')) === prog);
@@ -230,7 +236,7 @@ export function decompilaDocumento(ncv: Uint8Array, nmv?: Uint8Array, att?: Uint
       const s = decode1252(l);
       const prog = Number(s.slice(8, 11));
       const trasc = Number(s.slice(11, 16));
-      const u = unita[prog - 1];
+      const u = perProgressivo.get(prog);
       if (!u) continue;
       if (trasc === 0) { u.tipologiaMetrica = s.slice(17, 19); if (s.charAt(16) === '1' || s.charAt(16) === '2') u.spessoreMuri = Number(s.charAt(16)) as 1 | 2; }
       for (let k = 0; k < 21; k++) {
@@ -388,7 +394,8 @@ export function decompilaDocumento(ncv: Uint8Array, nmv?: Uint8Array, att?: Uint
       for (let j = 0; j < 3; j++) {
         const t = decode1252(r9.buf.subarray(85 + j * 59, 144 + j * 59));
         if (!t.trim() || /^0+$/.test(t.slice(0, 6))) continue;
-        const data = (x: string): Data => ({ aaaa: Number(x.slice(0, 2)) + (Number(x.slice(0, 2)) > 50 ? 1900 : 2000), mm: Number(x.slice(2, 4)), gg: Number(x.slice(4, 6)) });
+        // anno a due cifre: nel secolo scorso se supera l'anno corrente (un atto del 1949 non è del 2049)
+        const data = (x: string): Data => { const yy = Number(x.slice(0, 2)); return { aaaa: yy + (yy > new Date().getFullYear() % 100 ? 1900 : 2000), mm: Number(x.slice(2, 4)), gg: Number(x.slice(4, 6)) }; };
         estremi.push({
           uiuDa: Number(t.slice(0, 3)), uiuA: Number(t.slice(3, 6)), rogante: t.slice(6, 26).trim(), sede: t.slice(26, 30).trim(), provincia: t.slice(30, 32).trim(),
           repertorio: t.slice(32, 38).trim(), causale: t.slice(38, 41).trim(), efficacia: data(t.slice(41, 47)), volume: t.slice(47, 53).trim() || undefined,

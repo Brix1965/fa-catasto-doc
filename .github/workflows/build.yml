@@ -90,6 +90,10 @@ jobs:
   pubblica:
     name: Pubblica eseguibili
     needs: build
+    # due push ravvicinati non cancellano e ricreano la release insieme
+    concurrency:
+      group: pubblica-${{ github.ref }}
+      cancel-in-progress: false
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/prova')
     runs-on: ubuntu-latest
     permissions:
@@ -159,8 +163,10 @@ jobs:
           python3 -c "import sys; n=open('note.md').read(); open('note.md','w').write(n.replace('NOVITA', open('novita.md').read().rstrip()))"
           if [ "$GITHUB_REF_NAME" = prova ]; then
             sed -i "s|^Ultima versione di Fa.Catasto.Doc|VERSIONE DI PROVA, da collaudare, di Fa.Catasto.Doc|" note.md
+            # tag «versione-prova» e non «prova»: un tag con il nome del ramo rende ambiguo «git push origin prova»
             gh release delete prova --yes --cleanup-tag || true
-            gh release create prova dist/* --target "$GITHUB_SHA" --title "Fa.Catasto.Doc $versione – PROVA ($quando)" --notes-file note.md --prerelease --latest=false
+            gh release delete versione-prova --yes --cleanup-tag || true
+            gh release create versione-prova dist/* --target "$GITHUB_SHA" --title "Fa.Catasto.Doc $versione – PROVA ($quando)" --notes-file note.md --prerelease --latest=false
           else
             gh release delete collaudo --yes --cleanup-tag || true
             gh release delete ultima --yes --cleanup-tag || true

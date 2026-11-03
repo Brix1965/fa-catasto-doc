@@ -42,19 +42,27 @@
   const verificare = (v: VanoRiconosciuto) => !!v.nota?.includes('verificare') && v.tipo !== 'escluso' && v.tipo === v.tipoProposto;
   const daVerificare = $derived(tutti.filter(verificare).length);
 
+  /** richiesta in corso: chiudendo e riaprendo, il risultato di un calcolo vecchio non sovrascrive quello nuovo */
+  let richiesta = 0;
   async function calcola(): Promise<void> {
+    const mia = ++richiesta;
     stato = 'calcolo';
     errore = '';
     menu = null;
     try {
       const schede = schedeConDxf($state.snapshot(unita.planimetria) as UnitaImmobiliare['planimetria']);
       if (!schede.length) throw new Error('La planimetria di questa unità non ha un DXF: il riconoscimento dei vani parte dal disegno DXF.');
-      risultati = await riconosciInBackground({ schede });
+      const r = await riconosciInBackground({ schede });
+      if (mia !== richiesta || !aperto) return;
+      risultati = r;
       // scelte già confermate in precedenza: si riapplicano ai vani nella stessa posizione
       const prima = m.propostaVani?.schede ?? [];
       vani = risultati.map((r, s) => r.vani.map((v) => {
         const p = prima[s]?.vani.find((x) => Math.hypot(x.centro[0] - v.centro[0], x.centro[1] - v.centro[1]) < 0.3 && Math.abs(x.superficie - v.superficie) < 0.5);
-        return p ? { ...v, tipo: p.tipo as TipoVano, m2: p.m2 } : v;
+        // si riapplicano solo le scelte del tecnico (tipo o m² diversi dalla proposta di allora): se il disegno è
+        // cambiato, il resto segue la proposta nuova
+        if (!p) return v;
+        return { ...v, tipo: p.tipo !== p.tipoProposto ? (p.tipo as TipoVano) : v.tipo, m2: p.m2 !== m2Intero(p.superficie) ? p.m2 : v.m2 };
       }));
       scheda = 0;
       stato = 'pronto';

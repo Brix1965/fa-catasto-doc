@@ -15,7 +15,7 @@
   let { pratica = $bindable(), vai }: { pratica: Pratica; vai: (s: 'unita', i?: number) => void } = $props();
 
   const righe = $derived(pratica.unita.map((u, i) => ({ u, i })).filter(({ u }) => u.operazione !== 'S' && classamentoRichiesto(pratica, u) === 'completo' && !!u.classamento && !/^[DEF]/.test(u.classamento.categoria ?? '')));
-  const euro = (v: number) => v.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const euro = (v: number | null | undefined) => (Number.isFinite(v) ? (v as number) : 0).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const cat = (c?: string) => (c && c.length === 3 ? `${c.charAt(0)}/${Number(c.slice(1))}` : c ?? '');
 
   // calcolo come la funzione "Classamento automatico" di Docfa, su tutto il documento

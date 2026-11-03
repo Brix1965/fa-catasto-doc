@@ -9,7 +9,7 @@
   import type { Planimetria, Poligono, SchedaGrafica, TipoAmbientePoligono } from '$lib/core/model';
   import type { Entita, LayerDxf, Punto2 } from '$lib/core/raster/dxf';
   import { preparaDxf } from '$lib/core/raster/dxf-correzioni';
-  import { scriviDxf } from '$lib/core/raster/dxf-scrivi';
+  import { dxfPerFile, scriviDxf } from '$lib/core/raster/dxf-scrivi';
   import { haAltezza } from '$lib/core/superfici';
   import { aggancia, area, dentro, dist, distanzaEntita, distSegmento, limiti, puntiAggancio, puntiArco, segmentiEntita, type Aggancio } from '$lib/core/disegno/geometria';
   import { analizzaDisegnoInBackground } from '$lib/core/vani/esegui';
@@ -71,7 +71,7 @@
   const indiceAggancio = $derived(puntiAggancio(entita, poligoni));
 
   function carica(): void {
-    errore = ''; msg = ''; analisi = null; sel = null; punti = []; storia = []; futuro = []; modificato = false; strumento = 'seleziona';
+    errore = ''; msg = ''; analisi = null; sel = null; punti = []; storia = []; futuro = []; modificato = false; strumento = 'seleziona'; trascina = null; versione++;
     try {
       const p = preparaDxf(scheda.dxf ?? '');
       entita = p.letto.entita;
@@ -95,18 +95,27 @@
 
   // ---- annulla / ripeti
   const istantanea = () => JSON.stringify({ entita: $state.snapshot(entita), poligoni: $state.snapshot(poligoni) });
-  function memorizza(): void {
+  /**
+   * Cresce quando si aggiungono o tolgono linee e testi (o con annulla/ripeti): gli indici delle linee calcolati
+   * dall'analisi non valgono più e «Spessore ai muri» ingrosserebbe le linee sbagliate.
+   */
+  let versione = $state(0);
+  let versioneAnalisi = $state(-1);
+  function memorizza(cambiaIndici = false): void {
     storia.push(istantanea());
     if (storia.length > 100) storia.shift();
     futuro = [];
     modificato = true;
+    if (cambiaIndici) versione++;
   }
   function ripristinaDa(s: string): void {
     const d = JSON.parse(s);
     entita = d.entita; poligoni = d.poligoni; sel = null;
   }
-  function annulla(): void { const s = storia.pop(); if (s) { futuro.push(istantanea()); ripristinaDa(s); } }
-  function ripeti(): void { const s = futuro.pop(); if (s) { storia.push(istantanea()); ripristinaDa(s); } }
+  function annulla(): void { if (trascina) return; const s = storia.pop(); if (s) { futuro.push(istantanea()); ripristinaDa(s); versione++; } }
+  function ripeti(): void { if (trascina) return; const s = futuro.pop(); if (s) { storia.push(istantanea()); ripristinaDa(s); versione++; } }
+  /** l'analisi vale ancora per il disegno attuale */
+  const analisiValida = $derived(!!analisi && versioneAnalisi === versione);
 
   // ---- coordinate
   function aDxf(e: MouseEvent | PointerEvent | WheelEvent): Punto2 {
@@ -140,7 +149,6 @@
       const v = poligoni[sel.i]?.vertici ?? [];
       const k = v.findIndex((q) => dist(q, p) < t);
       if (k >= 0) {
-        memorizza();
         sel = { k: 'poligono', i: sel.i, v: k };
         trascina = { tipo: 'vertice', poligono: sel.i, v: k, origine: v[k], punto: v[k], mosso: false };
         (e.currentTarget as Element).setPointerCapture(e.pointerId);
@@ -151,7 +159,6 @@
       const vs: Punto2[] = en?.tipo === 'linea' ? [en.p1, en.p2] : en?.tipo === 'polilinea' ? en.punti : en?.tipo === 'testo' ? [en.punto] : [];
       const k = vs.findIndex((q) => dist(q, p) < t);
       if (k >= 0) {
-        memorizza();
         trascina = { tipo: 'vertice', entita: sel.i, v: k, origine: vs[k], punto: vs[k], mosso: false };
         (e.currentTarget as Element).setPointerCapture(e.pointerId);
         return true;
@@ -168,6 +175,8 @@
     const p = puntoAgganciato(e);
     cursore = p;
     if (trascina?.tipo === 'vertice') {
+      // l'istantanea per Annulla si prende alla prima mossa: un semplice clic sulla maniglia non conta come modifica
+      if (!trascina.mosso) memorizza();
       trascina.mosso = true;
       trascina.punto = p;
       if (trascina.poligono !== undefined) poligoni[trascina.poligono].vertici[trascina.v] = p;
@@ -180,7 +189,6 @@
     }
   }
   function su(): void {
-    if (trascina?.tipo === 'vertice' && !trascina.mosso) storia.pop();
     trascina = null;
   }
   function rotella(e: WheelEvent): void {
@@ -256,7 +264,9 @@
   function chiudiPoligono(): void {
     // il doppio clic aggiunge due volte l'ultimo punto
     const v = punti.filter((p, i) => i === 0 || dist(p, punti[i - 1]) > 1e-6);
-    if (v.length >= 3) {
+    while (v.length > 1 && dist(v[0], v[v.length - 1]) < 1e-6) v.pop();
+    // almeno 3 vertici distinti e un'area: [a, b, a] non è un poligono
+    if (v.length >= 3 && area(v) > 1e-4) {
       memorizza();
       poligoni.push({ tipo: nuovoTipo, vertici: v, altezzaValida: true });
       sel = { k: 'poligono', i: poligoni.length - 1, v: null };
@@ -267,8 +277,9 @@
   function scegliStrumento(s: Strumento): void { strumento = s; punti = []; if (s !== 'seleziona') sel = null; }
 
   function elimina(): void {
-    if (!sel) return;
-    memorizza();
+    if (!sel || trascina) return;
+    // togliere una linea sposta gli indici di quelle dopo (aggiungerne in fondo no)
+    memorizza(sel.k === 'entita');
     if (sel.k === 'entita') entita.splice(sel.i, 1);
     else if (sel.v !== null && poligoni[sel.i].vertici.length > 3) { poligoni[sel.i].vertici.splice(sel.v, 1); sel = { ...sel, v: null }; return; }
     else poligoni.splice(sel.i, 1);
@@ -284,8 +295,12 @@
   // ---- automatismi
   async function analizza(): Promise<void> {
     calcolo = true; msg = ''; analisi = null;
+    const v = versione;
     try {
-      analisi = await analizzaDisegnoInBackground({ entita: $state.snapshot(entita) as Entita[], poligoni: $state.snapshot(poligoni) as Poligono[], usaPoligoni: usaPoligoni && poligoni.length > 0, riquadro });
+      const r = await analizzaDisegnoInBackground({ entita: $state.snapshot(entita) as Entita[], poligoni: $state.snapshot(poligoni) as Poligono[], usaPoligoni: usaPoligoni && poligoni.length > 0, riquadro });
+      if (!aperto) return;
+      analisi = r;
+      versioneAnalisi = v;
       mostraVani = true;
       msg = `${analisi.vani.vani.filter((v) => v.tipo !== 'escluso').length} vani riconosciuti, ${analisi.generati.poligoni.length} poligoni proposti, ${analisi.muri.length} linee di muro sezionato.`;
     } catch (e) {
@@ -295,7 +310,7 @@
     }
   }
   async function applicaPoligoni(): Promise<void> {
-    if (!analisi) return;
+    if (!analisi || !analisiValida) return;
     if (poligoni.length && !(await conferma(`I ${poligoni.length} poligoni attuali verranno sostituiti dai ${analisi.generati.poligoni.length} proposti. Continuare?`))) return;
     memorizza();
     poligoni = analisi.generati.poligoni.map((p) => ({ ...p, vertici: p.vertici.map((v) => [v[0], v[1]] as Punto2) }));
@@ -303,12 +318,13 @@
     sel = null;
   }
   function applicaSpessori(): void {
-    if (!analisi) return;
+    // indici calcolati sul disegno di prima: dopo una modifica si ingrosserebbero le linee sbagliate
+    if (!analisi || !analisiValida) return;
     memorizza();
     const muri = new Set(analisi.muri);
+    // si ingrossano le linee proposte; gli spessori già messi restano (per toglierli: «Togli tutti gli spessori»)
     entita.forEach((e, i) => {
-      if (e.tipo !== 'linea' && e.tipo !== 'polilinea') return;
-      e.spessore = muri.has(i) ? spessoreMuro : 0;
+      if ((e.tipo === 'linea' || e.tipo === 'polilinea') && muri.has(i)) e.spessore = spessoreMuro;
     });
   }
   function togliSpessori(): void { memorizza(); for (const e of entita) if (e.tipo === 'linea' || e.tipo === 'polilinea') e.spessore = 0; }
@@ -325,8 +341,12 @@
     aperto = false;
   }
   async function esporta(): Promise<void> {
-    const percorso = await scegliDestinazione('Salva il DXF', 'planimetria.dxf', [{ nome: 'Disegni DXF', estensioni: ['dxf'] }]);
-    if (percorso) await scriviFile(percorso, dxfAttuale());
+    try {
+      const percorso = await scegliDestinazione('Salva il DXF', 'planimetria.dxf', [{ nome: 'Disegni DXF', estensioni: ['dxf'] }]);
+      if (percorso) { await scriviFile(percorso, dxfPerFile(dxfAttuale())); msg = 'DXF salvato.'; }
+    } catch (e) {
+      msg = `DXF non salvato: ${e instanceof Error ? e.message : String(e)}`;
+    }
   }
   async function chiudi(): Promise<void> {
     if (modificato && !(await conferma('Chiudere senza salvare le modifiche al disegno?'))) return;
@@ -350,6 +370,7 @@
     if (ctrl && e.key.toLowerCase() === 'z') { e.preventDefault(); e.stopPropagation(); if (e.shiftKey) ripeti(); else annulla(); return; }
     if (ctrl && e.key.toLowerCase() === 'y') { e.preventDefault(); e.stopPropagation(); ripeti(); return; }
     if (ctrl) return;
+    if (trascina) return; // niente scorciatoie durante uno spostamento (l'oggetto trascinato sparirebbe)
     if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); elimina(); return; }
     if (e.key === 'Enter' && strumento === 'poligono') { chiudiPoligono(); return; }
     const k = e.key.toLowerCase();
@@ -516,8 +537,9 @@
             <button type="button" class="btn btn-piccolo w-full justify-center" onclick={analizza} disabled={calcolo}><Icona nome="ricarica" /> {calcolo ? 'Calcolo in corso…' : 'Riconosci i vani'}</button>
             {#if msg}<p class="text-xs">{msg}</p>{/if}
             {#if analisi}
-              <button type="button" class="btn btn-piccolo w-full justify-center" onclick={applicaPoligoni} disabled={!analisi.generati.poligoni.length}>Applica i {analisi.generati.poligoni.length} poligoni proposti</button>
-              <button type="button" class="btn btn-piccolo w-full justify-center" onclick={applicaSpessori}>Spessore ai muri sezionati ({analisi.muri.length} linee)</button>
+              <button type="button" class="btn btn-piccolo w-full justify-center" onclick={applicaPoligoni} disabled={!analisi.generati.poligoni.length || !analisiValida}>Applica i {analisi.generati.poligoni.length} poligoni proposti</button>
+              <button type="button" class="btn btn-piccolo w-full justify-center" onclick={applicaSpessori} disabled={!analisiValida}>Spessore ai muri sezionati ({analisi.muri.length} linee)</button>
+              {#if !analisiValida}<p class="text-xs text-amber-700 dark:text-amber-300">Il disegno è cambiato dopo il riconoscimento: rifai «Riconosci i vani» prima di applicare.</p>{/if}
               {#each [...analisi.generati.avvisi, ...analisi.vani.avvisi] as a, i (i)}<p class="text-xs text-amber-700 dark:text-amber-300">{a}</p>{/each}
             {/if}
             <button type="button" class="btn btn-piccolo w-full justify-center" onclick={togliSpessori}>Togli tutti gli spessori</button>

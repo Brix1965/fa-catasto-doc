@@ -4,6 +4,7 @@
  */
 import type { Entita, Punto2 } from '../raster/dxf';
 import type { Poligono } from '../model';
+import { ampiezzaArco } from '../raster/bitmap';
 
 export type P = Punto2;
 
@@ -20,11 +21,10 @@ export const distSegmento = (p: P, a: P, b: P): number => dist(p, proietta(p, a,
 
 /** Punti di un arco (gradi antiorari), per disegnarlo e selezionarlo. */
 export function puntiArco(c: P, r: number, inizio: number, fine: number, n = 24): P[] {
-  let f = fine;
-  while (f <= inizio) f += 360;
+  const a0 = Number.isFinite(inizio) ? inizio % 360 : 0, amp = ampiezzaArco(a0, fine);
   const out: P[] = [];
   for (let i = 0; i <= n; i++) {
-    const a = ((inizio + ((f - inizio) * i) / n) * Math.PI) / 180;
+    const a = ((a0 + (amp * i) / n) * Math.PI) / 180;
     out.push([c[0] + r * Math.cos(a), c[1] + r * Math.sin(a)]);
   }
   return out;
@@ -108,7 +108,8 @@ export function aggancia(p: P, punti: Aggancio[], entita: Entita[], tol: number,
   }
   let migliore: Aggancio | null = null, dm = tol;
   for (const a of punti) {
-    if (opz.escludi && a.p === opz.escludi) continue;
+    // il punto che si sta trascinando non aggancia se stesso (confronto per coordinate: l'oggetto cambia a ogni mossa)
+    if (opz.escludi && a.p[0] === opz.escludi[0] && a.p[1] === opz.escludi[1]) continue;
     const d = dist(q, a.p);
     if (d < dm) { dm = d; migliore = a; }
   }

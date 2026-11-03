@@ -66,7 +66,7 @@ describe('controlli di completezza', () => {
     expect(vuota.errori.length).toBeGreaterThan(3);
     expect(vuota.errori.some((e) => e.sezione === 'generali')).toBe(true);
     const dir = join(process.cwd(), 'fixtures-private', 'NCV002');
-    if (!existsSync(join(dir, 'NCV002.DAT'))) return;
+    if (!existsSync(join(dir, 'NCV002.DAT')) || !existsSync(join(dir, '0000007.001'))) return;
     const rd = (f: string) => new Uint8Array(readFileSync(join(dir, f)));
     const { pratica } = decompilaDocumento(rd('NCV002.DAT'), rd('NMV002.DAT'), rd('NCV002.ATT'));
     pratica.comune.nome = 'FIRENZE';

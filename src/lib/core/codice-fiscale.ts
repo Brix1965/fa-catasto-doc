@@ -34,6 +34,9 @@ export function carattereControllo(primi15: string): string {
 }
 
 export function calcolaCodiceFiscale(cognome: string, nome: string, sesso: 'M' | 'F', nascita: { gg: number; mm: number; aaaa: number }, codiceComune: string): string {
+  // senza questi controlli un mese 0 o 13 scriveva «undefined» nel codice
+  if (!(nascita.mm >= 1 && nascita.mm <= 12) || !(nascita.gg >= 1 && nascita.gg <= 31) || !(nascita.aaaa > 0)) throw new Error('Data di nascita non valida per il calcolo del codice fiscale');
+  if (!/^[A-Z]\d{3}$/i.test(codiceComune)) throw new Error('Codice del comune di nascita non valido');
   const anno = String(nascita.aaaa % 100).padStart(2, '0');
   const giorno = String(nascita.gg + (sesso === 'F' ? 40 : 0)).padStart(2, '0');
   const base = parteCognome(cognome) + parteNome(nome) + anno + MESI[nascita.mm - 1] + giorno + codiceComune.toUpperCase();
