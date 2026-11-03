@@ -48,8 +48,8 @@
 
 <div class="space-y-3">
   {#each righe as r, k (k)}
-    <div class="grid items-end gap-3 sm:grid-cols-[1fr_6rem_6rem_6rem_auto]">
-      <Campo etichetta={k === 0 ? 'Indirizzo' : `Indirizzo ${k + 1}`} obbligatorio={k === 0} aiuto={k === 0 ? (stradario ? (r.codiceStrada ? `da stradario certificato: codice ${r.codiceStrada}` : 'cerca nello stradario certificato o digita il toponimo') : 'stradario non caricato: toponimo digitato (es. "via roma")') : undefined}>
+    <div class="grid grid-cols-3 gap-3 sm:grid-cols-[minmax(0,1fr)_6rem_6rem_6rem_auto]">
+      <Campo classe="col-span-3 sm:col-span-1" etichetta={k === 0 ? 'Indirizzo' : `Indirizzo ${k + 1}`} obbligatorio={k === 0} aiuto={k === 0 ? (stradario ? (r.codiceStrada ? `da stradario certificato: codice ${r.codiceStrada}` : 'cerca nello stradario certificato o digita il toponimo') : 'stradario non caricato: toponimo digitato (es. "via roma")') : undefined}>
         {#if stradario}
           <ComboRicerca bind:valore={() => testi[k] ?? '', (v) => (testi[k] = v)} cerca={(t) => impostazioni.cercaStrade(comune, t)} formatta={(s) => s.toponimo} dettaglio={(s) => `${s.toponimoArchivio} · ${s.progressivo}`} scelto={(s) => scegli(r, s)} placeholder="via, piazza…" vuoto="Nessuna strada: si può digitare il toponimo" />
           {#if testi[k] !== undefined && testi[k] !== r.toponimo}
@@ -65,14 +65,14 @@
         </Campo>
       {/each}
       {#if k > 0}
-        <button type="button" class="btn btn-piccolo btn-pericolo mb-1" onclick={() => togli(k)} title="Togli indirizzo"><Icona nome="cestino" /></button>
+        <div class="azione-griglia col-span-3 sm:col-span-1"><button type="button" class="btn btn-pericolo justify-self-start" onclick={() => togli(k)} title="Togli indirizzo"><Icona nome="cestino" /></button></div>
       {:else}
-        <button type="button" class="btn btn-piccolo mb-1" onclick={aggiungi} disabled={righe.length >= 4} title="Aggiungi indirizzo (max 4)"><Icona nome="piu" /></button>
+        <div class="azione-griglia col-span-3 sm:col-span-1"><button type="button" class="btn justify-self-start" onclick={aggiungi} disabled={righe.length >= 4} title="Aggiungi indirizzo (max 4)"><Icona nome="piu" /></button></div>
       {/if}
     </div>
   {/each}
   {#if !soloIndirizzo}
-    <div class="grid gap-3 sm:grid-cols-7">
+    <div class="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-7">
       {#each [0, 1, 2] as k (k)}
         <Campo etichetta={k === 0 ? 'Piano' : `Piano ${k + 1}`} obbligatorio={k === 0} aiuto={k === 0 ? 'n., T, S1 o 1-3' : undefined}>
           <input type="text" class="campo uppercase" maxlength="4" value={indirizzo.piani[k] ?? ''} onchange={(e) => piano(k, e.currentTarget.value)} />

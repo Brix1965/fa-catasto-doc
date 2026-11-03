@@ -39,7 +39,8 @@
 </script>
 
 {#if tipo === 'flag'}
-  <div class="flex flex-wrap items-center gap-x-3 gap-y-1 {compatto ? '' : 'min-h-8'} {campo.accoppiato ? 'sm:col-span-2' : ''}">
+  <div class="azione-griglia {campo.accoppiato ? 'sm:col-span-2' : ''}">
+  <div class="flex flex-wrap items-center gap-x-3 gap-y-1 {compatto ? '' : 'min-h-8'}">
     <label class="inline-flex cursor-pointer items-center gap-2 text-sm">
       <input type="checkbox" class="check" checked={flag(campo.id)} onchange={(e) => { if (e.currentTarget.checked) campi[campo.id] = 1; else delete campi[campo.id]; }} />
       <span>{campo.etichetta}</span>
@@ -48,15 +49,16 @@
       <label class="flex flex-1 items-center gap-1.5 text-xs whitespace-nowrap text-fg-muted">
         <span>{campo.accoppiato.etichetta}</span>
         {#if defAcc.kind === 'N'}
-          <input type="text" inputmode="numeric" class="campo w-20 py-1 text-right" maxlength={lunghezzaCampo(defAcc)} value={leggiNumero(campo.accoppiato.id)} oninput={(e) => scriviNumero(campo.accoppiato!.id, lunghezzaCampo(defAcc!), e)} disabled={!flag(campo.id)} />
+          <input type="text" inputmode="numeric" class="campo {campo.facoltativo ? 'campo-facoltativo' : ''} w-20 py-1 text-right" maxlength={lunghezzaCampo(defAcc)} value={leggiNumero(campo.accoppiato.id)} oninput={(e) => scriviNumero(campo.accoppiato!.id, lunghezzaCampo(defAcc!), e)} disabled={!flag(campo.id)} />
         {:else}
-          <input type="text" class="campo min-w-40 flex-1 py-1" maxlength={lunghezzaCampo(defAcc)} value={leggiTesto(campo.accoppiato.id)} oninput={(e) => scriviTesto(campo.accoppiato!.id, lunghezzaCampo(defAcc!), e)} disabled={!flag(campo.id)} />
+          <input type="text" class="campo {campo.facoltativo ? 'campo-facoltativo' : ''} min-w-40 flex-1 py-1" maxlength={lunghezzaCampo(defAcc)} value={leggiTesto(campo.accoppiato.id)} oninput={(e) => scriviTesto(campo.accoppiato!.id, lunghezzaCampo(defAcc!), e)} disabled={!flag(campo.id)} />
         {/if}
       </label>
     {/if}
   </div>
+  </div>
 {:else if tipo === 'opzioni'}
-  <div>
+  <div class="campo-griglia min-w-0">
     <span class="etichetta">{campo.etichetta}</span>
     <div class="flex flex-wrap gap-x-4 gap-y-1">
       {#each campo.opzioni ?? [] as o (o.valore)}
@@ -69,20 +71,18 @@
   </div>
 {:else if tipo === 'numero' && campo.id === 'anno_costruzione'}
   {@const ante = leggiNumero(campo.id) !== '' && (leggiNumero(campo.id) as number) < 1942}
-  <div>
-    <label class="mb-1 flex items-center gap-2 text-sm"><input type="checkbox" class="check" checked={ante} onchange={(e) => { if (e.currentTarget.checked) campi[campo.id] = 1900; else delete campi[campo.id]; }} /> Anteriore al 1942</label>
-    <label class="block">
-      <span class="etichetta">{campo.etichetta}</span>
-      <input type="text" inputmode="numeric" class="campo text-right" maxlength={len} value={ante ? '' : leggiNumero(campo.id)} disabled={ante} onchange={(e) => scriviNumero(campo.id, len, e)} title="dal 1942 in poi; prima, spuntare «Anteriore al 1942». Il valore vale quando si esce dal campo" />
-    </label>
+  <div class="campo-griglia min-w-0">
+    <label class="etichetta" for={`anno-${rec}`}>{campo.etichetta}</label>
+    <input id={`anno-${rec}`} type="text" inputmode="numeric" class="campo {campo.facoltativo ? 'campo-facoltativo' : ''} text-right" maxlength={len} value={ante ? '' : leggiNumero(campo.id)} disabled={ante} onchange={(e) => scriviNumero(campo.id, len, e)} title="dal 1942 in poi; prima, spuntare «Anteriore al 1942». Il valore vale quando si esce dal campo" />
+    <label class="flex items-center gap-2 text-sm"><input type="checkbox" class="check" checked={ante} onchange={(e) => { if (e.currentTarget.checked) campi[campo.id] = 1900; else delete campi[campo.id]; }} /> Anteriore al 1942</label>
   </div>
 {:else if tipo === 'numero'}
-  <label class="block">
+  <label class="campo-griglia min-w-0">
     <span class="etichetta">{campo.etichetta}{campo.suffisso ? ` (${campo.suffisso})` : ''}</span>
-    <input type="text" inputmode="numeric" class="campo text-right" maxlength={len} value={leggiNumero(campo.id)} oninput={(e) => scriviNumero(campo.id, len, e)} title={`massimo ${len} cifre`} />
+    <input type="text" inputmode="numeric" class="campo {campo.facoltativo ? 'campo-facoltativo' : ''} text-right" maxlength={len} value={leggiNumero(campo.id)} oninput={(e) => scriviNumero(campo.id, len, e)} title={`massimo ${len} cifre`} />
   </label>
 {:else}
-  <label class="block">
+  <label class="campo-griglia min-w-0">
     <span class="etichetta">{campo.etichetta}</span>
     <input type="text" class="campo" maxlength={len} value={leggiTesto(campo.id)} oninput={(e) => scriviTesto(campo.id, len, e)} title={`massimo ${len} caratteri`} />
   </label>

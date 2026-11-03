@@ -45,38 +45,38 @@
 </script>
 
 <div class="space-y-5">
-  <Sezione titolo="Quadro B – Denuncia di variazione" descrizione="Dati generali della variazione dello stato degli immobili.">
-    {#if pratica.tipoMappale && pratica.dichiarate && pratica.derivate}
-      {@const tm = pratica.tipoMappale}
-      {@const d = pratica.dichiarate}
-      {@const der = pratica.derivate}
-      <div class="grid gap-6 xl:grid-cols-3">
-        <div>
-          <h3 class="mb-2 text-xs font-semibold text-fg-muted">Tipo mappale</h3>
-          <div class="grid grid-cols-2 gap-3">
-            <Campo etichetta="Protocollo n." aiuto="facoltativo"><input type="text" inputmode="numeric" class="campo" maxlength="8" value={tm.numero || ''} oninput={(e) => (tm.numero = Number(e.currentTarget.value.replace(/\D/g, '')))} /></Campo>
-            <Campo etichetta="del"><CampoData bind:valore={tm.data} /></Campo>
-          </div>
+  <header>
+    <h2 class="text-sm font-semibold uppercase tracking-wide text-fg">Quadro B – Denuncia di variazione</h2>
+    <p class="mt-0.5 text-xs text-fg-muted">Dati generali della variazione dello stato degli immobili.</p>
+  </header>
+
+  {#if pratica.tipoMappale && pratica.dichiarate && pratica.derivate}
+    {@const tm = pratica.tipoMappale}
+    {@const d = pratica.dichiarate}
+    {@const der = pratica.derivate}
+    <div class="grid gap-5 xl:grid-cols-3">
+      <Sezione titolo="Tipo mappale e protocollo" descrizione="Facoltativo: estremi del tipo mappale approvato.">
+        <div class="grid grid-cols-2 gap-3">
+          <Campo etichetta="Protocollo n."><input type="text" inputmode="numeric" class="campo" maxlength="8" value={tm.numero || ''} oninput={(e) => (tm.numero = Number(e.currentTarget.value.replace(/\D/g, '')))} /></Campo>
+          <Campo etichetta="del"><CampoData bind:valore={tm.data} /></Campo>
         </div>
-        <div>
-          <h3 class="mb-2 text-xs font-semibold text-fg-muted obbligatorio">Unità immobiliari</h3>
-          <div class="grid grid-cols-3 gap-3">
-            <Campo etichetta="In soppressione"><input type="number" class="campo" min="0" value={d.soppresse} oninput={(e) => (d.soppresse = n(e.currentTarget.value))} /></Campo>
-            <Campo etichetta="In variazione"><input type="number" class="campo" min="0" value={d.variate} oninput={(e) => (d.variate = n(e.currentTarget.value))} /></Campo>
-            <Campo etichetta="In costituzione"><input type="number" class="campo" min="0" value={d.costituite} oninput={(e) => (d.costituite = n(e.currentTarget.value))} /></Campo>
-          </div>
+      </Sezione>
+      <Sezione titolo="Unità immobiliari" descrizione="Numero delle unità dichiarate.">
+        <div class="grid grid-cols-3 gap-3">
+          <Campo etichetta="In soppressione" obbligatorio><input type="number" class="campo" min="0" value={d.soppresse} oninput={(e) => (d.soppresse = n(e.currentTarget.value))} /></Campo>
+          <Campo etichetta="In variazione" obbligatorio><input type="number" class="campo" min="0" value={d.variate} oninput={(e) => (d.variate = n(e.currentTarget.value))} /></Campo>
+          <Campo etichetta="In costituzione" obbligatorio><input type="number" class="campo" min="0" value={d.costituite} oninput={(e) => (d.costituite = n(e.currentTarget.value))} /></Campo>
         </div>
-        <div>
-          <h3 class="mb-2 text-xs font-semibold text-fg-muted obbligatorio">Unità derivate</h3>
-          <div class="grid grid-cols-3 gap-3">
-            <Campo etichetta="Ordinarie" aiuto="A, B, C"><input type="number" class="campo" min="0" value={der.ordinarie} oninput={(e) => (der.ordinarie = n(e.currentTarget.value))} /></Campo>
-            <Campo etichetta="Speciali" aiuto="D, E e F"><input type="number" class="campo" min="0" value={der.speciali} oninput={(e) => (der.speciali = n(e.currentTarget.value))} /></Campo>
-            <Campo etichetta="B.c.n.c." aiuto="partita A"><input type="number" class="campo" min="0" value={der.bcnc} oninput={(e) => (der.bcnc = n(e.currentTarget.value))} /></Campo>
-          </div>
+      </Sezione>
+      <Sezione titolo="Unità derivate" descrizione="Unità che risultano dopo la variazione.">
+        <div class="grid grid-cols-3 gap-3">
+          <Campo etichetta="Ordinarie" aiuto="A, B, C" obbligatorio><input type="number" class="campo" min="0" value={der.ordinarie} oninput={(e) => (der.ordinarie = n(e.currentTarget.value))} /></Campo>
+          <Campo etichetta="Speciali" aiuto="D, E e F" obbligatorio><input type="number" class="campo" min="0" value={der.speciali} oninput={(e) => (der.speciali = n(e.currentTarget.value))} /></Campo>
+          <Campo etichetta="B.c.n.c." aiuto="partita A" obbligatorio><input type="number" class="campo" min="0" value={der.bcnc} oninput={(e) => (der.bcnc = n(e.currentTarget.value))} /></Campo>
         </div>
-      </div>
-    {/if}
-  </Sezione>
+      </Sezione>
+    </div>
+  {/if}
 
   <Sezione titolo="Causale di presentazione">
     <div class="flex flex-wrap gap-6">
@@ -85,8 +85,8 @@
     </div>
 
     {#if pratica.presentazione !== 'afferenti'}
-      <div class="mt-4 grid gap-6 xl:grid-cols-[18rem_1fr]">
-        <Campo etichetta="Data di realizzazione della variazione" obbligatorio={!senzaData} aiuto={senzaData ? 'per VTO e VRP la data va omessa' : 'data di ultimazione dei lavori'}>
+      <div class="mt-4 grid gap-6 xl:grid-cols-[18rem_minmax(0,1fr)]">
+        <Campo classe="self-start sm:max-w-72" etichetta="Data di realizzazione della variazione" obbligatorio={!senzaData} aiuto={senzaData ? 'per VTO e VRP la data va omessa' : 'data di ultimazione dei lavori'}>
           <CampoData bind:valore={pratica.dataVariazione} disabilitato={senzaData} />
         </Campo>
         <div class="space-y-2.5">
@@ -111,13 +111,13 @@
           {/each}
           <div class="flex flex-wrap items-center gap-2 text-sm {incompatibile('VDE') ? 'opacity-50' : ''}">
             <label class="flex items-center gap-2"><input type="checkbox" class="check" checked={!!pratica.tipiVariazione.VDE} disabled={incompatibile('VDE')} onchange={(e) => barra('VDE', e.currentTarget.checked)} /> <span><strong>4</strong> di Destinazione da</span></label>
-            <input type="text" class="campo w-56" maxlength="35" disabled={!pratica.tipiVariazione.VDE} value={pratica.variazioneDa ?? ''} oninput={(e) => (pratica.variazioneDa = e.currentTarget.value.toUpperCase() || undefined)} />
+            <input type="text" class="campo w-full sm:w-56" maxlength="35" disabled={!pratica.tipiVariazione.VDE} value={pratica.variazioneDa ?? ''} oninput={(e) => (pratica.variazioneDa = e.currentTarget.value.toUpperCase() || undefined)} />
             <span>a</span>
-            <input type="text" class="campo w-56" maxlength="35" disabled={!pratica.tipiVariazione.VDE} value={pratica.variazioneA ?? ''} oninput={(e) => (pratica.variazioneA = e.currentTarget.value.toUpperCase() || undefined)} />
+            <input type="text" class="campo w-full sm:w-56" maxlength="35" disabled={!pratica.tipiVariazione.VDE} value={pratica.variazioneA ?? ''} oninput={(e) => (pratica.variazioneA = e.currentTarget.value.toUpperCase() || undefined)} />
           </div>
           <div class="flex flex-wrap items-center gap-2 text-sm {incompatibile('VAR') ? 'opacity-50' : ''}">
             <label class="flex items-center gap-2"><input type="checkbox" class="check" checked={!!pratica.tipiVariazione.VAR} disabled={incompatibile('VAR')} onchange={(e) => barra('VAR', e.currentTarget.checked)} /> <span><strong>5</strong> Altre</span></label>
-            <input type="text" class="campo w-80" maxlength="35" disabled={!pratica.tipiVariazione.VAR} value={pratica.altreVariazioni ?? ''} oninput={(e) => (pratica.altreVariazioni = e.currentTarget.value.toUpperCase() || undefined)} placeholder="motivazione della variazione" list="diciture-altre" />
+            <input type="text" class="campo w-full sm:w-80" maxlength="35" disabled={!pratica.tipiVariazione.VAR} value={pratica.altreVariazioni ?? ''} oninput={(e) => (pratica.altreVariazioni = e.currentTarget.value.toUpperCase() || undefined)} placeholder="motivazione della variazione" list="diciture-altre" />
             <datalist id="diciture-altre">{#each DICITURE_ALTRE_VARIAZIONI as d (d)}<option value={d}></option>{/each}</datalist>
           </div>
           {#each [['VRP', 'per Presentazione planimetria mancante'], ['VMI', "per Modifica d'identificativo"], ['RUR', 'Richiesta ruralità']] as [c, et], k (c)}
@@ -136,7 +136,7 @@
         <label class="flex items-center gap-2 text-sm"><input type="checkbox" class="check" bind:checked={a.lastricoSolare} /> Edificate su lastrico solare</label>
         <div class="flex flex-wrap items-center gap-2 text-sm">
           <label class="flex items-center gap-2"><input type="checkbox" class="check" bind:checked={a.altro} /> Altro tipo di edificazione</label>
-          <input type="text" class="campo w-80" maxlength="35" disabled={!a.altro} value={a.descrizione ?? ''} oninput={(e) => (a.descrizione = e.currentTarget.value.toUpperCase() || undefined)} />
+          <input type="text" class="campo w-full sm:w-80" maxlength="35" disabled={!a.altro} value={a.descrizione ?? ''} oninput={(e) => (a.descrizione = e.currentTarget.value.toUpperCase() || undefined)} />
         </div>
       </div>
     {/if}
@@ -151,7 +151,7 @@
     </div>
   </Sezione>
 
-  <div class="grid gap-5 md:grid-cols-3">
+  <div class="grid gap-5 xl:grid-cols-3">
     <Sezione titolo="Preallineamento" descrizione="Documenti pregressi acquisiti.">
       <div class="grid grid-cols-3 gap-2 text-xs">
         {#each ['Volture', 'Variazioni', 'Accatastamenti', 'Afferenti con intestati', 'Unità afferenti'] as et (et)}<Campo etichetta={et}><input class="campo" value="0" disabled /></Campo>{/each}

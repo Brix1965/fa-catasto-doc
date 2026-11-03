@@ -104,11 +104,11 @@
   const archivio = $derived(impostazioni.dati.archivi.provinciali.find((a) => a.provincia === pratica.comune.provincia)?.provincia ?? '—');
 </script>
 
-<div class="grid gap-5 lg:grid-cols-[17rem_1fr]">
-  <aside class="scheda self-start p-3 lg:sticky lg:top-4">
-    <div class="mb-2 flex items-center justify-between">
-      <h2 class="text-xs font-semibold uppercase tracking-wide text-fg-muted">U.I.U. ({pratica.unita.length})</h2>
-      <button type="button" class="btn btn-piccolo btn-primario" onclick={aggiungi}><Icona nome="piu" /> Nuova U.I.U.</button>
+<div class="grid gap-5 xl:grid-cols-[17rem_minmax(0,1fr)]">
+  <aside class="scheda self-start p-3 xl:sticky xl:top-4">
+    <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+      <h2 class="text-xs font-semibold uppercase tracking-wide whitespace-nowrap text-fg-muted">U.I.U. ({pratica.unita.length})</h2>
+      <button type="button" class="btn btn-piccolo btn-primario" onclick={aggiungi}><Icona nome="piu" /> <span class="whitespace-nowrap">Nuova U.I.U.</span></button>
     </div>
     <ul class="space-y-1">
       {#each pratica.unita as u, i (i)}
@@ -126,12 +126,12 @@
 
   {#if unita}
     {@const i = selezionata}
-    <div class="space-y-5">
+    <div class="min-w-0 space-y-5">
       <Sezione titolo={`Quadro U – U.I.U. n. ${i + 1}`} descrizione={`Comune di ${pratica.comune.nome || '—'} · archivio di ${archivio}`}>
         {#snippet azioni()}
           <button type="button" class="btn btn-piccolo btn-pericolo" onclick={() => elimina(i)}><Icona nome="cestino" /> Elimina U.I.U.</button>
         {/snippet}
-        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div class="grid gap-4 sm:grid-cols-2">
           <Campo etichetta="Tipo operazione" obbligatorio>
             <select class="campo" value={opTesto(unita)} onchange={(e) => operazione(unita, e.currentTarget.value)}>
               {#if acc}
@@ -159,13 +159,13 @@
         </div>
 
         <h3 class="mt-5 mb-2 text-xs font-semibold text-fg-muted">Identificativi catastali</h3>
-        <div class="grid items-end gap-2 sm:grid-cols-[5rem_6rem_7rem_6rem_6rem_auto]">
+        <div class="grid grid-cols-3 gap-2 sm:grid-cols-[repeat(5,minmax(0,1fr))_auto]">
           <Campo etichetta="Sezione"><input type="text" class="campo uppercase" maxlength="3" bind:value={nuovoId.sezione} /></Campo>
           <Campo etichetta="Foglio" obbligatorio><input type="text" class="campo uppercase" maxlength="4" bind:value={nuovoId.foglio} /></Campo>
           <Campo etichetta="Numero" obbligatorio><input type="text" class="campo uppercase" maxlength="5" bind:value={nuovoId.numero} /></Campo>
           <Campo etichetta="Denom."><input type="text" class="campo" maxlength="4" bind:value={nuovoId.denominatore} /></Campo>
           <Campo etichetta="Sub."><input type="text" class="campo uppercase" maxlength="4" bind:value={nuovoId.subalterno} onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); inserisciId(unita); } }} /></Campo>
-          <button type="button" class="btn mb-0.5" onclick={() => inserisciId(unita)} disabled={!nuovoId.foglio || !nuovoId.numero}><Icona nome={rigaId >= 0 ? 'spunta' : 'piu'} /> {rigaId >= 0 ? 'Modifica' : principaleDaCompletare(unita, nuovoId) ? 'Inserisci (principale)' : 'Inserisci (graffato)'}</button>
+          <div class="azione-griglia col-span-3 sm:col-span-1"><button type="button" class="btn justify-self-start whitespace-nowrap" onclick={() => inserisciId(unita)} disabled={!nuovoId.foglio || !nuovoId.numero}><Icona nome={rigaId >= 0 ? 'spunta' : 'piu'} /> {rigaId >= 0 ? 'Modifica' : principaleDaCompletare(unita, nuovoId) ? 'Inserisci (principale)' : 'Inserisci (graffato)'}</button></div>
         </div>
         <table class="mt-2 w-full text-sm">
           <thead><tr class="text-left text-xs text-fg-muted"><th class="py-1 font-medium">#</th><th class="font-medium">Sez.</th><th class="font-medium">Foglio</th><th class="font-medium">Numero</th><th class="font-medium">Denom.</th><th class="font-medium">Sub.</th><th></th></tr></thead>
@@ -186,7 +186,7 @@
         {#if unita.operazione !== 'S' && unita.partitaSpeciale !== 'A' && !(pratica.tipiVariazione.VTO || pratica.tipiVariazione.VSI)}
           <details class="mt-5" open={!!unita.utilitaComuni?.length}>
             <summary class="cursor-pointer text-xs font-semibold text-fg-muted">Associa beni comuni censibili ({unita.utilitaComuni?.length ?? 0}/10)</summary>
-            <div class="mt-2 grid items-end gap-2 sm:grid-cols-[6rem_5rem_6rem_7rem_6rem_auto]">
+            <div class="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-[repeat(5,minmax(0,1fr))_auto]">
               <Campo etichetta="Operazione" obbligatorio>
                 <select class="campo" bind:value={nuovaUc.operazione}><option value="I">I – Iscrizione</option>{#if !acc && unita.operazione === 'V'}<option value="A">A – Annullamento</option>{/if}</select>
               </Campo>
@@ -194,7 +194,7 @@
               <Campo etichetta="Foglio" obbligatorio><input type="text" class="campo" maxlength="4" bind:value={nuovaUc.identificativo.foglio} /></Campo>
               <Campo etichetta="Numero" obbligatorio><input type="text" class="campo" maxlength="5" bind:value={nuovaUc.identificativo.numero} /></Campo>
               <Campo etichetta="Sub."><input type="text" class="campo" maxlength="4" bind:value={nuovaUc.identificativo.subalterno} /></Campo>
-              <button type="button" class="btn mb-0.5" onclick={() => inserisciUc(unita)} disabled={(unita.utilitaComuni?.length ?? 0) >= 10}><Icona nome="piu" /> Inserisci</button>
+              <div class="azione-griglia col-span-3 sm:col-span-1"><button type="button" class="btn justify-self-start" onclick={() => inserisciUc(unita)} disabled={(unita.utilitaComuni?.length ?? 0) >= 10}><Icona nome="piu" /> Inserisci</button></div>
             </div>
             {#if unita.utilitaComuni?.length}
               <ul class="mt-2 divide-y divide-line text-sm">

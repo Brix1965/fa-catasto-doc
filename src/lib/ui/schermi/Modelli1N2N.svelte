@@ -29,6 +29,11 @@
 
   const ordinarie = $derived(pratica.unita.map((u, i) => ({ u, i })).filter(({ u }) => u.operazione !== 'S' && /^[ABC]/.test(u.classamento?.categoria ?? '') && u.partitaSpeciale !== 'A'));
   const speciali = $derived(pratica.unita.map((u, i) => ({ u, i })).filter(({ u }) => u.operazione !== 'S' && /^[DE]/.test(u.classamento?.categoria ?? '')));
+  // riga scelta nei riquadri 1N parte II e 2N: il pulsante «Compila» in alto lavora su questa (di norma la prima)
+  let scelta1NII = $state<number | null>(null);
+  let scelta2N = $state<number | null>(null);
+  const corrente1NII = $derived(ordinarie.find(({ i }) => i === scelta1NII)?.i ?? ordinarie[0]?.i ?? null);
+  const corrente2N = $derived(speciali.find(({ i }) => i === scelta2N)?.i ?? speciali[0]?.i ?? null);
 
   function compila1NI(): void {
     if (!pratica.mod1NParteI) {
@@ -116,15 +121,17 @@
 
     <Sezione titolo="1N parte II" descrizione="Per ogni unità a destinazione ordinaria: dati obbligatori per il classamento e altri dati.">
       {#snippet azioni()}
+        <button type="button" class="btn btn-piccolo btn-primario" disabled={corrente1NII === null} onclick={() => corrente1NII !== null && compila1NII(corrente1NII)} title={corrente1NII === null ? 'Nessuna unità a destinazione ordinaria' : `Compila il modello di ${descriviUnita(pratica.unita[corrente1NII], corrente1NII)}`}><Icona nome="modifica" /> Compila</button>
         <button type="button" class="btn btn-piccolo" disabled={copia === null || !destinazioni.size} onclick={incolla}><Icona nome="copia" /> Incolla</button>
       {/snippet}
       {#if esitoCopia}<p class="mb-2 text-xs text-amber-700 dark:text-amber-400">{esitoCopia}</p>{/if}
       {#if copia !== null}<p class="mb-2 text-xs text-fg-muted">Copia da {descriviUnita(pratica.unita[copia], copia)}: seleziona le unità e premi Incolla (le superfici lorde non si copiano).</p>{/if}
+      <div class="overflow-x-auto">
       <table class="w-full text-sm">
         <thead><tr class="text-left text-xs text-fg-muted"><th class="w-6"></th><th class="py-1 font-medium">U.I.U.</th><th class="font-medium">Cat.</th><th class="font-medium">Dati obbligatori</th><th class="font-medium">Altri dati</th><th></th></tr></thead>
         <tbody>
           {#each ordinarie as { u, i } (i)}
-            <tr class="border-t border-line">
+            <tr class="cursor-pointer border-t border-line {corrente1NII === i ? 'bg-accent-50 dark:bg-accent-950' : 'hover:bg-surface-2'}" onclick={() => (scelta1NII = i)} ondblclick={() => compila1NII(i)}>
               <td>{#if copia !== null && copia !== i}<input type="checkbox" class="check" checked={destinazioni.has(i)} onchange={(e) => { const s = new Set(destinazioni); if (e.currentTarget.checked) s.add(i); else s.delete(i); destinazioni = s; }} aria-label="Incolla su questa unità" />{/if}</td>
               <td class="py-1.5">{i + 1}. {u.identificativo.foglio}/{u.identificativo.numero}{u.identificativo.subalterno ? `/${u.identificativo.subalterno}` : ''}</td>
               <td>{u.classamento?.categoria}</td>
@@ -140,14 +147,19 @@
           {#if !ordinarie.length}<tr><td colspan="6" class="py-3 text-xs text-fg-faint">Nessuna unità a destinazione ordinaria (categorie A, B, C).</td></tr>{/if}
         </tbody>
       </table>
+      </div>
     </Sezione>
 
     <Sezione titolo="2N parte I e II" descrizione="Per ogni unità a destinazione speciale o particolare (categorie D ed E) e i suoi corpi di fabbrica.">
+      {#snippet azioni()}
+        <button type="button" class="btn btn-piccolo btn-primario" disabled={corrente2N === null} onclick={() => corrente2N !== null && compila2N(corrente2N)} title={corrente2N === null ? 'Nessuna unità a destinazione speciale o particolare' : `Compila il modello di ${descriviUnita(pratica.unita[corrente2N], corrente2N)}`}><Icona nome="modifica" /> Compila</button>
+      {/snippet}
+      <div class="overflow-x-auto">
       <table class="w-full text-sm">
         <thead><tr class="text-left text-xs text-fg-muted"><th class="py-1 font-medium">U.I.U.</th><th class="font-medium">Cat.</th><th class="font-medium">2N I</th><th class="font-medium">2N II (corpi)</th><th></th></tr></thead>
         <tbody>
           {#each speciali as { u, i } (i)}
-            <tr class="border-t border-line">
+            <tr class="cursor-pointer border-t border-line {corrente2N === i ? 'bg-accent-50 dark:bg-accent-950' : 'hover:bg-surface-2'}" onclick={() => (scelta2N = i)} ondblclick={() => compila2N(i)}>
               <td class="py-1.5">{i + 1}. {u.identificativo.foglio}/{u.identificativo.numero}{u.identificativo.subalterno ? `/${u.identificativo.subalterno}` : ''}</td>
               <td>{u.classamento?.categoria}</td>
               <td>{u.mod2N ? 'SI' : ''}</td>
@@ -161,6 +173,7 @@
           {#if !speciali.length}<tr><td colspan="5" class="py-3 text-xs text-fg-faint">Nessuna unità a destinazione speciale o particolare.</td></tr>{/if}
         </tbody>
       </table>
+      </div>
     </Sezione>
   </div>
 {/if}

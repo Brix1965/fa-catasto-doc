@@ -46,7 +46,7 @@
 <div class="space-y-5">
   {#if acc}
     <Sezione titolo="Quadro D – Beni comuni non censibili" descrizione="Fino a 20 beni comuni non censibili, con identificativo e fino a 3 piani. La descrizione va nell'elenco subalterni.">
-      <div class="grid items-end gap-2 sm:grid-cols-[5rem_6rem_7rem_6rem_6rem_5rem_5rem_5rem_auto]">
+      <div class="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-[repeat(8,minmax(0,1fr))_auto]">
         <Campo etichetta="Sezione"><input type="text" class="campo uppercase" maxlength="3" bind:value={bc.identificativo.sezione} /></Campo>
         <Campo etichetta="Foglio" obbligatorio><input type="text" class="campo" maxlength="4" bind:value={bc.identificativo.foglio} /></Campo>
         <Campo etichetta="Numero" obbligatorio><input type="text" class="campo" maxlength="5" bind:value={bc.identificativo.numero} /></Campo>
@@ -55,7 +55,7 @@
         {#each [0, 1, 2] as k (k)}
           <Campo etichetta={k === 0 ? 'Piano' : `Piano ${k + 1}`}><input type="text" class="campo uppercase" maxlength="4" value={bc.piani[k] ?? ''} oninput={(e) => (bc.piani[k] = e.currentTarget.value.toUpperCase())} class:campo-errore={!!bc.piani[k] && !pianoValido(bc.piani[k])} /></Campo>
         {/each}
-        <button type="button" class="btn mb-0.5" onclick={inserisciBc} disabled={(pratica.bcnc?.length ?? 0) >= 20 && rigaBc < 0}><Icona nome={rigaBc >= 0 ? 'spunta' : 'piu'} /> {rigaBc >= 0 ? 'Modifica' : 'Inserisci'}</button>
+        <div class="azione-griglia col-span-2 sm:col-span-4 lg:col-span-1"><button type="button" class="btn justify-self-start" onclick={inserisciBc} disabled={(pratica.bcnc?.length ?? 0) >= 20 && rigaBc < 0}><Icona nome={rigaBc >= 0 ? 'spunta' : 'piu'} /> {rigaBc >= 0 ? 'Modifica' : 'Inserisci'}</button></div>
       </div>
       {#if pratica.bcnc?.length}
         <table class="mt-3 w-full text-sm">

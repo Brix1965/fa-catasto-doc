@@ -29,13 +29,14 @@
   }
 </script>
 
-<div class="grid grid-cols-[5rem_1fr] gap-2">
-  <label class="block">
+<!-- due campi che, in una griglia di campi, si allineano con gli altri (vedi .campo-griglia) -->
+<div class="campo-griglia grid-cols-[5rem_minmax(0,1fr)] gap-x-2">
+  <label class="campo-griglia min-w-0">
     <span class="etichetta {obbligatorio ? 'obbligatorio' : ''}">Prov.</span>
     <input type="text" class="campo uppercase" maxlength="2" list="sigle-province" value={provincia ?? ''} oninput={(e) => cambiaProvincia(e.currentTarget.value)} placeholder="FI" class:campo-errore={!!sigla && !provinciaNota} />
     <datalist id="sigle-province">{#each impostazioni.province as p (p)}<option value={p}></option>{/each}<option value="EE">Stato estero</option></datalist>
   </label>
-  <label class="block">
+  <label class="campo-griglia min-w-0">
     <span class="etichetta {obbligatorio ? 'obbligatorio' : ''}">{etichettaComune}</span>
     {#if sigla === 'EE'}
       <input type="text" class="campo uppercase" maxlength="25" value={comune ?? ''} oninput={(e) => cambiaComune(e.currentTarget.value.toUpperCase())} placeholder="Stato estero" />

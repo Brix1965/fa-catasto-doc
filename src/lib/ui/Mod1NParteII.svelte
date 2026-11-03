@@ -117,17 +117,17 @@
     <div class="space-y-4">
       {#each [['principali', '1) Locali principali'], ['accessoriDiretti', '2) Accessori diretti'], ['accessoriIndiretti', '3) Accessori indiretti']] as [k, et] (k)}
         {@const lista = c[k as 'principali' | 'accessoriDiretti' | 'accessoriIndiretti']}
-        <div>
+        <div class={k === 'principali' ? 'gruppo-obbligatorio' : ''}>
           <div class="mb-1 flex items-center justify-between">
             <span class="text-xs font-semibold {k === 'principali' ? 'obbligatorio' : 'text-fg-muted'}">{et}</span>
             <button type="button" class="btn btn-piccolo btn-ghost" disabled={lista.length >= 2} onclick={() => aggiungiLocale(lista)}><Icona nome="piu" /> Piano (max 2)</button>
           </div>
           {#each lista as l, i (i)}
-            <div class="mb-2 grid grid-cols-[6rem_1fr_1fr_auto] items-end gap-2">
+            <div class="mb-2 grid grid-cols-[5rem_minmax(0,1fr)_minmax(0,1fr)_auto] gap-2">
               <Campo etichetta="Piano"><input type="text" class="campo uppercase" maxlength="3" bind:value={l.piano} /></Campo>
               <Campo etichetta="Sup. lorda (mq)" aiuto={auto && i === 0 ? 'dai poligoni' : undefined}><input type="number" class="campo" min="0" max="99999" bind:value={() => l.lorda, (v) => (l.lorda = numeroCampo(v))} disabled={auto && i === 0} /></Campo>
               <Campo etichetta="Sup. utile (mq)"><input type="number" class="campo" min="0" max="99999" bind:value={() => l.utile, (v) => (l.utile = numeroCampo(v))} /></Campo>
-              <button type="button" class="btn btn-piccolo btn-pericolo mb-0.5" onclick={() => lista.splice(i, 1)} title="Elimina"><Icona nome="cestino" /></button>
+              <div class="azione-griglia"><button type="button" class="btn btn-pericolo" onclick={() => lista.splice(i, 1)} title="Elimina"><Icona nome="cestino" /></button></div>
             </div>
           {/each}
         </div>

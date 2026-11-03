@@ -237,7 +237,7 @@
       <button type="button" class="btn btn-piccolo btn-pericolo" onclick={rimuoviScheda}><Icona nome="cestino" /> Rimuovi scheda {schedaCorrente + 1}</button>
     {/if}
   </div>
-  <div class="mb-4 grid gap-4 sm:grid-cols-3 xl:grid-cols-6">
+  <div class="mb-4 grid gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
     <Campo etichetta="Immagine" aiuto="numero unico tra le pratiche; modificabile se coincide con un'immagine già presente in Docfa">
       <div class="flex items-center gap-1 font-mono">
         <input type="text" inputmode="numeric" class="campo w-28 font-mono" maxlength="7" value={String(pl.progressivo).padStart(7, '0')} onchange={(e) => { const n = Number(e.currentTarget.value.replace(/\D/g, '')); if (n > 0 && n <= 9999999) pl.progressivo = n; e.currentTarget.value = String(pl.progressivo).padStart(7, '0'); }} />
@@ -251,7 +251,7 @@
       <select class="campo" bind:value={sc.scala}><option value={100}>1:100</option><option value={200}>1:200</option><option value={500}>1:500</option></select>
     </Campo>
   </div>
-  <div class="grid gap-5 xl:grid-cols-[1fr_26rem]">
+  <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_26rem]">
     <div class="space-y-4">
 
       <div class="flex flex-wrap items-center gap-2">
@@ -294,7 +294,7 @@
                       {#each Object.entries(NOMI_TIPO) as [v, et] (v)}<option value={v}>{et}</option>{/each}
                     </select>
                   </td>
-                  <td class="py-1 text-right tabular-nums">{area(p).toFixed(2).replace('.', ',')} m²</td>
+                  <td class="py-1 text-right tabular-nums whitespace-nowrap">{area(p).toFixed(2).replace('.', ',')} m²</td>
                   <td class="py-1 text-right">
                     {#if haAltezza(p.tipo)}
                       <input type="checkbox" class="check" checked={!p.altezzaValida} onchange={(e) => (p.altezzaValida = !e.currentTarget.checked)} title="Spunta se l'ambiente ha altezza inferiore a 1,50 m (non computato)" />
@@ -305,7 +305,7 @@
                 </tr>
               {/each}
               {#each poligoniNtf as p, i (i)}
-                <tr class="border-t border-line"><td class="py-1 text-fg-faint">{i + 1}</td><td class="py-1">{p.tipo}</td><td class="py-1 text-right">{p.area.toFixed(2)} m²</td><td class="py-1 text-right">{p.altezza === '000' ? '—' : `${(Number(p.altezza) / 100).toFixed(2).replace('.', ',')} m`}</td><td class="py-1 text-right text-fg-faint">NTF</td></tr>
+                <tr class="border-t border-line"><td class="py-1 text-fg-faint">{i + 1}</td><td class="py-1">{p.tipo}</td><td class="py-1 text-right whitespace-nowrap">{p.area.toFixed(2)} m²</td><td class="py-1 text-right">{p.altezza === '000' ? '—' : `${(Number(p.altezza) / 100).toFixed(2).replace('.', ',')} m`}</td><td class="py-1 text-right text-fg-faint">NTF</td></tr>
               {/each}
             </tbody>
           </table>
