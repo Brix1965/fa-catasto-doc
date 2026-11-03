@@ -55,9 +55,9 @@
     </div>
   {/if}
   {#each s.gruppi as g, gi (gi)}
-    <div>
+    <div class={g.obbligatorio ? 'gruppo-obbligatorio' : ''}>
       {#if g.titolo}<h4 class="mb-2 text-xs font-semibold {g.obbligatorio ? 'obbligatorio' : 'text-fg-muted'}">{g.titolo}</h4>{/if}
-      <div class={g.disposizione === 'riga' ? 'flex flex-wrap gap-3 [&>*]:w-36' : 'grid gap-x-6 gap-y-2 sm:grid-cols-2 xl:grid-cols-3'}>
+      <div class={g.disposizione === 'riga' ? 'grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(9rem,1fr))]' : 'grid gap-x-6 gap-y-2 sm:grid-cols-2 xl:grid-cols-3'}>
         {#each g.campi as c (c.id)}
           {#if s.rec === 'B'}
             <CampoRecord rec="B" campo={c} bind:campi={m.recordB} />

@@ -80,14 +80,32 @@
       disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-primario { @apply border-accent-600 bg-accent-600 text-white hover:bg-accent-700 hover:border-accent-700; }
+  /* un pulsante principale disattivato è grigio, non verde sbiadito */
+  .btn-primario:disabled { @apply border-line-strong bg-surface-2 text-fg-faint opacity-100 hover:bg-surface-2; }
   .btn-pericolo { @apply hover:border-red-400 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950/40 dark:hover:text-red-300; }
   .btn-piccolo { @apply px-2 py-1 text-xs; }
   .btn-ghost { @apply border-transparent bg-transparent shadow-none; }
   .scheda { @apply rounded-lg border border-line bg-surface shadow-xs; }
-  .etichetta { @apply mb-1 block text-xs font-medium text-fg-muted; }
-  /* campi obbligatori: fucsia, come nei modelli di Docfa */
+  .etichetta { @apply mb-1 block text-xs font-medium text-fg-muted [overflow-wrap:anywhere] hyphens-auto; }
+  /* campi obbligatori: etichetta fucsia, come nei modelli di Docfa, e sfondo verde nel tono del logo */
   .obbligatorio { @apply text-fuchsia-700 dark:text-fuchsia-300; }
-  .obbligatorio::after { content: ' *'; }
+  .obbligatorio::after { content: '\00a0*'; }
+  :is(label, .campo-griglia):has(> .obbligatorio) .campo:not(:disabled, .campo-errore),
+  .gruppo-obbligatorio .campo:not(:disabled, .campo-errore, .campo-facoltativo),
+  .campo.campo-richiesto:not(:disabled, .campo-errore) {
+    @apply border-accent-400 bg-accent-200 hover:border-accent-500 dark:border-accent-600 dark:bg-accent-900;
+  }
+  /*
+   * Etichetta, controllo e aiuto. In una griglia fatta solo di campi (e pulsanti .azione-griglia) le tre parti stanno
+   * su righe condivise con gli altri campi della stessa riga (subgrid): i controlli restano allineati anche quando
+   * un'etichetta va a capo o un aiuto è più lungo. Altrove il campo si impila normalmente.
+   */
+  .campo-griglia { @apply grid content-start gap-y-1; }
+  .campo-griglia > .etichetta { @apply mb-0 self-end; }
+  .grid:not(:has(> :not(.campo-griglia, .azione-griglia))) > :is(.campo-griglia, .azione-griglia) { @apply row-span-3 grid-rows-subgrid; }
+  /* pulsante in una riga di campi: sta sulla riga dei controlli */
+  .azione-griglia { @apply grid gap-y-1; }
+  .grid:not(:has(> :not(.campo-griglia, .azione-griglia))) > .azione-griglia > * { @apply row-start-2 self-start; }
   .tasto { @apply inline-flex min-w-5 items-center justify-center rounded border border-line-strong bg-surface-2 px-1 font-mono text-[10px] leading-4 text-fg-muted; }
   .titolo-sezione { @apply mb-3 text-sm font-semibold tracking-wide text-fg uppercase; }
   .pill { @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium; }

@@ -40,8 +40,9 @@
 </script>
 
 <div class="space-y-5">
-  <div class="grid gap-5 lg:grid-cols-[19rem_1fr]">
-    <aside class="scheda self-start p-3 lg:sticky lg:top-4">
+  <!-- elenco delle unità sopra il dettaglio: planimetria e anteprima hanno bisogno di tutta la larghezza -->
+  <div class="grid gap-5">
+    <aside class="scheda max-h-64 overflow-y-auto p-3">
       <h2 class="mb-2 text-xs font-semibold uppercase tracking-wide text-fg-muted">Unità immobiliari</h2>
       <table class="w-full text-sm">
         <thead><tr class="text-left text-xs text-fg-muted"><th class="py-1 font-medium">U.I.U.</th><th class="font-medium">Plan.</th><th class="font-medium">Polig.</th></tr></thead>
@@ -60,7 +61,7 @@
 
     {#if corrente}
       {@const i = corrente.i}
-      <div class="space-y-5">
+      <div class="min-w-0 space-y-5">
         <Sezione titolo={`Associazione planimetria – ${descriviUnita(pratica.unita[i], i)}`} descrizione="Disegno vettoriale DXF: formato e scala dal riquadro; i poligoni del layer Docfa_Poligoni danno le superfici.">
           <FormPlanimetria bind:unita={pratica.unita[i]} {pratica} />
         </Sezione>

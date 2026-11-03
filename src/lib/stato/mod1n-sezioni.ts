@@ -20,6 +20,8 @@ export interface CampoUi {
   /** valori ammessi (radio/select) per i campi a scelta */
   opzioni?: OpzioneCampo[];
   suffisso?: string;
+  /** campo non richiesto in un gruppo obbligatorio (non evidenziato in verde) */
+  facoltativo?: boolean;
 }
 
 export interface GruppoUi {
@@ -140,7 +142,7 @@ const SEZIONI_GREZZE: SezioneUi[] = [
     gruppi: [
       { titolo: '[A] Catasto terreni', disposizione: 'riga', campi: [c('ct_sezione'), c('ct_foglio'), c('ct_numero'), c('ct_numero_2')] },
       { titolo: '[A] Catasto edilizio urbano', disposizione: 'riga', campi: [c('ceu_sezione'), c('ceu_foglio'), c('ceu_numero'), c('ceu_numero_2')] },
-      { titolo: '[B] Riferimenti temporali', disposizione: 'riga', obbligatorio: true, campi: [c('anno_costruzione'), c('anno_ristrutturazione')] },
+      { titolo: '[B] Riferimenti temporali', disposizione: 'riga', obbligatorio: true, campi: [c('anno_costruzione'), { ...c('anno_ristrutturazione'), facoltativo: true }] },
     ],
   },
   {

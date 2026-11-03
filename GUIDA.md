@@ -167,7 +167,8 @@ momento; Quadro U ed Elaborati grafici si espandono sulle singole unità.
 
 Su macOS al posto di Ctrl si può usare Cmd.
 
-**Campi obbligatori** in fucsia con l'asterisco; un bordo ambra indica un valore non valido.
+**Campi obbligatori** con l'etichetta fucsia, l'asterisco e lo sfondo verde (il colore del logo); un bordo ambra indica
+un valore non valido. Su una finestra stretta l'elenco degli schermi si apre con il pulsante ☰ in alto a sinistra.
 
 Dentro un modello 1N/2N aperto, Esc chiude il modello (come «Chiudi») senza annullare il resto dello schermo;
 nei campi con i suggerimenti (es. la ricerca della strada) Esc chiude solo l'elenco dei suggerimenti.
@@ -251,9 +252,12 @@ e può avere più schede.
 
 ### Modelli 1N/2N
 - **1N parte I**: un modello per il documento; le sigle dei quadri sono verdi quando compilati, fucsia se obbligatori.
-- **1N parte II**: uno per unità. Le superfici lorde vengono dai poligoni. Con **«Copia»** e **«Incolla»** si copia
+- **1N parte II**: uno per unità: si sceglie la riga e si preme **«Compila»** (o doppio clic sulla riga). Le superfici
+  lorde vengono dai poligoni. Con **«Copia»** e **«Incolla»** si copia
   il modello su altre unità della stessa categoria.
-- **2N**: per le unità a destinazione speciale e particolare (gruppi D ed E).
+- **2N**: per le unità a destinazione speciale e particolare (gruppi D ed E), con **«Compila»** come sopra.
+
+«Compila» è grigio quando non ci sono unità per quel modello.
 
 Nell'editor «OK (Ctrl+O)» porta al prossimo quadro obbligatorio ancora da compilare.
 

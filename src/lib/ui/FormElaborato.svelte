@@ -139,7 +139,7 @@
 </div>
 
 {#if d}
-  <div class="grid gap-5 xl:grid-cols-[1fr_26rem]">
+  <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_26rem]">
     <div class="space-y-3">
       <div class="grid gap-4 sm:grid-cols-3">
         <Campo etichetta="Immagine" aiuto="assegnata dal programma"><input class="campo font-mono" value={`${String(ep.progressivoImmagine).padStart(7, '0')}.${String(corrente + 1).padStart(3, '0')}`} disabled /></Campo>

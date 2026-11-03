@@ -42,6 +42,8 @@
   let errore = $state<string | null>(null);
   let modificaTitolo = $state(false);
   let aiuto = $state(false);
+  // finestre strette: l'albero degli schermi diventa un menu a scomparsa
+  let menuAperto = $state(false);
   /** avviso (non bloccante) dopo OK: cosa manca nello schermo appena lasciato */
   let avvisoOk = $state<{ titolo: string; n: number; sezione: SezionePratica; unita?: number } | null>(null);
   /** rami aperti dell'albero (quadro U ed elaborati grafici mostrano le unità) */
@@ -123,6 +125,7 @@
   /** Entra in uno schermo: memorizza lo stato per Annulla. */
   function entra(s: SezionePratica, unita?: number): void {
     sezione = s;
+    menuAperto = false;
     if (unita !== undefined) unitaSelezionata = unita;
     if (CON_UNITA.includes(s)) aperti[s] = true;
     avvisoOk = null;
@@ -199,7 +202,8 @@
 {:else if statoPratica.file && statoPratica.pratica}
   {@const f = statoPratica.file}
   <div class="flex h-full">
-    <aside class="flex w-64 shrink-0 flex-col border-r border-line bg-surface">
+    {#if menuAperto}<button type="button" class="fixed inset-0 z-20 bg-black/30 lg:hidden" onclick={() => (menuAperto = false)} aria-label="Chiudi il menu"></button>{/if}
+    <aside class="fixed inset-y-0 left-0 z-30 flex w-64 shrink-0 flex-col border-r border-line bg-surface transition-transform lg:static lg:translate-x-0 lg:shadow-none {menuAperto ? 'translate-x-0 shadow-xl' : '-translate-x-full'}">
       <div class="flex h-14 items-center gap-2 border-b border-line px-4">
         <button type="button" class="btn btn-ghost btn-piccolo -ml-2" onclick={chiudi} title="Torna ai documenti"><Icona nome="sinistra" /></button>
         <span class="flex size-7 items-center justify-center rounded-md bg-accent-600 text-white"><Icona nome="casa" classe="size-4" /></span>
@@ -263,25 +267,26 @@
     </aside>
 
     <div class="flex min-w-0 flex-1 flex-col">
-      <header class="flex h-14 shrink-0 items-center gap-3 border-b border-line bg-surface/90 px-5 backdrop-blur">
-        <div class="flex min-w-0 flex-1 items-center gap-3">
+      <header class="flex h-14 shrink-0 items-center gap-2 border-b border-line bg-surface/90 px-3 backdrop-blur sm:gap-3 sm:px-5">
+        <button type="button" class="btn btn-ghost btn-piccolo lg:hidden" onclick={() => (menuAperto = true)} aria-label="Menu" title="Schermi della pratica"><Icona nome="elenco" /></button>
+        <div class="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
           {#if modificaTitolo}
             <!-- svelte-ignore a11y_autofocus -->
             <input type="text" class="campo max-w-md" autofocus bind:value={f.meta.titolo} onblur={() => (modificaTitolo = false)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === 'Escape') { e.stopPropagation(); modificaTitolo = false; } }} />
           {:else}
             <button type="button" class="truncate text-base font-semibold hover:underline" title="Modifica la descrizione" onclick={() => (modificaTitolo = true)}>{f.meta.titolo || 'Documento senza descrizione'}</button>
           {/if}
-          <span class="pill shrink-0 bg-surface-2 text-fg-muted">{acc ? 'Accatastamento' : 'Variazione'} {acc ? 'NCA' : 'NCV'}{String(f.pratica.progressivo).padStart(3, '0')}</span>
-          {#if f.meta.stato === 'esportata'}<span class="pill shrink-0 bg-accent-100 text-accent-800 dark:bg-accent-900 dark:text-accent-100">Esportata</span>{/if}
+          <span class="pill hidden shrink-0 bg-surface-2 text-fg-muted sm:inline-flex">{acc ? 'Accatastamento' : 'Variazione'} {acc ? 'NCA' : 'NCV'}{String(f.pratica.progressivo).padStart(3, '0')}</span>
+          {#if f.meta.stato === 'esportata'}<span class="pill hidden shrink-0 bg-accent-100 md:inline-flex text-accent-800 dark:bg-accent-900 dark:text-accent-100">Esportata</span>{/if}
         </div>
-        <span class="text-xs {statoPratica.salvataggio === 'errore' ? 'text-red-600' : 'text-fg-muted'}" title={statoPratica.errore ?? ''}>{STATO_SALVATAGGIO[statoPratica.salvataggio]}</span>
-        <button type="button" class="btn" onclick={() => statoPratica.salva()} disabled={statoPratica.salvataggio === 'salvataggio'}><Icona nome="salva" /> Salva</button>
-        <button type="button" class="btn" class:btn-primario={aiuto} onclick={() => (aiuto = !aiuto)} title="Aiuto (F1)"><Icona nome="info" /> Aiuto</button>
+        <span class="hidden text-xs md:inline {statoPratica.salvataggio === 'errore' ? 'text-red-600' : 'text-fg-muted'}" title={statoPratica.errore ?? ''}>{STATO_SALVATAGGIO[statoPratica.salvataggio]}</span>
+        <button type="button" class="btn" onclick={() => statoPratica.salva()} disabled={statoPratica.salvataggio === 'salvataggio'}><Icona nome="salva" /> <span class="hidden sm:inline">Salva</span></button>
+        <button type="button" class="btn" class:btn-primario={aiuto} onclick={() => (aiuto = !aiuto)} title="Aiuto (F1)"><Icona nome="info" /> <span class="hidden sm:inline">Aiuto</span></button>
       </header>
 
       <div class="flex min-h-0 flex-1">
         <main id="contenuto" class="flex-1 overflow-y-auto bg-fondo">
-          <div class="mx-auto max-w-6xl px-5 py-6">
+          <div class="mx-auto max-w-6xl px-3 py-4 sm:px-5 sm:py-6">
             {#key sezione}
             <svelte:boundary onerror={(e) => console.error('Errore nello schermo', sezione, e)}>
             {#if sezione === 'comune'}
@@ -322,19 +327,19 @@
           </div>
         </main>
         {#if aiuto && corrente}
-          <aside class="w-80 shrink-0 overflow-y-auto border-l border-line bg-surface p-4 text-sm">
+          <aside class="fixed inset-y-0 right-0 z-30 w-80 max-w-[90vw] shrink-0 overflow-y-auto border-l border-line bg-surface p-4 text-sm shadow-xl xl:static xl:shadow-none">
             <div class="mb-2 flex items-center justify-between">
               <h2 class="font-semibold">Aiuto – {corrente.breve}</h2>
               <button type="button" class="btn btn-ghost btn-piccolo" onclick={() => (aiuto = false)} title="Chiudi"><Icona nome="x" /></button>
             </div>
             <p class="leading-relaxed text-fg-muted">{corrente.aiuto}</p>
-            <p class="mt-4 text-xs text-fg-faint">I campi obbligatori sono in <span class="obbligatorio">fucsia</span>; il pallino verde indica uno schermo completo.</p>
+            <p class="mt-4 text-xs text-fg-faint">I campi obbligatori hanno l'etichetta <span class="obbligatorio">fucsia</span> e lo sfondo <span class="rounded bg-accent-200 px-1 text-accent-900 dark:bg-accent-900 dark:text-accent-100">verde</span>; il pallino verde indica uno schermo completo.</p>
           </aside>
         {/if}
       </div>
 
       {#if avvisoOk}
-        <div class="flex shrink-0 items-center gap-3 border-t border-amber-200 bg-amber-50 px-5 py-2 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100" role="status">
+        <div class="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-t border-amber-200 bg-amber-50 px-5 py-2 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100" role="status">
           <Icona nome="info" classe="size-4 shrink-0" />
           <span class="flex-1">{avvisoOk.titolo}: {avvisoOk.n === 1 ? 'manca ancora un dato' : `mancano ancora ${avvisoOk.n} dati`}. Puoi completarli quando vuoi: il documento resta salvato in bozza.</span>
           <button type="button" class="btn btn-piccolo" onclick={() => { const a = avvisoOk!; avvisoOk = null; entra(a.sezione, a.unita); }}>Torna lì</button>
@@ -344,7 +349,7 @@
       {/if}
 
       <FinestraConfermaData bind:pratica={statoPratica.file.pratica} />
-      <footer class="flex h-14 shrink-0 items-center gap-3 border-t border-line bg-surface px-5">
+      <footer class="flex h-14 shrink-0 items-center gap-3 border-t border-line bg-surface px-3 sm:px-5">
         <span class="flex-1 text-xs text-fg-muted">
           {#if corrente}Schermo {indice + 1} di {schermi.length}{#if sezione === 'unita' && f.pratica.unita.length}{" · "}unità {unitaSelezionata + 1} di {f.pratica.unita.length}{/if}{/if}
         </span>
