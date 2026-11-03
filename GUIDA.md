@@ -197,7 +197,8 @@ La **superficie catastale** viene dai poligoni della planimetria e la **rendita*
 «Nuova U.I.U.» propone foglio, particella, indirizzo e piano dell'unità precedente.
 
 **«Da visura»** legge una visura catastale in PDF scaricata da Sister (visura sintetica per soggetto o visura per
-immobile, Catasto Fabbricati) e mostra gli immobili trovati. Quelli spuntati diventano u.i.u. della pratica (o
+immobile, sia a tabella sia nel formato a voci «Visura attuale per immobile», Catasto Fabbricati; della
+visura storica si legge la situazione attuale) e mostra gli immobili trovati. Quelli spuntati diventano u.i.u. della pratica (o
 aggiornano quelle con lo stesso identificativo) con identificativo, indirizzo, civici e piani; in variazione anche
 il **classamento in atti** (variata o soppressa, a scelta riga per riga) e, se spuntato, le **classi più elevate
 per categoria** del fabbricato per il classamento automatico. L'indirizzo letto dalla visura non è quello dello

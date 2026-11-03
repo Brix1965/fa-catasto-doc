@@ -5,6 +5,7 @@
  */
 import { estraiTesto } from './testo';
 import { analizzaVisura } from './analisi';
+import { analizzaVisuraImmobile, eVisuraPerImmobile } from './immobile';
 import type { ImmobileVisura, IntestatoVisura, Visura } from './tipi';
 
 export type * from './tipi';
@@ -17,7 +18,9 @@ export {
 
 /** Legge una visura PDF. Non lancia eccezioni per i dati mancanti: li segnala in `avvisi`. */
 export async function leggiVisura(dati: Uint8Array): Promise<Visura> {
-  return analizzaVisura(await estraiTesto(dati));
+  const pagine = await estraiTesto(dati);
+  // le visure per immobile più recenti non hanno la tabella: hanno voci «Foglio … Particella …», «Categoria …»
+  return eVisuraPerImmobile(pagine) ? analizzaVisuraImmobile(pagine) : analizzaVisura(pagine);
 }
 
 /** Intestati del gruppo di un immobile. */
