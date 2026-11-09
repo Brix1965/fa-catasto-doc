@@ -1,7 +1,9 @@
 /**
  * Poligoni DOCFA_POLIGONI generati dai vani riconosciuti (SPERIMENTALE): il tecnico li controlla e li corregge.
- * - A: vani principali, bagni e accessori diretti; B: accessori indiretti (comunicanti; C se non comunicanti, lo
- *   sceglie il tecnico); D: balconi e terrazzi (solo la superficie scritta nel vano); gli altri vani esclusi non entrano.
+ * - A: vani principali, bagni e accessori diretti; B: accessori indiretti comunicanti; C: locali staccati
+ *   dall'abitazione (ripostiglio in giardino); D: balconi, terrazze, logge, portici; F: giardini, corti, resedi, aie.
+ * - Gli spazi a comune o di altre unità (vano scale a comune, resede a comune, androne…) non entrano mai.
+ * - I muri che delimitano all'esterno balconi, terrazze e giardini vanno con questi (vademecum Docfa).
  * - Ogni poligono comprende i muri che toccano i suoi vani, fino a `spessoreMax` (60 cm): muri interni e
  *   perimetrali per intero, i muri in comune con altre unità per intero (il DPR 138/98 ne conta metà: da ritoccare).
  * - Un muro fra un vano A e uno B va al poligono A.
@@ -10,7 +12,7 @@ import type { Poligono, TipoAmbientePoligono } from '../model';
 import type { TipoVano } from './riconosci';
 import { anello, buffer, differenza, facce, intersezione, linea, parti, poligono, punto, puntoInterno, rete, semplifica, unione, type G, type XY } from './geo';
 
-export interface VanoPerPoligoni { tipo: TipoVano; contorni: XY[][]; testi?: string[] }
+export interface VanoPerPoligoni { tipo: TipoVano; contorni: XY[][]; testi?: string[]; scoperto?: 'D' | 'F'; comune?: boolean; staccato?: boolean }
 
 export interface PoligoniGenerati {
   poligoni: Poligono[];
@@ -18,6 +20,18 @@ export interface PoligoniGenerati {
 }
 
 const GRUPPO: Partial<Record<TipoVano, TipoAmbientePoligono>> = { principale: 'A', bagno: 'A', diretto: 'A', verificare: 'A', indiretto: 'B' };
+
+/** Tipologia di poligono di un vano riconosciuto (null: non entra in nessun poligono). */
+export function tipologiaPoligono(v: VanoPerPoligoni): TipoAmbientePoligono | null {
+  if (v.comune) return null;
+  if (v.tipo === 'escluso') {
+    if (v.scoperto) return v.scoperto;
+    // risultati senza il campo `scoperto` (versioni precedenti): dal nome
+    return v.testi?.some((t) => /^(balcon|terrazz|loggia(?! chiusa)|portic)/i.test(t.trim())) ? 'D' : null;
+  }
+  if (v.staccato) return 'C';
+  return GRUPPO[v.tipo] ?? null;
+}
 
 /**
  * Muri attorno ai vani di un gruppo. `linee`: le linee continue del disegno. Alla rete delle linee si aggiunge il
@@ -51,18 +65,23 @@ const unisciVani = (vs: VanoPerPoligoni[]): G | null => {
 export function generaPoligoni(vani: VanoPerPoligoni[], linee: [XY, XY][], spessoreMax = 0.6): PoligoniGenerati {
   const avvisi: string[] = [];
   const impronta = (tipo: TipoAmbientePoligono): G | null => {
-    const R = unisciVani(vani.filter((v) => GRUPPO[v.tipo] === tipo));
+    const R = unisciVani(vani.filter((v) => tipologiaPoligono(v) === tipo));
     if (!R) return null;
     // chiusura: riempie le fessure fra vani e muri più strette di 30 cm (tramezzi non chiusi nel disegno)
     return buffer(buffer(unione([R, ...muriAttorno(R, linee, spessoreMax)]), 0.15, true), -0.15, true);
   };
-  const A = impronta('A');
-  let B = impronta('B');
-  if (A && B) B = differenza(B, A);
-  const scoperti = unisciVani(vani.filter((v) => v.tipo === 'escluso' && v.testi?.some((t) => /^(balcon|terrazz|loggia(?! chiusa))/i.test(t.trim()))));
-  const D = scoperti && A ? differenza(scoperti, A) : scoperti;
+  // in ordine di precedenza: un muro fra un vano e il giardino va al vano, fra terrazza e giardino alla terrazza
+  const ordine: TipoAmbientePoligono[] = ['A', 'B', 'C', 'D', 'F'];
+  const prese: G[] = [];
+  const gruppi: [TipoAmbientePoligono, G | null][] = [];
+  for (const t of ordine) {
+    let g = impronta(t);
+    if (g && prese.length) g = differenza(g, unione(prese));
+    if (g && !g.isEmpty()) prese.push(g);
+    gruppi.push([t, g]);
+  }
   const out: Poligono[] = [];
-  for (const [tipo, g] of [['A', A], ['B', B], ['D', D]] as [TipoAmbientePoligono, G | null][]) {
+  for (const [tipo, g] of gruppi) {
     if (!g || g.isEmpty()) continue;
     for (const p of parti(g)) {
       if (p.getGeometryType() !== 'Polygon' || p.getArea() < 0.5) continue;

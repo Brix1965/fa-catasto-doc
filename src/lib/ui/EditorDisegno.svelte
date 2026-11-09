@@ -532,7 +532,7 @@
 
           <section class="space-y-2 rounded-md border border-dashed border-amber-400/70 p-2.5">
             <h3 class="flex items-center gap-1.5 text-xs font-semibold"><Icona nome="bacchetta" classe="size-3.5" /> Automatismi <span class="rounded bg-amber-100 px-1 text-[10px] font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">sperimentale</span></h3>
-            <p class="text-xs text-fg-muted">Riconosce i vani dalle linee e dai nomi scritti, propone i poligoni (A con i muri, B per gli accessori indiretti, D per balconi e terrazzi) e le linee dei muri sezionati. Sono proposte: controllale e correggile.</p>
+            <p class="text-xs text-fg-muted">Riconosce i vani dalle linee e dai nomi scritti, propone i poligoni per tipologia (A con i muri, B accessori indiretti, C locali staccati, D balconi e terrazze, F giardini e corti; le parti a comune mai) e le linee dei muri sezionati. Sono proposte: controllale e correggile.</p>
             {#if poligoni.length}<label class="flex items-center gap-2 text-xs"><input type="checkbox" class="check" bind:checked={usaPoligoni} /> cerca i vani solo dentro i poligoni attuali</label>{/if}
             <button type="button" class="btn btn-piccolo w-full justify-center" onclick={analizza} disabled={calcolo}><Icona nome="ricarica" /> {calcolo ? 'Calcolo in corso…' : 'Riconosci i vani'}</button>
             {#if msg}<p class="text-xs">{msg}</p>{/if}

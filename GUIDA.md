@@ -236,11 +236,15 @@ Tecnico compilatore (scegliendolo dalla tendina dei tecnici memorizzati) e dichi
   cambia il tipo e l'altezza < 1,50 m, si trascinano i vertici, doppio clic sul bordo aggiunge un vertice, Canc
   toglie il vertice selezionato (o tutto il poligono). Ctrl+Z annulla, Ctrl+Y ripete.
 - **Automatismi (sperimentali)**: «Riconosci i vani» trova i locali dalle linee e dai nomi scritti; poi
-  «Applica i poligoni proposti» disegna i poligoni (A con i muri, B per gli accessori indiretti, D per balconi e
-  terrazzi) e «Spessore ai muri sezionati» ingrossa le linee dei muri tagliati (0,07 a 1:200, in proporzione
-  alle altre scale). Funziona anche su un DXF **senza poligoni**: i vani si cercano in tutto il riquadro e i
-  locali senza nome restano esclusi, da controllare. Sono proposte: i muri in comune con altre unità sono
-  compresi per intero (il DPR 138/98 ne conta metà), gli infissi possono risultare ingrossati: correggi a mano.
+  «Applica i poligoni proposti» disegna i poligoni per tipologia: **A** vani e accessori diretti con i loro muri,
+  **B** accessori indiretti comunicanti, **C** locali staccati dall'abitazione (es. ripostiglio in giardino),
+  **D** balconi, terrazze, logge e portici, **F** giardini, corti, resedi, aie e orti (con i muri che li
+  delimitano). Gli spazi **a comune** o di altre unità (vano scale a comune, resede a comune, androne, «altra
+  u.i.») non entrano mai, né nei vani né nei poligoni; una corte o una terrazza senza «a comune» è dell'unità.
+  «Spessore ai muri sezionati» ingrossa le linee dei muri tagliati (0,07 a 1:200, in proporzione alle altre
+  scale). Funziona anche su un DXF **senza poligoni**: i vani si cercano in tutto il riquadro; i locali senza nome
+  sono proposti come vani principali da verificare e lo spazio attorno al disegno è escluso. Sono proposte: i muri
+  in comune con altre unità sono compresi per intero (il DPR 138/98 ne conta metà): correggi a mano.
 - **«Salva nella scheda»** riscrive il DXF della scheda (formato R12) e i poligoni, e rigenera l'anteprima.
   Il DXF di prima resta conservato: **«DXF originale»** lo ripristina. **«Esporta DXF»** salva una copia da
   riaprire nel CAD.
@@ -317,26 +321,33 @@ modulo fa molti meno errori; senza nome deve indovinare.
    toccare negli spigoli; i piccoli distacchi fino a 20 cm vengono chiusi da soli, ma è meglio non averne.
    Non spezzare il contorno del muro con linee tratteggiate.
 3. **Porte e passaggi**: due modi riconosciuti, usane uno.
-   - il muro interrotto fra le due **spalle** (le due spalle uguali e parallele, luce fra 50 cm e 2,60 m);
+   - il muro interrotto fra le due **spalle** (anche di lunghezza diversa; luce fra 45 cm e 2,60 m), oppure fra
+     la testa di un muro e il fianco di un altro (porta vicino a uno spigolo, fino a 1 m);
    - oppure un **segmento tratteggiato** nel vuoto del muro, allineato al muro, con gli estremi sulle spalle
      (lunghezza fra 50 cm e 1,80 m).
    Gli archi di apertura delle porte possono restare: non chiudono i locali.
 4. **Nomi dei locali**: un testo (TEXT o MTEXT) **dentro** ogni locale. Nomi riconosciuti:
-   - vani principali: camera, letto, soggiorno, pranzo, salotto, sala, studio, cucina, tinello, vano, stanza;
+   - vani principali: camera, letto, soggiorno, pranzo, salotto, sala, studio, cucina (anche **K**), tinello,
+     vano, stanza; i locali senza nome sono proposti come principali (la destinazione dei vani principali non è
+     obbligatoria);
    - bagni: bagno, wc, w.c., servizio, doccia;
-   - accessori diretti: ingresso, corridoio, disimpegno (disimp., dis.), ripostiglio (rip.), guardaroba,
+   - accessori diretti: ingresso (ingr.), corridoio, disimpegno (disimp., dis.), ripostiglio (rip.), guardaroba,
      cabina armadi, antibagno, cottura, lavanderia, dispensa, veranda, loggia chiusa, scala, vano scala;
    - accessori indiretti: cantina, soffitta, sottotetto, locale tecnico, centrale termica, lavatoio, sgombero,
      deposito, garage, autorimessa, magazzino;
-   - non sono vani (esclusi; balconi e terrazzi diventano poligoni D): balcone, terrazzo, terrazza, portico,
-     cortile, giardino, scale a comune, pianerottolo, androne, parti comuni, altra proprietà, altra u.i.u.,
-     cavedio, vuoto.
+   - non sono vani ma sono dell'unità: balcone, terrazzo, terrazza, loggia, portico (poligono D); giardino, corte,
+     cortile, resede, aia, orto, area scoperta (poligono F);
+   - non sono dell'unità (mai calcolati): tutto ciò che è **a comune** (anche scritto su due righe, «vano scale» e
+     «a comune»), condominiale, androne, parti comuni, altra proprietà, altra u.i.; cavedio e vuoto non contano.
    Maiuscole e minuscole non contano; vale anche l'abbreviazione col punto. Un locale con un nome diverso
    viene proposto «da verificare».
 5. **Altezze**: un testo nel locale come `h260`, `h=2,40`, `hmin 220` (cm o m). Le zone di altezza diversa dello
    stesso locale si separano con una **linea tratteggiata**: non divide il vano (se però i due lati hanno
    ciascuno il proprio nome, la linea tratteggiata è letta come porta e i vani restano due).
-   I retini (HATCH) vengono ignorati.
+   I retini (HATCH) vengono ignorati. Una linea tratteggiata separa invece terrazza e giardino (o un locale e
+   la terrazza) quando ciascuno ha il suo nome.
+   Frecce d'ingresso, croci sulle finestre e altri simboli staccati dal disegno non disturbano: vengono ignorati,
+   come le linee disegnate due volte (frequenti nei DXF esportati dai programmi BIM).
 6. **Zone che non sono vani** (cavedi, vuoti, parti di altre unità): poligono G oppure una croce (X) disegnata
    nella zona con due linee continue che si incrociano a metà. I locali più stretti di 60 cm sono presi per
    muri e non contano.

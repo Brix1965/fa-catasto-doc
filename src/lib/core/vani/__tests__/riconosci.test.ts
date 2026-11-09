@@ -9,6 +9,19 @@ describe('vani: regole', () => {
     expect(m2Intero(11.5)).toBe(12);
     expect(m2Intero(0.49)).toBe(0);
   });
+  it('parti a comune, aree esterne, sigle', async () => {
+    const { RE_COMUNE, scopertoDaTesto } = await import('../riconosci');
+    expect(tipoDaTesto('K')).toBe('principale');
+    expect(tipoDaTesto('ingr.')).toBe('diretto');
+    expect(RE_COMUNE.test('vano scale a comune')).toBe(true);
+    expect(RE_COMUNE.test('resede a comune')).toBe(true);
+    expect(RE_COMUNE.test('altra u.i.')).toBe(true);
+    expect(RE_COMUNE.test('camera')).toBe(false);
+    expect(scopertoDaTesto('terrazza')).toBe('D');
+    expect(scopertoDaTesto('giardino')).toBe('F');
+    expect(scopertoDaTesto('Corte')).toBe('F');
+    expect(scopertoDaTesto('corridoio')).toBeNull();
+  });
   it('tipo dal nome del vano', () => {
     expect(tipoDaTesto('Camera')).toBe('principale');
     expect(tipoDaTesto('SOGGIORNO')).toBe('principale');
@@ -35,15 +48,34 @@ describe('vani: regole', () => {
 // disegni reali (non pubblicati): la prova gira solo dove ci sono
 const DIR = 'fixtures-private/vani';
 const CASI: [string, object][] = [
-  ['caso-1.dxf', { principaliN: 10, principaliSup: 144, bagniN: 9, bagniSup: 29, direttiN: 3, direttiSup: 26 }],
+  ['caso-1.dxf', { principaliN: 10, principaliSup: 144, bagniN: 9, bagniSup: 29, direttiN: 4, direttiSup: 26 }],
   ['caso-2.dxf', { principaliN: 10, principaliSup: 139, bagniN: 7, bagniSup: 25, direttiN: 5, direttiSup: 30 }],
   ['caso-3.dxf', { principaliN: 3, principaliSup: 43, bagniN: 1, bagniSup: 7, direttiN: 2, direttiSup: 13, indirettiN: 2, indirettiSup: 18 }],
+];
+// planimetria di un altro professionista (DXF da programma BIM, senza poligoni): cucina «K», camere senza nome,
+// freccia d'ingresso diversa, vano scale e resede «a comune», terrazza, giardino, corte e ripostiglio in giardino
+const ALTRI: [string, object, string][] = [
+  ['altri-1.dxf', { principaliN: 6, principaliSup: 88, bagniN: 1, bagniSup: 4, direttiN: 1, direttiSup: 12, indirettiN: 1, indirettiSup: 3 }, 'ACDF'],
 ];
 describe.skipIf(!existsSync(DIR))('vani: disegni reali', () => {
   for (const [f, atteso] of CASI)
     it(f, () => {
       const d = leggiDxf(readFileSync(`${DIR}/${f}`, 'latin1'));
       expect(totaliVani(riconosciVani(d.entita, d.poligoni).vani)).toMatchObject(atteso);
+    }, 120000);
+});
+
+describe.skipIf(!existsSync(DIR))('vani: disegni di altri professionisti', async () => {
+  const { preparaDxf } = await import('../../raster/dxf-correzioni');
+  const { calcolaDisegno } = await import('../worker');
+  for (const [f, atteso, tipi] of ALTRI)
+    it.skipIf(!existsSync(`${DIR}/${f}`))(f, () => {
+      const { letto } = preparaDxf(readFileSync(`${DIR}/${f}`, 'latin1'));
+      const r = calcolaDisegno({ op: 'disegno', entita: letto.entita, poligoni: letto.poligoni, usaPoligoni: letto.poligoni.length > 0, riquadro: letto.riquadro });
+      expect(totaliVani(r.vani.vani)).toMatchObject(atteso);
+      // le parti a comune non entrano in nessun vano né poligono
+      expect(r.vani.vani.filter((v) => v.comune).every((v) => v.tipo === 'escluso')).toBe(true);
+      expect([...new Set(r.generati.poligoni.map((p) => p.tipo))].sort().join('')).toBe(tipi);
     }, 120000);
 });
 
