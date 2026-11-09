@@ -19,7 +19,7 @@
   import Icona from './Icona.svelte';
   import { untrack } from 'svelte';
 
-  let { scheda, aperto = $bindable(), titolo = 'Disegno', onsalva }: { scheda: Planimetria | SchedaGrafica; aperto: boolean; titolo?: string; onsalva: (dxf: string, poligoni: Poligono[]) => void } = $props();
+  let { scheda, aperto = $bindable(), titolo = 'Disegno', poligonoIniziale = null, onsalva }: { scheda: Planimetria | SchedaGrafica; aperto: boolean; titolo?: string; poligonoIniziale?: number | null; onsalva: (dxf: string, poligoni: Poligono[]) => void } = $props();
 
   type Strumento = 'seleziona' | 'linea' | 'poligono' | 'testo' | 'misura';
   type Selezione = { k: 'entita'; i: number } | { k: 'poligono'; i: number; v: number | null } | null;
@@ -81,6 +81,8 @@
       layers = p.letto.layers;
       usaPoligoni = poligoni.length > 0;
       adatta();
+      // aperto da un poligono dell'anteprima: si parte con quello selezionato
+      if (poligonoIniziale !== null && poligoni[poligonoIniziale]) sel = { k: 'poligono', i: poligonoIniziale, v: null };
     } catch (e) {
       errore = `DXF non leggibile: ${e instanceof Error ? e.message : String(e)}`;
     }
@@ -301,21 +303,13 @@
       if (!aperto) return;
       analisi = r;
       versioneAnalisi = v;
-      mostraVani = true;
-      msg = `${analisi.vani.vani.filter((v) => v.tipo !== 'escluso').length} vani riconosciuti, ${analisi.generati.poligoni.length} poligoni proposti, ${analisi.muri.length} linee di muro sezionato.`;
+      mostraVani = false;
+      msg = `${analisi.muri.length} linee di muro sezionato trovate.`;
     } catch (e) {
       msg = `Calcolo non riuscito: ${e instanceof Error ? e.message : String(e)}`;
     } finally {
       calcolo = false;
     }
-  }
-  async function applicaPoligoni(): Promise<void> {
-    if (!analisi || !analisiValida) return;
-    if (poligoni.length && !(await conferma(`I ${poligoni.length} poligoni attuali verranno sostituiti dai ${analisi.generati.poligoni.length} proposti. Continuare?`))) return;
-    memorizza();
-    poligoni = analisi.generati.poligoni.map((p) => ({ ...p, vertici: p.vertici.map((v) => [v[0], v[1]] as Punto2) }));
-    mostraPoligoni = true;
-    sel = null;
   }
   function applicaSpessori(): void {
     // indici calcolati sul disegno di prima: dopo una modifica si ingrosserebbero le linee sbagliate
@@ -417,7 +411,6 @@
         <label class="ml-1 flex items-center gap-1 text-xs"><input type="checkbox" class="check" bind:checked={agganciAttivi} /> Aggancio</label>
         <label class="flex items-center gap-1 text-xs" title="Anche tenendo premuto Maiusc"><input type="checkbox" class="check" bind:checked={ortogonale} /> Ortogonale (O)</label>
         <label class="flex items-center gap-1 text-xs"><input type="checkbox" class="check" bind:checked={mostraPoligoni} /> Poligoni</label>
-        {#if analisi}<label class="flex items-center gap-1 text-xs"><input type="checkbox" class="check" bind:checked={mostraVani} /> Vani</label>{/if}
         <span class="ml-auto flex gap-2">
           <button type="button" class="btn btn-piccolo" onclick={esporta} title="Salva una copia del disegno come file DXF (R12) da aprire nel CAD"><Icona nome="esporta" /> Esporta DXF</button>
           <button type="button" class="btn btn-piccolo" onclick={chiudi}>Chiudi</button>
@@ -531,16 +524,13 @@
           {/if}
 
           <section class="space-y-2 rounded-md border border-dashed border-amber-400/70 p-2.5">
-            <h3 class="flex items-center gap-1.5 text-xs font-semibold"><Icona nome="bacchetta" classe="size-3.5" /> Automatismi <span class="rounded bg-amber-100 px-1 text-[10px] font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">sperimentale</span></h3>
-            <p class="text-xs text-fg-muted">Riconosce i vani dalle linee e dai nomi scritti, propone i poligoni per tipologia (A con i muri, B accessori indiretti, C locali staccati, D balconi e terrazze, F giardini e corti; le parti a comune mai) e le linee dei muri sezionati. Sono proposte: controllale e correggile.</p>
-            {#if poligoni.length}<label class="flex items-center gap-2 text-xs"><input type="checkbox" class="check" bind:checked={usaPoligoni} /> cerca i vani solo dentro i poligoni attuali</label>{/if}
-            <button type="button" class="btn btn-piccolo w-full justify-center" onclick={analizza} disabled={calcolo}><Icona nome="ricarica" /> {calcolo ? 'Calcolo in corso…' : 'Riconosci i vani'}</button>
+            <h3 class="flex items-center gap-1.5 text-xs font-semibold"><Icona nome="bacchetta" classe="size-3.5" /> Muri sezionati <span class="rounded bg-amber-100 px-1 text-[10px] font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">sperimentale</span></h3>
+            <p class="text-xs text-fg-muted">Trova le linee dei muri tagliati dal piano di sezione e dà loro lo spessore. I poligoni si generano dalla planimetria («2 Genera poligoni DocFa»), i vani con «3 Riconosci i vani».</p>
+            <button type="button" class="btn btn-piccolo w-full justify-center" onclick={analizza} disabled={calcolo}><Icona nome="ricarica" /> {calcolo ? 'Calcolo in corso…' : 'Trova i muri sezionati'}</button>
             {#if msg}<p class="text-xs">{msg}</p>{/if}
             {#if analisi}
-              <button type="button" class="btn btn-piccolo w-full justify-center" onclick={applicaPoligoni} disabled={!analisi.generati.poligoni.length || !analisiValida}>Applica i {analisi.generati.poligoni.length} poligoni proposti</button>
               <button type="button" class="btn btn-piccolo w-full justify-center" onclick={applicaSpessori} disabled={!analisiValida}>Spessore ai muri sezionati ({analisi.muri.length} linee)</button>
-              {#if !analisiValida}<p class="text-xs text-amber-700 dark:text-amber-300">Il disegno è cambiato dopo il riconoscimento: rifai «Riconosci i vani» prima di applicare.</p>{/if}
-              {#each [...analisi.generati.avvisi, ...analisi.vani.avvisi] as a, i (i)}<p class="text-xs text-amber-700 dark:text-amber-300">{a}</p>{/each}
+              {#if !analisiValida}<p class="text-xs text-amber-700 dark:text-amber-300">Il disegno è cambiato: rifai «Trova i muri sezionati» prima di applicare.</p>{/if}
             {/if}
             <button type="button" class="btn btn-piccolo w-full justify-center" onclick={togliSpessori}>Togli tutti gli spessori</button>
           </section>

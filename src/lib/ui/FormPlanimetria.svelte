@@ -21,6 +21,11 @@
   import Campo from './Campo.svelte';
   import Icona from './Icona.svelte';
   import EditorDisegno from './EditorDisegno.svelte';
+  import VaniDaDisegno from './VaniDaDisegno.svelte';
+  import { analizzaDisegnoInBackground } from '$lib/core/vani/esegui';
+  import { nuovoMod1NParteII } from '$lib/stato/pratica-file';
+  import { lordeAutomatiche } from '$lib/core/superfici';
+  import { poligoniPlanimetria, type Poligono } from '$lib/core/model';
   import { untrack } from 'svelte';
   import { riquadroDiPartenza } from '$lib/core/raster/riquadro';
   import { dxfPerFile } from '$lib/core/raster/dxf-scrivi';
@@ -104,7 +109,6 @@
         if (![100, 200, 500].includes(f.scala)) avvisiDxf.push(`Scala 1:${f.scala} non prevista dai record Docfa (ammesse 100, 200, 500)`);
       }
       infoDxf = { nome, entita: letto.entita.length, versione: letto.versione, origineInZero: true };
-      if (!letto.poligoni.length) avvisiDxf.push('Nessun poligono sul layer DOCFA_POLIGONI: servono per il calcolo della superficie');
       if (!letto.entita.length) avvisiDxf.push('Il DXF non contiene oggetti disegnabili');
       // alla riapertura si tengono i poligoni salvati (tipo cambiato, poligoni eliminati); si rileggono solo con un DXF nuovo
       if (nuovo || (!p.poligoni.length && !p.poligoniLetti)) p.poligoni = letto.poligoni;
@@ -197,6 +201,50 @@
   const area = areaPoligono;
 
   let editorAperto = $state(false);
+  /** poligono da selezionare all'apertura dell'editor («Modifica la forma» dall'anteprima) */
+  let poligonoEditor = $state<number | null>(null);
+  function apriEditor(i: number | null): void { poligonoEditor = i; editorAperto = true; }
+
+  // ---- passi: 1 carica il DXF, 2 genera i poligoni DocFa, 3 riconosci i vani
+  let generandoPoligoni = $state(false);
+  let esitoPoligoni = $state<{ testo: string; avvisi: string[] } | null>(null);
+  async function generaPoligoniDocfa(): Promise<void> {
+    const s = sc;
+    if (!s?.dxf) return;
+    if (s.poligoni.length && !(await conferma(`La scheda ha già ${s.poligoni.length} poligoni: sostituirli con quelli generati dal disegno?`))) return;
+    generandoPoligoni = true; esitoPoligoni = null;
+    try {
+      const { letto } = preparaDxf(s.dxf);
+      // i poligoni si generano da tutto il disegno, non da quelli che c'erano
+      const r = await analizzaDisegnoInBackground({ entita: letto.entita, poligoni: [], usaPoligoni: false, riquadro: letto.riquadro });
+      if (s !== sc) return;
+      const nuovi: Poligono[] = r.generati.poligoni.map((p) => ({ ...p, vertici: p.vertici.map((v) => [v[0], v[1]] as [number, number]) }));
+      const avvisi = [...r.generati.avvisi, ...r.vani.avvisi.filter((a) => !a.startsWith('Il DXF non ha poligoni'))];
+      if (!nuovi.length) { esitoPoligoni = { testo: 'Nessun poligono generato: controlla che i muri del disegno siano chiusi e che i locali abbiano il nome.', avvisi }; return; }
+      s.poligoni = nuovi;
+      s.poligoniLetti = true;
+      selezionato = null;
+      const elenco = nuovi.map((p) => `${NOMI_TIPO[p.tipo]} ${area(p).toFixed(2).replace('.', ',')} m²`).join(', ');
+      esitoPoligoni = { testo: `${nuovi.length} poligoni generati: ${elenco}. Controllali sull'anteprima: clic su un poligono per cambiarne il tipo o la forma, o per eliminarlo.`, avvisi };
+    } catch (e) {
+      esitoPoligoni = { testo: `Generazione non riuscita: ${e instanceof Error ? e.message : String(e)}`, avvisi: [] };
+    } finally {
+      generandoPoligoni = false;
+    }
+  }
+  const conPoligoni = $derived(!!pl && [pl, ...(pl.altreSchede ?? [])].some((x) => x.poligoni.length > 0));
+  // i vani (quadro C del 1N parte II) solo per le unità a destinazione ordinaria
+  const categoria = $derived(unita.classamento?.categoria ?? '');
+  const ordinaria = $derived(/^[ABC]/.test(categoria) && unita.partitaSpeciale !== 'A' && unita.operazione !== 'S');
+  const motivoVani = $derived(!conPoligoni ? 'Prima genera i poligoni (passo 2)' : !categoria ? 'Indica prima la categoria nel quadro U' : !ordinaria ? 'Solo per le unità a destinazione ordinaria (categorie A, B, C)' : '');
+  let vaniAperti = $state(false);
+  const autoLorde = $derived(lordeAutomatiche(poligoniPlanimetria(unita.planimetria)));
+  function riconosciVaniUnita(): void {
+    if (motivoVani) return;
+    unita.mod1NParteII ??= nuovoMod1NParteII();
+    vaniAperti = true;
+  }
+  const vaniConfermati = $derived(!!unita.mod1NParteII?.propostaVani);
   /** disegno salvato dall'editor: nuovo DXF e poligoni; il DXF di prima si conserva (una volta sola) */
   function salvaDisegno(dxf: string, poligoni: Planimetria['poligoni']): void {
     const s = sc;
@@ -283,15 +331,40 @@
   <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_26rem]">
     <div class="space-y-4">
 
+      <!-- passi obbligati, in ordine: ogni passo si sblocca quando il precedente è fatto -->
+      <ol class="grid gap-2 sm:grid-cols-3" aria-label="Passi della planimetria">
+        {#each [
+          { n: 1, titolo: sc.dxf ? 'Sostituisci DXF' : 'Carica DXF', aiuto: 'il disegno della planimetria', fatto: !!sc.dxf, attivo: true, icona: 'importa', azione: caricaDxf, motivo: '' },
+          { n: 2, titolo: 'Genera poligoni DocFa', aiuto: 'per tipologia, dal disegno', fatto: sc.poligoni.length > 0, attivo: !!sc.dxf && !generandoPoligoni, icona: 'poligono', azione: generaPoligoniDocfa, motivo: sc.dxf ? '' : 'Prima carica il DXF (passo 1)' },
+          { n: 3, titolo: 'Riconosci i vani', aiuto: 'per il 1N parte II, quadro C', fatto: vaniConfermati, attivo: !motivoVani, icona: 'calcolo', azione: riconosciVaniUnita, motivo: motivoVani },
+        ] as p (p.n)}
+          <li>
+            <button type="button" class="flex h-full w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition disabled:cursor-not-allowed disabled:opacity-60 {p.attivo && !p.fatto ? 'border-accent-500 bg-accent-50 hover:bg-accent-100 dark:bg-accent-950/50 dark:hover:bg-accent-950' : 'border-line bg-surface hover:bg-surface-2'}" onclick={p.azione} disabled={!p.attivo} title={p.motivo || undefined}>
+              <span class="flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-bold {p.fatto ? 'bg-accent-600 text-white' : p.attivo ? 'border-2 border-accent-600 text-accent-700 dark:text-accent-300' : 'border-2 border-line-strong text-fg-faint'}">
+                {#if p.fatto}<Icona nome="spunta" classe="size-4" />{:else}{p.n}{/if}
+              </span>
+              <span class="min-w-0">
+                <span class="block text-sm font-semibold">{p.n === 2 && generandoPoligoni ? 'Generazione…' : p.titolo}</span>
+                <span class="block text-xs text-fg-muted">{p.motivo || p.aiuto}</span>
+              </span>
+            </button>
+          </li>
+        {/each}
+      </ol>
+      {#if esitoPoligoni}
+        <div class="rounded-md border border-line bg-surface-2 px-3 py-2 text-xs">
+          <p>{esitoPoligoni.testo}</p>
+          {#each esitoPoligoni.avvisi as a, i (i)}<p class="mt-1 text-amber-700 dark:text-amber-300">{a}</p>{/each}
+        </div>
+      {/if}
       <div class="flex flex-wrap items-center gap-2">
-        <button type="button" class="btn" onclick={caricaDxf}><Icona nome="importa" /> {sc.dxf ? 'Sostituisci DXF' : 'Carica DXF'}</button>
         {#if sc.dxf}
-          <button type="button" class="btn btn-primario" onclick={() => (editorAperto = true)} title="Modifica linee, testi e poligoni; proponi i poligoni e lo spessore dei muri"><Icona nome="modifica" /> Modifica disegno</button>
-          <button type="button" class="btn" onclick={() => genera()} disabled={generazione}><Icona nome="ricarica" /> {generazione ? 'Generazione…' : 'Rigenera anteprima'}</button>
-          {#if sc.dxfOriginale}<button type="button" class="btn" onclick={ripristinaOriginale} title="Torna al DXF caricato, senza le modifiche dell'editor"><Icona nome="annulla" /> DXF originale</button>{/if}
+          <button type="button" class="btn btn-piccolo" onclick={() => genera()} disabled={generazione}><Icona nome="ricarica" /> {generazione ? 'Generazione…' : 'Rigenera anteprima'}</button>
+          <button type="button" class="btn btn-piccolo" onclick={() => apriEditor(null)} title="Linee, testi e forma dei poligoni; spessore dei muri sezionati"><Icona nome="modifica" /> Modifica il disegno</button>
+          {#if sc.dxfOriginale}<button type="button" class="btn btn-piccolo" onclick={ripristinaOriginale} title="Torna al DXF caricato, senza le modifiche dell'editor"><Icona nome="annulla" /> DXF originale</button>{/if}
         {/if}
-        <button type="button" class="btn" onclick={scaricaRiquadro} title={`Riquadro ${sc.formato} 1:${sc.scala} dell'Agenzia, con i layer pronti e un esempio di locale`}><Icona nome="file" /> Riquadro DXF di partenza</button>
-        <button type="button" class="btn btn-pericolo" onclick={rimuovi}><Icona nome="cestino" /> Rimuovi planimetria</button>
+        <button type="button" class="btn btn-piccolo" onclick={scaricaRiquadro} title={`Riquadro ${sc.formato} 1:${sc.scala} dell'Agenzia, con i layer pronti e un esempio di locale`}><Icona nome="file" /> Riquadro DXF di partenza</button>
+        <button type="button" class="btn btn-piccolo btn-pericolo" onclick={rimuovi}><Icona nome="cestino" /> Rimuovi planimetria</button>
       </div>
 
       {#if sc.tiff && !sc.dxf}
@@ -308,7 +381,7 @@
           <ul class="list-disc space-y-0.5 pl-6 text-xs">{#each correzioniDxf as c, i (i)}<li>{c}</li>{/each}</ul>
         </div>
       {/if}
-      <Avvisi errori={errore ? [errore] : []} avvisi={avvisiDxf} />
+      <Avvisi errori={errore ? [errore] : []} avvisi={sc.dxf && !sc.poligoni.length ? [...avvisiDxf, 'Il disegno non ha poligoni DocFa: generali con il passo 2 (servono per le superfici).'] : avvisiDxf} />
 
       {#if sc.poligoni.length || poligoniNtf.length}
         <div>
@@ -347,6 +420,25 @@
 
     <div>
       <h3 class="mb-2 text-xs font-semibold text-fg-muted">Anteprima</h3>
+      {#if sc.poligoni.length}
+        {#if selezionato !== null && sc.poligoni[selezionato]}
+          {@const p = sc.poligoni[selezionato]}
+          <div class="mb-2 flex flex-wrap items-center gap-2 rounded-md border border-accent-300 bg-accent-50 px-2 py-1.5 text-xs dark:border-accent-800 dark:bg-accent-950/50">
+            <span class="inline-block size-2.5 rounded-sm" style:background={COLORE_TIPO[p.tipo]}></span>
+            <span class="font-semibold">Poligono {selezionato + 1}</span>
+            <select class="campo campo-piccolo w-16" value={p.tipo} onchange={(e) => (p.tipo = e.currentTarget.value as TipoAmbientePoligono)} aria-label="Tipologia">
+              {#each Object.entries(NOMI_TIPO) as [v, et] (v)}<option value={v}>{et}</option>{/each}
+            </select>
+            <span class="tabular-nums">{area(p).toFixed(2).replace('.', ',')} m²</span>
+            <span class="ml-auto flex gap-1">
+              <button type="button" class="btn btn-piccolo" onclick={() => apriEditor(selezionato)}><Icona nome="modifica" /> Modifica la forma</button>
+              <button type="button" class="btn btn-piccolo btn-pericolo" onclick={() => selezionato !== null && eliminaPoligono(selezionato)}><Icona nome="cestino" /> Elimina</button>
+            </span>
+          </div>
+        {:else}
+          <p class="mb-2 text-xs text-fg-muted">Clic su un poligono per cambiarne il tipo o la forma, o per eliminarlo.</p>
+        {/if}
+      {/if}
       {#if bitmap}
         <div class="relative inline-block max-w-full">
           <AnteprimaBitmap {bitmap} larghezzaMax={700} classe="block" />
@@ -370,5 +462,8 @@
 {/if}
 
 {#if sc?.dxf}
-  <EditorDisegno scheda={sc} bind:aperto={editorAperto} titolo={`Disegno della scheda ${schedaCorrente + 1}`} onsalva={salvaDisegno} />
+  <EditorDisegno scheda={sc} bind:aperto={editorAperto} titolo={`Disegno della scheda ${schedaCorrente + 1}`} poligonoIniziale={poligonoEditor} onsalva={salvaDisegno} />
+{/if}
+{#if vaniAperti && unita.mod1NParteII}
+  <VaniDaDisegno bind:unita bind:aperto={vaniAperti} auto={autoLorde} />
 {/if}

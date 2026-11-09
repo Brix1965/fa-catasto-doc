@@ -95,7 +95,17 @@ export function generaPoligoni(vani: VanoPerPoligoni[], linee: [XY, XY][], spess
       if (area > 0.3) avvisi.push(`Il poligono ${tipo} di ${p.getArea().toFixed(2).replace('.', ',')} m² racchiude ${area.toFixed(2).replace('.', ',')} m² che non sono dell'unità (cavedio, vuoto…): il poligono generato li comprende, va corretto.`);
       const v = anello(semplifica(p, 0.005));
       v.pop(); // l'ultimo vertice ripete il primo
-      if (v.length >= 3) out.push({ tipo, vertici: v.map(([x, y]) => [Math.round(x * 1e4) / 1e4, Math.round(y * 1e4) / 1e4]), altezzaValida: true });
+      const tondo = (w: XY[]): [number, number][] => w.map(([x, y]) => [Math.round(x * 1e4) / 1e4, Math.round(y * 1e4) / 1e4]);
+      if (v.length < 3) continue;
+      // un contorno che tocca se stesso (due parti unite in un punto) non è valido per Docfa («a farfalla»):
+      // si divide nelle sue parti
+      const pv = poligono(tondo(v));
+      if (pv.isValid()) { out.push({ tipo, vertici: tondo(v), altezzaValida: true }); continue; }
+      for (const q of parti(buffer(pv, 0))) {
+        if (q.getGeometryType() !== 'Polygon' || q.getArea() < 0.5) continue;
+        const w = anello(q); w.pop();
+        if (w.length >= 3) out.push({ tipo, vertici: tondo(w), altezzaValida: true });
+      }
     }
   }
   if (!out.length) avvisi.push('Nessun poligono generato: non ci sono vani inclusi.');

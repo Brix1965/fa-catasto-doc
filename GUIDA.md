@@ -74,9 +74,10 @@ far sbagliare meno il tecnico.
   lorde del modello 1N parte II.
 - Planimetrie ed elaborato planimetrico **su più schede**, ognuna dal proprio DXF.
 - **Editor del disegno** dentro il programma: linee, testi e poligoni si correggono senza tornare al CAD, con
-  aggancio agli spigoli, ortogonale, misura e annulla. Vedi [Modifica disegno](#modifica-disegno-editor).
-- **Automatismi sul disegno** (sperimentali): poligoni DOCFA_POLIGONI proposti dai vani riconosciuti e spessore
-  dei muri sezionati, da controllare e correggere.
+  aggancio agli spigoli, ortogonale, misura e annulla. Vedi [Modifica il disegno](#modifica-il-disegno-editor).
+- **Planimetria in tre passi numerati** (sperimentale): **1 Carica DXF** → **2 Genera poligoni DocFa** (per
+  tipologia, sull'anteprima) → **3 Riconosci i vani** (per il quadro C del 1N parte II). Vedi
+  [Elaborati grafici](#elaborati-grafici).
 - **Riquadro DXF di partenza**: il modello A4/A3 dell'Agenzia alla scala scelta, con i layer già pronti e un
   esempio di locale disegnato come lo vuole il riconoscimento dei vani.
 - Numerazione delle immagini che parte da 9000001, lontana da quella di Docfa (che parte da 1): evita il
@@ -213,7 +214,25 @@ Beni comuni non censibili (fino a 20) ed estremi del titolo giustificativo; note
 Tecnico compilatore (scegliendolo dalla tendina dei tecnici memorizzati) e dichiarante.
 
 ### Elaborati grafici
-1. Scegli l'unità e premi **«Aggiungi planimetria»**, poi **«Carica DXF»**.
+La planimetria si prepara in **tre passi numerati**, in ordine: ogni passo si sblocca quando il precedente è
+fatto e, finito, mostra la spunta verde.
+
+- **1 Carica DXF**: il disegno della planimetria (formato e scala si leggono dal riquadro).
+- **2 Genera poligoni DocFa**: il programma disegna i poligoni per tipologia (vedi sotto) e li mostra colorati
+  sull'anteprima. **Clic su un poligono** per cambiarne il tipo, eliminarlo o **«Modifica la forma»** (si apre
+  l'editor con quel poligono selezionato). Se la scheda ha già dei poligoni chiede se sostituirli.
+- **3 Riconosci i vani**: si apre la finestra dei vani, colorati sul disegno: clic su un vano per cambiarne il tipo,
+  i m² si correggono nella tabella; **«Conferma e inserisci nel quadro C»** porta i totali nel 1N parte II. Solo
+  per le unità a destinazione ordinaria (A, B, C), dopo i poligoni.
+
+Poligoni generati: **A** vani e accessori diretti con i loro muri, **B** accessori indiretti comunicanti, **C** locali
+staccati dall'abitazione (es. ripostiglio in giardino), **D** balconi, terrazze, logge e portici, **F** giardini,
+corti, resedi, aie e orti. Gli spazi **a comune** o di altre unità (vano scale a comune, resede a comune, androne,
+«altra u.i.») non entrano mai; una corte o una terrazza senza «a comune» è dell'unità. Sono proposte: i muri in
+comune con altre unità sono compresi per intero (il DPR 138/98 ne conta metà): correggi a mano.
+
+Nel dettaglio:
+1. Scegli l'unità e premi **«Aggiungi planimetria»**, poi **«1 Carica DXF»**.
 2. Il DXF va disegnato su uno dei riquadri dell'Agenzia (A4 o A3, scala 1:100, 1:200 o 1:500) con i poligoni
    sul layer `DOCFA_POLIGONI` (colore 1 = A, 2 = B, 3 = C, 4 = D, 5 = E, 6 = F, 7 = G, 8 = A2).
    Il DXF deve essere in formato testo (ASCII), non binario.
@@ -225,8 +244,8 @@ Tecnico compilatore (scegliendolo dalla tendina dei tecnici memorizzati) e dichi
    con il layer `DOCFA_POLIGONI` già spento, un esempio di locale (layer ESEMPIO, da cancellare) e le istruzioni
    (layer ISTRUZIONI, spento). Partire da qui evita quasi tutti gli errori di importazione.
 
-#### Modifica disegno (editor)
-**«Modifica disegno»** apre il disegno della scheda in una finestra a tutto schermo.
+#### Modifica il disegno (editor)
+**«Modifica il disegno»** (o «Modifica la forma» su un poligono) apre il disegno della scheda a tutto schermo.
 - Strumenti: **Seleziona** (S), **Linea** (L), **Poligono** (P), **Testo** (T), **Misura** (M). Rotella = zoom,
   trascinare = spostare la vista, F = adatta alla finestra.
 - **Aggancio** a estremi, punti medi, centri, vertici dei poligoni e punto più vicino su una linea (quadratino
@@ -235,16 +254,8 @@ Tecnico compilatore (scegliendolo dalla tendina dei tecnici memorizzati) e dichi
   spostano gli estremi trascinando i quadratini; per i testi si corregge il testo e l'altezza; per i poligoni si
   cambia il tipo e l'altezza < 1,50 m, si trascinano i vertici, doppio clic sul bordo aggiunge un vertice, Canc
   toglie il vertice selezionato (o tutto il poligono). Ctrl+Z annulla, Ctrl+Y ripete.
-- **Automatismi (sperimentali)**: «Riconosci i vani» trova i locali dalle linee e dai nomi scritti; poi
-  «Applica i poligoni proposti» disegna i poligoni per tipologia: **A** vani e accessori diretti con i loro muri,
-  **B** accessori indiretti comunicanti, **C** locali staccati dall'abitazione (es. ripostiglio in giardino),
-  **D** balconi, terrazze, logge e portici, **F** giardini, corti, resedi, aie e orti (con i muri che li
-  delimitano). Gli spazi **a comune** o di altre unità (vano scale a comune, resede a comune, androne, «altra
-  u.i.») non entrano mai, né nei vani né nei poligoni; una corte o una terrazza senza «a comune» è dell'unità.
-  «Spessore ai muri sezionati» ingrossa le linee dei muri tagliati (0,07 a 1:200, in proporzione alle altre
-  scale). Funziona anche su un DXF **senza poligoni**: i vani si cercano in tutto il riquadro; i locali senza nome
-  sono proposti come vani principali da verificare e lo spazio attorno al disegno è escluso. Sono proposte: i muri
-  in comune con altre unità sono compresi per intero (il DPR 138/98 ne conta metà): correggi a mano.
+- **Muri sezionati (sperimentale)**: «Trova i muri sezionati», poi «Spessore ai muri sezionati» ingrossa le linee
+  dei muri tagliati (0,07 a 1:200, in proporzione alle altre scale); «Togli tutti gli spessori» le riporta sottili.
 - **«Salva nella scheda»** riscrive il DXF della scheda (formato R12) e i poligoni, e rigenera l'anteprima.
   Il DXF di prima resta conservato: **«DXF originale»** lo ripristina. **«Esporta DXF»** salva una copia da
   riaprire nel CAD.
@@ -315,8 +326,8 @@ servono. La regola più importante: **scrivi il nome dentro ogni locale.** Con t
 modulo fa molti meno errori; senza nome deve indovinare.
 
 1. **Poligoni**: sul layer `DOCFA_POLIGONI` (A, B, C, G…): dicono dove sta l'unità. Senza poligoni i vani si
-   cercano in tutto il riquadro (i locali senza nome restano esclusi, da controllare) e i poligoni si possono far
-   proporre dall'editor del disegno.
+   cercano in tutto il riquadro (i locali senza nome sono proposti come principali, da controllare) e i poligoni
+   si generano con il passo **2 Genera poligoni DocFa**.
 2. **Muri**: linee o polilinee a **tratto continuo**, con le due facce del muro disegnate. I tratti si devono
    toccare negli spigoli; i piccoli distacchi fino a 20 cm vengono chiusi da soli, ma è meglio non averne.
    Non spezzare il contorno del muro con linee tratteggiate.
