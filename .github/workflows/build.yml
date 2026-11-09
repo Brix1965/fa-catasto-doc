@@ -69,6 +69,8 @@ jobs:
         with:
           name: fa-catasto-doc-windows-portable
           path: src-tauri/target/release/*.exe
+          # servono solo al job «pubblica» qui sotto: dopo la release non si tengono (spazio di GitHub Actions)
+          retention-days: 1
       - name: Pacchetti (tutti)
         uses: actions/upload-artifact@v5
         with:
@@ -82,6 +84,7 @@ jobs:
             src-tauri/target/release/bundle/**/*.exe
             src-tauri/target/release/bundle/**/*.AppImage
             src-tauri/target/release/bundle/**/*.deb
+          retention-days: 1
 
   # ad ogni push su main: release "ultima" con gli eseguibili scaricabili direttamente (senza zip),
   # visibile nella colonna di destra del repository alla voce Releases.
