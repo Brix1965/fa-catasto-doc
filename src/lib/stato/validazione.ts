@@ -4,6 +4,7 @@
  * Gli errori bloccano l'esportazione, gli avvisi no. Ogni problema indica lo schermo in cui si corregge.
  */
 import { controlli2N } from '$lib/core/stima-2n';
+import { consistenzaVani, totaliVani } from '$lib/core/vani/totali';
 import { poligoniPlanimetria, schedePlanimetria, type Intestato, type Pratica, type UnitaImmobiliare } from '$lib/core/model';
 import { causaliBarrate, unaRiga } from '$lib/core/compile';
 import {
@@ -405,6 +406,25 @@ export function controllaPratica(p: Pratica): EsitoControlli {
       if (oss > 600) avv('modelli', `${nome}: 1N parte II, osservazioni di ${oss} caratteri dopo la conversione delle accentate: oltre 600 il testo viene tagliato`, undefined, i);
       if (m.dotazioni.altro && !m.dotazioniAltre?.trim()) err('modelli', `${nome}: 1N parte II, quadro D: descrivere l'altra dotazione`, undefined, i);
       if (/^C/.test(cat) && !m.gruppoC) err('modelli', `${nome}: categoria del gruppo C: compilare i locali del quadro C`, 'G0013', i);
+      // dichiarato e calcolato: il quadro C confrontato con i vani confermati dal disegno, e la consistenza del
+      // classamento (gruppo A) con quella che risulta dal quadro C
+      if (!m.gruppoC && m.propostaVani) {
+        const t = totaliVani(m.propostaVani.schede.flatMap((s) => s.vani));
+        const diff: string[] = [];
+        const conf = (et: string, n: number, sup: number, dn: number, ds: number) => { if (n !== dn || sup !== ds) diff.push(`${et} ${n}/${sup} m² (dal disegno ${dn}/${ds} m²)`); };
+        conf('vani principali', m.vaniPrincipaliN, m.vaniPrincipaliSup, t.principaliN, t.principaliSup);
+        conf('bagni', m.bagniN, m.bagniSup, t.bagniN, t.bagniSup);
+        conf('altri accessori diretti', m.accessoriDirettiN, m.accessoriDirettiSup, t.direttiN, t.direttiSup);
+        if (m.accessoriIndirettiN !== t.indirettiN) diff.push(`accessori indiretti ${m.accessoriIndirettiN} (dal disegno ${t.indirettiN})`);
+        if (diff.length) avv('modelli', `${nome}: 1N parte II, quadro C diverso dai vani confermati dal disegno: ${diff.join('; ')}. Va bene se la correzione è voluta`, undefined, i);
+      }
+      if (!m.gruppoC && /^A/.test(cat) && m.vaniPrincipaliN > 0) {
+        const dichiarata = Number((u.classamento?.consistenza ?? '').replace(',', '.'));
+        const calcolata = consistenzaVani({ principaliN: m.vaniPrincipaliN, bagniN: m.bagniN, direttiN: m.accessoriDirettiN, indirettiN: m.accessoriIndirettiN });
+        // il vademecum ammette uno scarto fino al 10% (arrotondamento ed eccedenze)
+        if (dichiarata > 0 && Math.abs(dichiarata - calcolata) > Math.max(0.5, calcolata * 0.1))
+          avv('unita', `${nome}: consistenza ${String(dichiarata).replace('.', ',')} vani nel classamento, dal quadro C del 1N risultano ${String(calcolata).replace('.', ',')} vani (principali + accessori diretti ⅓ + indiretti ¼)`, undefined, i);
+      }
     }
     if (m && u.ambienti.some((a) => !(a.superficie > 0))) err('elaborati', `${nome}: ambiente con superficie nulla nei dati metrici`, undefined, i);
   });

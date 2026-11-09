@@ -1,22 +1,52 @@
 /**
- * Riconoscimento dei vani in un Web Worker: il calcolo dura qualche secondo per planimetria e non deve
- * bloccare l'interfaccia.
+ * Calcoli sul disegno in un Web Worker (durano qualche secondo e non devono bloccare l'interfaccia):
+ * - `vani`: riconoscimento dei vani delle schede della planimetria (quadro C del 1N parte II);
+ * - `disegno`: per l'editor, vani + poligoni DOCFA_POLIGONI proposti + linee dei muri sezionati da ingrossare.
  */
-import { leggiDxf } from '../raster/dxf';
+import { preparaDxf } from '../raster/dxf-correzioni';
+import type { Entita, Punto2 } from '../raster/dxf';
 import type { Poligono } from '../model';
 import { riconosciVani, type RisultatoVani } from './riconosci';
+import { generaPoligoni, lineeDiMuro, type PoligoniGenerati } from './poligoni';
 
-export interface RichiestaVani { schede: { dxf: string; poligoni: Poligono[] }[] }
+export interface RichiestaVani { op?: 'vani'; schede: { dxf: string; poligoni: Poligono[] }[] }
+export interface RichiestaDisegno {
+  op: 'disegno';
+  entita: Entita[];
+  /** poligoni attuali: se `usaPoligoni` delimitano l'unità, altrimenti i vani si cercano in tutto il riquadro */
+  poligoni: Poligono[];
+  usaPoligoni: boolean;
+  riquadro: Punto2[] | null;
+}
+export interface RisultatoDisegno { vani: RisultatoVani; generati: PoligoniGenerati; muri: number[] }
 export type RispostaVani = { ok: true; risultati: RisultatoVani[] } | { ok: false; errore: string };
+export type RispostaDisegno = { ok: true; disegno: RisultatoDisegno } | { ok: false; errore: string };
 
-self.onmessage = (e: MessageEvent<RichiestaVani>) => {
+const CONTINUE = new Set(['', 'CONTINUOUS', 'CONTINUA', 'BYLAYER', 'BYBLOCK']);
+
+export function calcolaVani(r: RichiestaVani): RisultatoVani[] {
+  return r.schede.map((s) => {
+    const d = preparaDxf(s.dxf).letto;
+    return riconosciVani(d.entita, s.poligoni.length ? s.poligoni : d.poligoni, { riquadro: d.riquadro });
+  });
+}
+
+export function calcolaDisegno(r: RichiestaDisegno): RisultatoDisegno {
+  const vani = riconosciVani(r.entita, r.usaPoligoni ? r.poligoni : [], { riquadro: r.riquadro });
+  const linee = vani.linee.filter((l) => !l.tratteggiata).map((l) => [l.a, l.b] as [Punto2, Punto2]);
+  const generati = generaPoligoni(vani.vani, linee);
+  const ent = r.entita.map((e) => ({ ...e, tratteggiata: !CONTINUE.has((e.tipoLinea ?? '').toUpperCase()) }));
+  return { vani, generati, muri: lineeDiMuro(ent, vani.vani, linee) };
+}
+
+// solo dentro il worker (il modulo si importa anche altrove per le funzioni di calcolo)
+declare const WorkerGlobalScope: unknown;
+if (typeof WorkerGlobalScope !== 'undefined') self.onmessage = (e: MessageEvent<RichiestaVani | RichiestaDisegno>) => {
+  const w = self as unknown as Worker;
   try {
-    const risultati = e.data.schede.map((s) => {
-      const d = leggiDxf(s.dxf);
-      return riconosciVani(d.entita, s.poligoni.length ? s.poligoni : d.poligoni);
-    });
-    (self as unknown as Worker).postMessage({ ok: true, risultati } satisfies RispostaVani);
+    if (e.data.op === 'disegno') w.postMessage({ ok: true, disegno: calcolaDisegno(e.data) } satisfies RispostaDisegno);
+    else w.postMessage({ ok: true, risultati: calcolaVani(e.data) } satisfies RispostaVani);
   } catch (err) {
-    (self as unknown as Worker).postMessage({ ok: false, errore: err instanceof Error ? err.message : String(err) } satisfies RispostaVani);
+    w.postMessage({ ok: false, errore: err instanceof Error ? err.message : String(err) });
   }
 };

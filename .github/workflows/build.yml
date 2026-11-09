@@ -84,7 +84,8 @@ jobs:
             src-tauri/target/release/bundle/**/*.deb
 
   # ad ogni push su main: release "ultima" con gli eseguibili scaricabili direttamente (senza zip),
-  # visibile nella colonna di destra del repository alla voce Releases
+  # visibile nella colonna di destra del repository alla voce Releases.
+  # Dalla 0.6.0 c'è una sola versione: la vecchia pre-release «versione-prova» viene tolta.
   pubblica:
     name: Pubblica eseguibili
     needs: build
@@ -159,6 +160,8 @@ jobs:
           # NOVITA: titolo del commit e righe di elenco del messaggio, come punti
           { head -1 messaggio.txt | sed 's/^/- /'; grep -E '^\s*[-*] ' messaggio.txt | sed -E 's/^\s*[-*] +/- /'; } > novita.md
           python3 -c "import sys; n=open('note.md').read(); open('note.md','w').write(n.replace('NOVITA', open('novita.md').read().rstrip()))"
+          gh release delete prova --yes --cleanup-tag || true
+          gh release delete versione-prova --yes --cleanup-tag || true
           gh release delete collaudo --yes --cleanup-tag || true
           gh release delete ultima --yes --cleanup-tag || true
           gh release create ultima dist/* --target "$GITHUB_SHA" --title "Fa.Catasto.Doc $versione – ultima versione ($quando)" --notes-file note.md --latest

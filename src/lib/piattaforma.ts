@@ -63,6 +63,16 @@ export async function scegliFile(titolo?: string, filtri?: FiltroFile[]): Promis
   return browserScegliFile(filtri);
 }
 
+/** Finestra «Salva con nome»: percorso scelto, o null. Nel browser il file si scarica con il nome proposto. */
+export async function scegliDestinazione(titolo: string, nome: string, filtri?: FiltroFile[]): Promise<string | null> {
+  if (inTauri()) {
+    const { save } = await import('@tauri-apps/plugin-dialog');
+    const r = await save({ title: titolo, defaultPath: nome, filters: filtri?.map((f) => ({ name: f.nome, extensions: f.estensioni })) });
+    return typeof r === 'string' ? r : null;
+  }
+  return `download://${nome}`;
+}
+
 export async function leggiFile(percorso: string): Promise<Uint8Array> {
   if (inTauri()) {
     const { readFile } = await import('@tauri-apps/plugin-fs');

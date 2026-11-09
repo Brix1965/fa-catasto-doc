@@ -10,9 +10,11 @@
   import Sezione from '../Sezione.svelte';
   import FormIndirizzo from '../FormIndirizzo.svelte';
   import FormClassamento from '../FormClassamento.svelte';
+  import ImportaVisura from '../ImportaVisura.svelte';
 
   let { pratica = $bindable(), selezionata = $bindable(0) }: { pratica: Pratica; selezionata?: number } = $props();
   const acc = $derived(pratica.tipoDocumento === 'accatastamento');
+  let visuraAperta = $state(false);
   const unita = $derived(pratica.unita[selezionata] as UnitaImmobiliare | undefined);
   const nDitte = $derived(pratica.quadroA?.ditte.length ?? 1);
 
@@ -108,7 +110,10 @@
   <aside class="scheda self-start p-3 xl:sticky xl:top-4">
     <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
       <h2 class="text-xs font-semibold uppercase tracking-wide whitespace-nowrap text-fg-muted">U.I.U. ({pratica.unita.length})</h2>
-      <button type="button" class="btn btn-piccolo btn-primario" onclick={aggiungi}><Icona nome="piu" /> <span class="whitespace-nowrap">Nuova U.I.U.</span></button>
+      <span class="flex gap-1">
+        <button type="button" class="btn btn-piccolo" onclick={() => (visuraAperta = true)} title="Importa identificativi, indirizzi e classamento in atti da una visura PDF di Sister"><Icona nome="pdf" /> <span class="whitespace-nowrap">Da visura</span></button>
+        <button type="button" class="btn btn-piccolo btn-primario" onclick={aggiungi}><Icona nome="piu" /> <span class="whitespace-nowrap">Nuova U.I.U.</span></button>
+      </span>
     </div>
     <ul class="space-y-1">
       {#each pratica.unita as u, i (i)}
@@ -225,3 +230,5 @@
     </div>
   {/if}
 </div>
+
+<ImportaVisura bind:pratica bind:aperto={visuraAperta} onfatto={(i) => (selezionata = i)} />
