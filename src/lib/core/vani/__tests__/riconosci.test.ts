@@ -77,6 +77,17 @@ describe.skipIf(!existsSync(DIR))('vani: disegni di altri professionisti', async
       expect(r.vani.vani.filter((v) => v.comune).every((v) => v.tipo === 'escluso')).toBe(true);
       expect([...new Set(r.generati.poligoni.map((p) => p.tipo))].sort().join('')).toBe(tipi);
     }, 120000);
+  // la scheda ha già solo i poligoni A (proposti o disegnati prima): rifacendo il riconoscimento «solo dentro i
+  // poligoni attuali» la terrazza e il giardino con il loro nome si propongono lo stesso (D, F); ciò che è a comune no
+  it.skipIf(!existsSync(`${DIR}/altri-1.dxf`))('altri-1.dxf con i soli poligoni A: propone anche D e F', () => {
+    const { letto } = preparaDxf(readFileSync(`${DIR}/altri-1.dxf`, 'latin1'));
+    const primo = calcolaDisegno({ op: 'disegno', entita: letto.entita, poligoni: [], usaPoligoni: false, riquadro: letto.riquadro });
+    const soloA = primo.generati.poligoni.filter((p) => p.tipo === 'A');
+    const r = calcolaDisegno({ op: 'disegno', entita: letto.entita, poligoni: soloA, usaPoligoni: true, riquadro: letto.riquadro });
+    const tipi = new Set(r.generati.poligoni.map((p) => p.tipo));
+    expect(tipi.has('D') && tipi.has('F')).toBe(true);
+    expect(r.vani.vani.filter((v) => v.comune).every((v) => v.tipo === 'escluso')).toBe(true);
+  }, 120000);
 });
 
 describe('consistenza dai vani', () => {

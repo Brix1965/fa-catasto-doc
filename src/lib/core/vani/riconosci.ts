@@ -258,7 +258,11 @@ export function riconosciVani(entita: Entita[], poligoni: Poligono[], opzioni: O
   });
   if (simboli.size) avvisi.push(`${simboli.size} simboli staccati dal disegno (frecce, croci, segni) non considerati come muri.`);
 
-  const unita = buffer(unione(di('ABCGH')), 0.6);
+  // zona dell'unità: i suoi poligoni (anche D, E, F); se fuori ci sono terrazze o giardini con il nome (non «a comune»)
+  // si guarda tutto il riquadro, così si possono proporre anche i loro poligoni D/F
+  const fuoriNominati = !senzaPoligoni && testi.some((x) => scopertoDaTesto(x.t) && !RE_COMUNE.test(x.t) && !buffer(unione(di('ABCDEFGH')), 0.02).contains(x.p));
+  const zonaRiq = opzioni.riquadro && opzioni.riquadro.length >= 3 ? opzioni.riquadro : rettangoloEntita(entita);
+  const unita = fuoriNominati && zonaRiq ? poligono(zonaRiq) : buffer(unione(di('ABCDEFGH')), 0.6);
   cont = cont.filter((s) => s.intersects(unita));
   tratt = tratt.filter((s) => s.intersects(unita));
   const lineeAnteprima = [...cont.map((s) => ({ s, tr: false })), ...tratt.map((s) => ({ s, tr: true }))]
@@ -467,11 +471,15 @@ export function riconosciVani(entita: Entita[], poligoni: Poligono[], opzioni: O
     }
   }
   const Gz = buffer(unione([...di('G'), ...croci]), 0.02);
-  const DENTRO = buffer(unione(di('ABCH')), 0.02);
+  // l'unità: i suoi poligoni, compresi balconi, terrazze e aree scoperte (D, E, F) già disegnati
+  const DENTRO = buffer(unione(di('ABCDEFH')), 0.02);
+  // con i poligoni del tecnico, terrazze e giardini con il loro nome restano dell'unità anche se fuori dai poligoni
+  // (tipicamente: poligoni A disegnati o proposti prima, senza D/F); ciò che è «a comune» mai
+  const scopertoNominato = (f: G): boolean => { const c = categorieIn(f); return !senzaPoligoni && (c.has('D') || c.has('F')) && !c.has('V') && !c.has('X'); };
   const eMuro = (f: G) => { const o = buffer(f, -0.3, true); return o.isEmpty() || o.getArea() < 0.05; };
   // senza poligoni: lo spazio fra il disegno e il riquadro (tocca il bordo della zona) è l'esterno, non un vano
   const bordoZona = senzaPoligoni ? buffer(unione(di('A')).getBoundary(), 0.05) : null;
-  let validi = facce.filter((f) => { const rp = puntoInterno(f); return !Gz.contains(rp) && !eMuro(f) && DENTRO.contains(rp) && f.getArea() >= 0.3 && !(bordoZona && f.intersects(bordoZona)); });
+  let validi = facce.filter((f) => { const rp = puntoInterno(f); return !Gz.contains(rp) && !eMuro(f) && (DENTRO.contains(rp) || scopertoNominato(f)) && f.getArea() >= 0.3 && !(bordoZona && f.intersects(bordoZona)); });
 
   // ---- muri isolati attaccati alle facce: si tolgono le strisce sottili tagliando lungo il muro
   const taglia = (f0: G): G => {
