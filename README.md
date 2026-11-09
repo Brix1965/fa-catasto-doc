@@ -1,5 +1,18 @@
 # Fa.Catasto.Doc
 
+## ⬇️ Scarica l'ultima versione
+
+| Sistema | Clicca per scaricare |
+|---|---|
+| **Windows** (nessuna installazione) | [FaCatastoDoc-Windows-portatile.exe](https://github.com/Brix1965/fa-catasto-doc/releases/latest/download/FaCatastoDoc-Windows-portatile.exe) |
+| **Windows** (con installazione) | [FaCatastoDoc-Windows-installer.exe](https://github.com/Brix1965/fa-catasto-doc/releases/latest/download/FaCatastoDoc-Windows-installer.exe) |
+| **Mac** (Apple Silicon: M1, M2, M3, M4) | [FaCatastoDoc-macOS-AppleSilicon.dmg](https://github.com/Brix1965/fa-catasto-doc/releases/latest/download/FaCatastoDoc-macOS-AppleSilicon.dmg) |
+| **Linux** | [FaCatastoDoc-Linux.AppImage](https://github.com/Brix1965/fa-catasto-doc/releases/latest/download/FaCatastoDoc-Linux.AppImage) · [.deb](https://github.com/Brix1965/fa-catasto-doc/releases/latest/download/FaCatastoDoc-Linux.deb) |
+
+Il file si scarica subito, sempre nella versione più recente. Al primo avvio il sistema chiede una conferma:
+come rispondere è spiegato in [Installazione](#installazione). Tutti i file e le novità sono nella pagina
+[Releases](https://github.com/Brix1965/fa-catasto-doc/releases/latest).
+
 Programma indipendente e open source per compilare i documenti di aggiornamento del Catasto
 Fabbricati (dichiarazioni di nuova costruzione e di variazione) e produrre il **PDF/A da presentare
 all'Agenzia delle Entrate**, nello stesso formato prodotto da Docfa 4.
@@ -23,8 +36,8 @@ ufficiale dell'Agenzia.
 - **Tutti gli archivi provinciali insieme** invece di una provincia alla volta.
 - **Salvataggio automatico** a ogni modifica, navigazione libera tra gli schermi, pagina «Cosa manca».
 - **DXF corretto in automatico**, superfici e rendita calcolate, classamento proposto e automatico affiancati.
-- **Editor del disegno** con poligoni e spessore dei muri proposti dai vani (sperimentale), **riquadro DXF di
-  partenza**, **importazione delle visure** PDF di Sister.
+- **Planimetria in tre passi** (sperimentale): carica il DXF, genera i poligoni DocFa, riconosci i vani;
+  **editor del disegno**, **riquadro DXF di partenza**, **importazione delle visure** PDF di Sister.
 - **Vani proposti dalla planimetria** (sperimentale): il quadro C del modello 1N parte II si compila dal DXF,
   con conferma del tecnico e valori sempre modificabili. Come preparare il DXF è spiegato nella
   [guida](GUIDA.md#vani-dalla-planimetria-sperimentale).
