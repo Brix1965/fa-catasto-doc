@@ -174,3 +174,27 @@ describe('superficie fra i muri: sguinci delle finestre esclusi', () => {
     expect(cam.nota).toContain('sguinci');
   });
 });
+
+describe('poligoni: muri di confine alla mezzeria, muri esterni per intero', () => {
+  // camera 4 × 3 m con muri di 30 cm; a destra, oltre il muro, il vano scale a comune (2 × 3 m)
+  const L = (a: [number, number], b: [number, number]) => ({ tipo: 'linea' as const, layer: '0', colore: 7, spessore: 0, tipoLinea: 'CONTINUOUS', p1: a, p2: b });
+  const T = (t: string, p: [number, number]) => ({ tipo: 'testo' as const, layer: '0', colore: 7, spessore: 0, testo: t, punto: p, altezza: 0.2, rotazione: 0, allineamentoH: 'centro' as const, allineamentoV: 'medio' as const, larghezza: 1 });
+  const rett = (x0: number, y0: number, x1: number, y1: number) => [L([x0, y0], [x1, y0]), L([x1, y0], [x1, y1]), L([x1, y1], [x0, y1]), L([x0, y1], [x0, y0])];
+  const entita = [
+    ...rett(-0.3, -0.3, 6.6, 3.3), // filo esterno
+    ...rett(0, 0, 4, 3), // camera
+    ...rett(4.3, 0, 6.3, 3), // scale
+    T('camera', [2, 1.5]), T('vano scale a comune', [5.3, 1.5]),
+  ];
+  it('il poligono A arriva a metà del muro verso le scale e al filo esterno sugli altri lati', async () => {
+    const { calcolaDisegno } = await import('../worker');
+    const r = calcolaDisegno({ op: 'disegno', entita: entita as never, poligoni: [], usaPoligoni: false, riquadro: [[-2, -2], [9, -2], [9, 5], [-2, 5]] });
+    const A = r.generati.poligoni.filter((p) => p.tipo === 'A');
+    expect(A.length).toBe(1);
+    const xs = A[0].vertici.map((v) => v[0]), ys = A[0].vertici.map((v) => v[1]);
+    expect(Math.min(...xs)).toBeCloseTo(-0.3, 2); // muro esterno per intero
+    expect(Math.max(...xs)).toBeCloseTo(4.15, 2); // muro verso le scale: mezzeria
+    expect(Math.min(...ys)).toBeCloseTo(-0.3, 2);
+    expect(Math.max(...ys)).toBeCloseTo(3.3, 2);
+  });
+});

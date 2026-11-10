@@ -5,7 +5,11 @@
  * - Gli spazi a comune o di altre unità (vano scale a comune, resede a comune, androne…) non entrano mai.
  * - I muri che delimitano all'esterno balconi, terrazze e giardini vanno con questi (vademecum Docfa).
  * - Ogni poligono comprende i muri che toccano i suoi vani, fino a `spessoreMax` (60 cm): muri interni e
- *   perimetrali per intero, i muri in comune con altre unità per intero (il DPR 138/98 ne conta metà: da ritoccare).
+ *   perimetrali esterni per intero; i muri di confine con altre unità o con spazi a comune (vano scale, androne,
+ *   resede a comune, «altra u.i.») fino alla mezzeria (regola di Fabrizio, 10/11/2026; DPR 138/98, allegato C: muri
+ *   in comunione al 50%). Le altre unità si riconoscono dai testi nel DXF («altra u.i.», «altra proprietà», «… a
+ *   comune»). Una striscia stretta con scritto «altra u.i.» lungo i propri muri (l'unità vicina non è disegnata, il
+ *   testo sta nello spessore del muro) è il muro di confine: entra fino a metà.
  * - Un muro fra un vano A e uno B va al poligono A.
  */
 import type { Poligono, TipoAmbientePoligono } from '../model';
@@ -39,7 +43,7 @@ export function tipologiaPoligono(v: VanoPerPoligoni): TipoAmbientePoligono | nu
  * l'esterno non c'è nulla che le chiuda); sono muri le facce sottili dentro la fascia che toccano i vani e che non
  * stanno lungo il contorno della fascia (quella è la striscia oltre la facciata).
  */
-function muriAttorno(R: G, linee: [XY, XY][], spessoreMax: number): G[] {
+function muriAttorno(R: G, linee: [XY, XY][], spessoreMax: number, oltre: G | null = null): G[] {
   const fascia = buffer(R, spessoreMax, true);
   const bordoFascia = fascia.getBoundary();
   const vicino = buffer(R, 0.03);
@@ -52,10 +56,33 @@ function muriAttorno(R: G, linee: [XY, XY][], spessoreMax: number): G[] {
     if (!(o.isEmpty() || o.getArea() < 0.02)) continue; // non è sottile: non è un muro
     if (!f.intersects(vicino)) continue;
     if (intersezione(buffer(bordoFascia, 0.005), f.getBoundary()).getLength() > 0.35 * f.getLength()) continue;
-    W.push(f);
+    W.push(oltre && f.intersects(oltre) ? differenza(f, oltre) : f);
   }
-  return W;
+  return W.filter((w) => !w.isEmpty() && w.getArea() > 1e-4);
 }
+
+/**
+ * Muri di confine con un'altra unità o con uno spazio a comune: si tiene solo la parte più vicina ai propri vani
+ * che allo spazio confinante, cioè fino alla mezzeria. Anche il muro esterno che prosegue davanti allo spazio
+ * confinante si ferma sulla stessa mezzeria. La zona «più vicina al confine» si costruisce a passi di 1 cm:
+ * unione di (fascia di d attorno al confine) meno (fascia di d attorno ai vani), per d fino a `fino`.
+ */
+function piuVicinoAlConfine(R: G, X: G, fino: number): G {
+  const passo = 0.01;
+  const pezzi: G[] = [];
+  // si lavora solo vicino ai vani: il resto del confine non conta
+  const Xv = intersezione(X, buffer(R, fino + 0.05));
+  if (Xv.isEmpty()) return Xv;
+  for (let d = passo; d <= fino + 1e-9; d += passo) {
+    const z = differenza(buffer(Xv, d), buffer(R, d));
+    if (!z.isEmpty()) pezzi.push(z);
+  }
+  // i passi lasciano un contorno a dentini di 1-2 cm: si raddrizza entro 2 cm (0,1 mm sul foglio a 1:200)
+  return pezzi.length ? buffer(semplifica(unione(pezzi), 0.02), 0) : Xv;
+}
+
+/** testo di un'altra unità («altra u.i.», «altra proprietà»): la striscia che lo contiene può essere il muro di confine */
+const RE_ALTRA = /(^|[\s(])altr[ae]\s*(u\.?\s*i|propriet|ditta)/i;
 
 const unisciVani = (vs: VanoPerPoligoni[]): G | null => {
   const r = vs.flatMap((v) => v.contorni.filter((c) => c.length >= 3).map((c) => poligono(c)));
@@ -64,11 +91,35 @@ const unisciVani = (vs: VanoPerPoligoni[]): G | null => {
 
 export function generaPoligoni(vani: VanoPerPoligoni[], linee: [XY, XY][], spessoreMax = 0.6): PoligoniGenerati {
   const avvisi: string[] = [];
+  // strisce strette con «altra u.i.» (≤ 1,2 m): sono il muro di confine, l'unità vicina non è disegnata
+  const strisce: { g: G; spessore: number }[] = [];
+  const altriSpazi: VanoPerPoligoni[] = [];
+  for (const v of vani.filter((x) => x.comune)) {
+    const g = unisciVani([v]);
+    if (!g) continue;
+    const spessore = (2 * g.getArea()) / g.getLength();
+    if ((v.testi ?? []).some((t) => RE_ALTRA.test(t)) && spessore <= 1.2) strisce.push({ g, spessore });
+    else altriSpazi.push(v);
+  }
+  // spazi di altre unità e a comune: i muri verso di loro si fermano alla mezzeria
+  const confine = unisciVani(altriSpazi);
   const impronta = (tipo: TipoAmbientePoligono): G | null => {
     const R = unisciVani(vani.filter((v) => tipologiaPoligono(v) === tipo));
     if (!R) return null;
-    // chiusura: riempie le fessure fra vani e muri più strette di 30 cm (tramezzi non chiusi nel disegno)
-    return buffer(buffer(unione([R, ...muriAttorno(R, linee, spessoreMax)]), 0.15, true), -0.15, true);
+    // la parte dei muri più vicina agli spazi confinanti che ai propri vani non è dell'unità (mezzeria)
+    const oltre = confine && confine.distance(R) <= spessoreMax ? piuVicinoAlConfine(R, confine, spessoreMax) : null;
+    const muri = muriAttorno(R, linee, spessoreMax, oltre).map((f) => (strisce.length ? differenza(f, unione(strisce.map((x) => x.g))) : f)).filter((f) => !f.isEmpty());
+    // metà della striscia di confine verso i propri vani
+    for (const { g, spessore } of strisce) {
+      if (g.distance(R) > 0.6) continue;
+      const meta = intersezione(g, buffer(R, R.distance(g) + spessore / 2, true));
+      if (!meta.isEmpty()) muri.push(meta);
+    }
+    // chiusura: riempie le fessure fra vani e muri più strette di 30 cm (tramezzi non chiusi nel disegno); verso gli
+    // spazi confinanti la chiusura non deve riempire di nuovo la metà di muro tolta
+    const chiuso = buffer(buffer(unione([R, ...muri]), 0.15, true), -0.15, true);
+    const vietato = [...(oltre ? [oltre] : []), ...strisce.map((x) => x.g)];
+    return vietato.length ? differenza(chiuso, differenza(unione(vietato), unione([R, ...muri]))) : chiuso;
   };
   // in ordine di precedenza: un muro fra un vano e il giardino va al vano, fra terrazza e giardino alla terrazza
   const ordine: TipoAmbientePoligono[] = ['A', 'B', 'C', 'D', 'F'];

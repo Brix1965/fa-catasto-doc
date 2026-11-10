@@ -235,8 +235,15 @@ fatto e, finito, mostra la spunta verde.
 Poligoni generati: **A** vani e accessori diretti con i loro muri, **B** accessori indiretti comunicanti, **C** locali
 staccati dall'abitazione (es. ripostiglio in giardino), **D** balconi, terrazze, logge e portici, **F** giardini,
 corti, resedi, aie e orti. Gli spazi **a comune** o di altre unità (vano scale a comune, resede a comune, androne,
-«altra u.i.») non entrano mai; una corte o una terrazza senza «a comune» è dell'unità. Sono proposte: i muri in
-comune con altre unità sono compresi per intero (il DPR 138/98 ne conta metà): correggi a mano.
+«altra u.i.») non entrano mai; una corte o una terrazza senza «a comune» è dell'unità.
+**Muri**: i muri interni e quelli esterni (verso la strada, il cortile, il giardino) entrano per intero; i muri di
+confine con un'altra unità o con uno spazio a comune entrano **fino alla mezzeria**. Perché il programma li
+riconosca, nel DXF scrivi il testo nello spazio confinante («vano scale a comune», «altra u.i.», «altra proprietà»);
+se l'unità vicina non è disegnata basta scrivere «altra u.i.» nello spessore del muro di confine. Sono sempre
+proposte: controllale sull'anteprima.
+
+Il passo 3 ha la spunta solo se i vani sono stati confermati **dopo** l'ultima «Genera poligoni DocFa»: rigenerando
+i poligoni i vani vanno riconosciuti di nuovo.
 
 Nel dettaglio:
 1. Scegli l'unità e premi **«Aggiungi planimetria»**, poi **«1 Carica DXF»**.

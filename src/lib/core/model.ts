@@ -205,6 +205,8 @@ export interface Planimetria {
   poligoni: Poligono[];
   /** i poligoni sono già stati letti dal DXF: un elenco vuoto vuol dire «eliminati dal tecnico», non «da leggere» */
   poligoniLetti?: boolean;
+  /** ISO 8601 dell'ultimo «Genera poligoni DocFa»: i vani confermati prima vanno riconosciuti di nuovo */
+  poligoniGenerati?: string;
   /** superficie dichiarata totale (m²) */
   superficieDichiarata?: number;
   /** più schede (fogli) della stessa planimetria: una riga per scheda nell'indice allegati */
@@ -230,6 +232,8 @@ export interface SchedaGrafica {
   poligoni: Poligono[];
   /** come in Planimetria: poligoni già letti dal DXF */
   poligoniLetti?: boolean;
+  /** come in Planimetria: quando sono stati generati i poligoni */
+  poligoniGenerati?: string;
   ntf?: Uint8Array;
   tiff?: Uint8Array;
 }

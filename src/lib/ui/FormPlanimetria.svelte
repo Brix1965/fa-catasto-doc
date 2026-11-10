@@ -223,6 +223,8 @@
       if (!nuovi.length) { esitoPoligoni = { testo: 'Nessun poligono generato: controlla che i muri del disegno siano chiusi e che i locali abbiano il nome.', avvisi }; return; }
       s.poligoni = nuovi;
       s.poligoniLetti = true;
+      // i vani riconosciuti prima di questi poligoni non valgono più: il passo 3 torna da fare
+      s.poligoniGenerati = new Date().toISOString();
       selezionato = null;
       const elenco = nuovi.map((p) => `${NOMI_TIPO[p.tipo]} ${area(p).toFixed(2).replace('.', ',')} m²`).join(', ');
       esitoPoligoni = { testo: `${nuovi.length} poligoni generati: ${elenco}. Controllali sull'anteprima: clic su un poligono per cambiarne il tipo o la forma, o per eliminarlo.`, avvisi };
@@ -244,7 +246,13 @@
     unita.mod1NParteII ??= nuovoMod1NParteII();
     vaniAperti = true;
   }
-  const vaniConfermati = $derived(!!unita.mod1NParteII?.propostaVani);
+  /** passo 3 fatto: vani confermati dopo l'ultima generazione dei poligoni (di qualsiasi scheda) */
+  const vaniConfermati = $derived.by(() => {
+    const c = unita.mod1NParteII?.propostaVani?.confermata;
+    if (!c) return false;
+    const generati = pl ? [pl, ...(pl.altreSchede ?? [])].map((x) => x.poligoniGenerati ?? '').sort().pop() ?? '' : '';
+    return !generati || c > generati;
+  });
   /** disegno salvato dall'editor: nuovo DXF e poligoni; il DXF di prima si conserva (una volta sola) */
   function salvaDisegno(dxf: string, poligoni: Planimetria['poligoni']): void {
     const s = sc;
