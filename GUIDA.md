@@ -67,6 +67,10 @@ far sbagliare meno il tecnico.
 - **Correzione automatica del DXF** all'importazione, con il resoconto di cosa è stato corretto: disegno in cm
   o mm convertito in metri, riquadro spostato nell'origine, oggetti fuori dal riquadro eliminati, tratteggi,
   immagini e oggetti 3D ignorati, poligoni aperti chiusi, colori ricondotti a quelli ammessi, e altro.
+- **Linee tratteggiate uniformi**: qualunque sia il tipo di linea e la sua scala nel DXF, nella planimetria le
+  linee tratteggiate (NASCOSTA, HIDDEN, DASHED…) escono con tratti di 1,5 mm e spazi di 0,75 mm sul foglio; le
+  linee a **tratto e punto** (DASHDOT, TRATTOPUNTO, CENTER…: di solito il confine del fabbricato o del lotto)
+  restano a tratto e punto, con tratti di 5 mm. Le misure sono sul foglio, quindi vanno bene a ogni scala.
 - **Anteprima immediata** della scheda con cartiglio, come verrà stampata, con i poligoni sovrapposti:
   cliccandone uno si evidenzia nella tabella. Il tipo di poligono (A, A2, B…G) si cambia e un poligono
   si elimina senza tornare al CAD.
@@ -269,7 +273,7 @@ Nel dettaglio:
 - **Selezione**: se il bordo di un poligono è sopra una linea del disegno, **clic di nuovo nello stesso punto**
   per prendere l'oggetto sotto, oppure **«Seleziona: solo poligoni»** in alto (impostato da solo quando l'editor
   si apre da «Modifica la forma»).
-- Oggetto selezionato: per le linee si cambia **tratteggiata/continua** e **muro sezionato** (spessore), si
+- Oggetto selezionato: per le linee si sceglie **continua, tratteggiata o tratto e punto (confine)** e **muro sezionato** (spessore), si
   spostano gli estremi trascinando i quadratini; per i testi si corregge il testo e l'altezza; per i poligoni si
   cambia il tipo e l'altezza < 1,50 m e se ne corregge la forma:
   - **trascina un vertice** per spostarlo; con **Ortogonale** (o Maiusc) si allinea ai due vertici vicini, così i

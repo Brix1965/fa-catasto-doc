@@ -10,6 +10,7 @@
   import type { Entita, LayerDxf, Punto2 } from '$lib/core/raster/dxf';
   import { preparaDxf } from '$lib/core/raster/dxf-correzioni';
   import { dxfPerFile, scriviDxf } from '$lib/core/raster/dxf-scrivi';
+  import { stileLinea, type StileLinea } from '$lib/core/raster/tipi-linea';
   import { haAltezza } from '$lib/core/superfici';
   import { aggancia, allineaAiVicini, area, dentro, direzionePrincipale, dist, distanzaEntita, distSegmento, limiti, puntiAggancio, puntiArco, segmentiEntita, semplificaVertici, squadraPoligono, type Aggancio } from '$lib/core/disegno/geometria';
   import { analizzaDisegnoInBackground } from '$lib/core/vani/esegui';
@@ -27,14 +28,17 @@
   const COLORE_TIPO: Record<TipoAmbientePoligono, string> = { A: '#e11d48', B: '#ca8a04', C: '#16a34a', D: '#0891b2', E: '#2563eb', F: '#c026d3', G: '#475569', H: '#78716c' };
   const NOMI_TIPO: Record<TipoAmbientePoligono, string> = { A: 'A', B: 'B', C: 'C', D: 'D', E: 'E', F: 'F', G: 'G', H: 'A2' };
   const COLORE_VANO: Record<string, string> = { principale: '#e11d48', bagno: '#2563eb', diretto: '#f59e0b', verificare: '#f59e0b', indiretto: '#16a34a', escluso: '#9ca3af' };
-  const CONTINUE = new Set(['', 'CONTINUOUS', 'CONTINUA', 'BYLAYER', 'BYBLOCK']);
-  const tratteggiata = (e: Entita) => !CONTINUE.has((e.tipoLinea ?? '').toUpperCase());
+  // tipi di linea: continua, tratteggiata, tratto e punto (confine); nella planimetria con misure uniformi
+  const stile = (e: Entita): StileLinea => stileLinea(e.tipoLinea, tipiLinea);
+  const NOME_STILE: Record<StileLinea, string> = { continua: 'CONTINUOUS', tratteggio: 'TRATTEGGIO', trattopunto: 'TRATTOPUNTO' };
+  const TRATTI_SCHERMO: Record<StileLinea, string | undefined> = { continua: undefined, tratteggio: '6 4', trattopunto: '14 4 2 4' };
 
   // ---- dati del disegno
   let entita = $state<Entita[]>([]);
   let poligoni = $state<Poligono[]>([]);
   let riquadro = $state.raw<Punto2[] | null>(null);
   let layers = $state.raw<Record<string, LayerDxf>>({});
+  let tipiLinea = $state.raw<Record<string, number[]>>({});
   let errore = $state('');
   let modificato = $state(false);
   let storia: string[] = [];
@@ -48,7 +52,7 @@
   let agg = $state<Aggancio | null>(null);
   let ortogonale = $state(false);
   let agganciAttivi = $state(true);
-  let nuovaTratteggiata = $state(false);
+  let nuovoStile = $state<StileLinea>('continua');
   let nuovaMuro = $state(false);
   let nuovoTipo = $state<TipoAmbientePoligono>('A');
   let mostraPoligoni = $state(true);
@@ -87,6 +91,7 @@
       if (!poligoni.length && !scheda.poligoniLetti) poligoni = p.letto.poligoni;
       riquadro = p.letto.riquadro;
       layers = p.letto.layers;
+      tipiLinea = p.letto.tipiLinea ?? {};
       usaPoligoni = poligoni.length > 0;
       adatta();
       // aperto da un poligono dell'anteprima: si parte con quello selezionato
@@ -351,7 +356,7 @@
         const a = punti[punti.length - 1];
         if (dist(a, p) > 1e-6) {
           memorizza();
-          entita.push({ tipo: 'linea', layer: '0', colore: 7, spessore: nuovaMuro ? spessoreMuro : 0, tipoLinea: nuovaTratteggiata ? 'TRATTEGGIO' : 'CONTINUOUS', p1: a, p2: p });
+          entita.push({ tipo: 'linea', layer: '0', colore: 7, spessore: nuovaMuro ? spessoreMuro : 0, tipoLinea: NOME_STILE[nuovoStile], p1: a, p2: p });
         }
       }
       punti = [...punti, p];
@@ -445,7 +450,7 @@
   function dxfAttuale(): string {
     const ly: Record<string, { colore?: number; tipoLinea?: string; spento?: boolean }> = {};
     for (const [k, l] of Object.entries(layers)) if (k !== 'DOCFA_POLIGONI' && k !== 'RIQUADRO') ly[k] = { colore: l.colore, tipoLinea: l.tipoLinea };
-    return scriviDxf({ entita: $state.snapshot(entita) as Entita[], poligoni: $state.snapshot(poligoni) as Poligono[], riquadro, layers: ly });
+    return scriviDxf({ entita: $state.snapshot(entita) as Entita[], poligoni: $state.snapshot(poligoni) as Poligono[], riquadro, layers: ly, tipiLinea });
   }
   function salva(): void {
     onsalva(dxfAttuale(), $state.snapshot(poligoni) as Poligono[]);
@@ -566,7 +571,7 @@
                 {@const s = sel?.k === 'entita' && sel.i === i}
                 {@const colore = s ? '#2563eb' : 'currentColor'}
                 {@const w = (e.spessore > 0 ? 2.6 : 1) + (s ? 1 : 0)}
-                {@const da = tratteggiata(e) ? '6 4' : undefined}
+                {@const da = TRATTI_SCHERMO[stile(e)]}
                 {#if e.tipo === 'linea'}
                   <line x1={e.p1[0]} y1={Y(e.p1[1])} x2={e.p2[0]} y2={Y(e.p2[1])} stroke={colore} stroke-width={w} stroke-dasharray={da} vector-effect="non-scaling-stroke" class="text-neutral-800 dark:text-neutral-200" />
                 {:else if e.tipo === 'polilinea'}
@@ -575,7 +580,7 @@
                 {:else if e.tipo === 'arco'}
                   <path d={percorsoArco(e)} fill="none" stroke={colore} stroke-width={w} stroke-dasharray={da} vector-effect="non-scaling-stroke" class="text-neutral-800 dark:text-neutral-200" />
                 {:else if e.tipo === 'cerchio'}
-                  <circle cx={e.centro[0]} cy={Y(e.centro[1])} r={e.raggio} fill="none" stroke={colore} stroke-width={w} vector-effect="non-scaling-stroke" class="text-neutral-800 dark:text-neutral-200" />
+                  <circle cx={e.centro[0]} cy={Y(e.centro[1])} r={e.raggio} fill="none" stroke={colore} stroke-width={w} stroke-dasharray={da} vector-effect="non-scaling-stroke" class="text-neutral-800 dark:text-neutral-200" />
                 {:else if e.tipo === 'testo'}
                   <text x={e.punto[0]} y={Y(e.punto[1])} font-size={e.altezza * 1.4} text-anchor={ancoraH[e.allineamentoH]} dominant-baseline={baseV[e.allineamentoV]} transform={e.rotazione ? `rotate(${-e.rotazione} ${e.punto[0]} ${Y(e.punto[1])})` : undefined} fill={s ? '#2563eb' : 'currentColor'} class="text-neutral-800 dark:text-neutral-200" font-family="Arial, sans-serif">{e.testo}</text>
                 {/if}
@@ -593,7 +598,7 @@
                 {#if strumento === 'poligono'}
                   <polyline points={pts([...punti, cursore])} fill={COLORE_TIPO[nuovoTipo]} fill-opacity="0.12" stroke={COLORE_TIPO[nuovoTipo]} stroke-width="1.5" vector-effect="non-scaling-stroke" />
                 {:else}
-                  <polyline points={pts([...punti.slice(-1), cursore])} fill="none" stroke="#2563eb" stroke-width="1.5" stroke-dasharray={strumento === 'misura' || nuovaTratteggiata ? '6 4' : undefined} vector-effect="non-scaling-stroke" />
+                  <polyline points={pts([...punti.slice(-1), cursore])} fill="none" stroke="#2563eb" stroke-width="1.5" stroke-dasharray={strumento === 'misura' ? '6 4' : TRATTI_SCHERMO[nuovoStile]} vector-effect="non-scaling-stroke" />
                 {/if}
               {/if}
               {#if strumento === 'misura' && punti.length === 2}<line x1={punti[0][0]} y1={Y(punti[0][1])} x2={punti[1][0]} y2={Y(punti[1][1])} stroke="#2563eb" stroke-width="1.5" stroke-dasharray="6 4" vector-effect="non-scaling-stroke" />{/if}
@@ -610,7 +615,7 @@
           {#if strumento === 'linea'}
             <section class="space-y-1.5">
               <h3 class="text-xs font-semibold text-fg-muted">Nuove linee</h3>
-              <label class="flex items-center gap-2"><input type="checkbox" class="check" bind:checked={nuovaTratteggiata} /> tratteggiata (porta, altezza diversa)</label>
+              <label class="flex items-center gap-2">Linea <select class="campo campo-piccolo w-auto" bind:value={nuovoStile}><option value="continua">continua</option><option value="tratteggio">tratteggiata (porta, altezza diversa)</option><option value="trattopunto">tratto e punto (confine)</option></select></label>
               <label class="flex items-center gap-2"><input type="checkbox" class="check" bind:checked={nuovaMuro} /> muro sezionato (spessore {fmt(spessoreMuro, 3)})</label>
             </section>
           {:else if strumento === 'poligono'}
@@ -629,7 +634,7 @@
                 <label class="flex items-center gap-2 text-xs">Altezza <input type="number" step="0.05" min="0.05" class="campo campo-piccolo w-24" value={entSel.altezza} onchange={(e) => { const v = Number(e.currentTarget.value); if (v > 0) cambiaEnt((x) => { if (x.tipo === 'testo') x.altezza = v; }); }} /> m</label>
                 <p class="text-xs text-fg-muted">Nomi riconosciuti: camera, soggiorno, cucina, bagno, wc, ingresso, corridoio, disimpegno, rip., cantina, soffitta… Altezze: h270.</p>
               {:else}
-                <label class="flex items-center gap-2"><input type="checkbox" class="check" checked={tratteggiata(entSel)} onchange={(e) => { const v = e.currentTarget.checked; cambiaEnt((x) => (x.tipoLinea = v ? 'TRATTEGGIO' : 'CONTINUOUS')); }} /> tratteggiata</label>
+                <label class="flex items-center gap-2">Linea <select class="campo campo-piccolo w-auto" value={stile(entSel)} onchange={(e) => { const v = e.currentTarget.value as StileLinea; if (v !== stile(entSel)) cambiaEnt((x) => (x.tipoLinea = NOME_STILE[v])); }}><option value="continua">continua</option><option value="tratteggio">tratteggiata</option><option value="trattopunto">tratto e punto (confine)</option></select></label>
                 {#if entSel.tipo === 'linea' || entSel.tipo === 'polilinea'}
                   <label class="flex items-center gap-2"><input type="checkbox" class="check" checked={entSel.spessore > 0} onchange={(e) => { const v = e.currentTarget.checked; cambiaEnt((x) => (x.spessore = v ? spessoreMuro : 0)); }} /> muro sezionato (spessore)</label>
                 {/if}

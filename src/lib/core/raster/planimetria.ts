@@ -12,6 +12,7 @@ import { dxfToPx, FOGLI, type FoglioPlanimetria } from '../ntf';
 import { Bitmap, type OpzioniTesto } from './bitmap';
 import { rilevaFoglio, type DxfLetto, type Entita } from './dxf';
 import { preparaDxf } from './dxf-correzioni';
+import { SCHEMA_MM, stileLinea, tratteggiaPercorso } from './tipi-linea';
 import { codificaG4 } from './g4';
 import { AREA_DISEGNO, caricaModello, type FormatoModello, type TipoModello } from './modelli';
 import { scriviTiffG4 } from './tiff';
@@ -139,15 +140,54 @@ function spessorePx(spessoreM: number, pxPerM: number): number {
   return Math.max(1, Math.round(spessoreM * pxPerM));
 }
 
+/** pixel per millimetro sul foglio (200 dpi) */
+const PX_PER_MM = 200 / 25.4;
+const SCHEMA_PX = {
+  tratteggio: SCHEMA_MM.tratteggio.map((x) => x * PX_PER_MM),
+  trattopunto: SCHEMA_MM.trattopunto.map((x) => x * PX_PER_MM),
+};
+
+/** Punti (in pixel) di un arco da `inizio` a `fine` (gradi, antiorari come nel DXF), con corde di circa 2 px. */
+function puntiArco(cx: number, cy: number, r: number, inizio: number, fine: number, completo: boolean): [number, number][] {
+  let amp = completo ? 360 : (((fine - inizio) % 360) + 360) % 360;
+  if (!completo && amp === 0) amp = 360;
+  const passi = Math.min(5000, Math.max(8, Math.ceil(((amp * Math.PI) / 180) * r / 2)));
+  const out: [number, number][] = [];
+  for (let i = 0; i <= passi; i++) {
+    const a = ((inizio + (amp * i) / passi) * Math.PI) / 180;
+    out.push([cx + r * Math.cos(a), cy - r * Math.sin(a)]);
+  }
+  return out;
+}
+
 /**
  * Disegna le entità del DXF sulla bitmap, trasformandole con dxfToPx (metri → pixel).
- * Gli spessori (thickness/larghezza) diventano larghezze di penna; i testi usano il font a tratti.
+ * Le linee tratteggiate e a tratto e punto usano schemi uniformi sul foglio (vedi tipi-linea.ts);
+ * `tipiLinea` sono gli schemi del DXF, servono solo a riconoscere lo stile. Gli spessori (thickness/larghezza)
+ * diventano larghezze di penna; i testi usano il font a tratti.
  */
-export function disegnaEntita(bm: Bitmap, entita: Entita[], foglio: FoglioPlanimetria): void {
+export function disegnaEntita(bm: Bitmap, entita: Entita[], foglio: FoglioPlanimetria, tipiLinea?: Record<string, number[]>): void {
   const k = pxPerMetro(foglio);
   const P = (p: [number, number]): [number, number] => dxfToPx(p[0], p[1], foglio);
   for (const e of entita) {
     const sp = spessorePx(e.spessore, k);
+    const stile = e.tipo === 'testo' ? 'continua' : stileLinea(e.tipoLinea, tipiLinea);
+    if (stile !== 'continua') {
+      let punti: [number, number][] = [];
+      let chiuso = false;
+      if (e.tipo === 'linea') punti = [P(e.p1), P(e.p2)];
+      else if (e.tipo === 'polilinea') { punti = e.punti.map(P); chiuso = e.chiusa; }
+      else if (e.tipo === 'cerchio' || e.tipo === 'arco') {
+        const [cx, cy] = P(e.centro);
+        const r = e.raggio * k;
+        if (!(cx + r < 0 || cy + r < 0 || cx - r > bm.width || cy - r > bm.height)) {
+          punti = e.tipo === 'cerchio' ? puntiArco(cx, cy, r, 0, 360, true) : puntiArco(cx, cy, r, e.inizio, e.fine, false);
+          if (e.tipo === 'cerchio') { punti.pop(); chiuso = true; }
+        }
+      }
+      for (const t of tratteggiaPercorso(punti, chiuso, SCHEMA_PX[stile])) bm.polilinea(t, sp, false);
+      continue;
+    }
     switch (e.tipo) {
       case 'linea': {
         const [x0, y0] = P(e.p1), [x1, y1] = P(e.p2);
@@ -210,7 +250,7 @@ async function componiScheda(
 
   // disegno su un livello separato, poi copiato solo dentro il riquadro
   const livello = new Bitmap(modello.width, modello.height);
-  disegnaEntita(livello, dxf.entita, foglio);
+  disegnaEntita(livello, dxf.entita, foglio, dxf.tipiLinea);
   for (let y = area.y0; y <= area.y1; y++) {
     for (let x = area.x0; x <= area.x1; x++) {
       if (livello.getPixel(x, y)) modello.setPixel(x, y, true);

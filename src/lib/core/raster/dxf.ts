@@ -67,6 +67,8 @@ export interface DxfLetto {
   /** vertici del riquadro (layer RIQUADRO), se presente */
   riquadro: Punto2[] | null;
   layers: Record<string, LayerDxf>;
+  /** schemi dei tipi di linea (tabella LTYPE, gruppi 49): nome in maiuscolo → tratti (> 0), spazi (< 0), punti (0) */
+  tipiLinea?: Record<string, number[]>;
   /** $ACADVER dell'header (es. AC1015) */
   versione: string;
   /** entità grezze del layer DOCFA_POLIGONI (per le correzioni: colori, linee da unire) */
@@ -539,6 +541,7 @@ function nomeLayerNormalizzato(s: string): string { return s.trim().toUpperCase(
 export function leggiDxf(testo: string): DxfLetto {
   const gruppi = tokenizza(testo);
   const layers: Record<string, LayerDxf> = {};
+  const tipiLinea: Record<string, number[]> = {};
   const blocchi = new Map<string, { base: Punto2; entita: EntitaGrezza[] }>();
   let grezze: EntitaGrezza[] = [];
   let versione = '';
@@ -555,10 +558,19 @@ export function leggiDxf(testo: string): DxfLetto {
       } else if (nome === 'TABLES') {
         let corrente: LayerDxf | null = null;
         let inLayer = false;
+        let inLtype = false;
+        let lt: { nome: string; el: number[] } | null = null;
         for (; i < gruppi.length && !(gruppi[i].codice === 0 && gruppi[i].valore === 'ENDSEC'); i++) {
           const x = gruppi[i];
-          if (x.codice === 0 && x.valore === 'TABLE') { inLayer = gruppi[i + 1]?.valore.trim() === 'LAYER'; corrente = null; continue; }
-          if (x.codice === 0 && x.valore === 'ENDTAB') { inLayer = false; corrente = null; continue; }
+          if (x.codice === 0 && x.valore === 'TABLE') { const t = gruppi[i + 1]?.valore.trim(); inLayer = t === 'LAYER'; inLtype = t === 'LTYPE'; corrente = null; lt = null; i++; continue; }
+          if (x.codice === 0 && x.valore === 'ENDTAB') { inLayer = false; inLtype = false; corrente = null; lt = null; continue; }
+          if (inLtype) {
+            if (x.codice === 0) { lt = x.valore === 'LTYPE' ? { nome: '', el: [] } : null; continue; }
+            if (!lt) continue;
+            if (x.codice === 2) { lt.nome = x.valore.trim().toUpperCase(); tipiLinea[lt.nome] = lt.el; }
+            else if (x.codice === 49) { const v = Number(x.valore); if (Number.isFinite(v)) lt.el.push(v); }
+            continue;
+          }
           if (!inLayer) continue;
           if (x.codice === 0 && x.valore === 'LAYER') { corrente = { nome: '', colore: 7, spento: false, congelato: false }; continue; }
           if (!corrente) continue;
@@ -655,7 +667,7 @@ export function leggiDxf(testo: string): DxfLetto {
     }
     for (const x of suRiquadro) if (x.tipo !== 'linea') entita.push(x);
   }
-  return { entita, poligoni, riquadro, layers, versione, grezzePoligoni, statistiche: { suLayerNascosti, nonGestiti, altriLayer: [...altriLayer].sort() } };
+  return { entita, poligoni, riquadro, layers, tipiLinea, versione, grezzePoligoni, statistiche: { suLayerNascosti, nonGestiti, altriLayer: [...altriLayer].sort() } };
 }
 
 /** Dimensioni del riquadro del disegno in centimetri sul foglio, per formato. */

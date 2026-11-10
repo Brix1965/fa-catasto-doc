@@ -8,6 +8,7 @@
 import type { Poligono, TipoAmbientePoligono } from '../model';
 import { LAYER_POLIGONI, LAYER_RIQUADRO, type Entita, type Punto2 } from './dxf';
 import { encode1252 } from '../bytes';
+import { CONTINUE, stileLinea } from './tipi-linea';
 
 export interface DisegnoDxf {
   entita: Entita[];
@@ -16,10 +17,11 @@ export interface DisegnoDxf {
   riquadro?: Punto2[] | null;
   /** colori e tipi di linea dei layer (facoltativi) */
   layers?: Record<string, { colore?: number; tipoLinea?: string; spento?: boolean }>;
+  /** schemi dei tipi di linea del DXF di partenza (tabella LTYPE): si riscrivono uguali */
+  tipiLinea?: Record<string, number[]>;
 }
 
 const COLORE_TIPO: Record<TipoAmbientePoligono, number> = { A: 1, B: 2, C: 3, D: 4, E: 5, F: 6, G: 7, H: 8 };
-const CONTINUE = new Set(['', 'CONTINUOUS', 'CONTINUA', 'BYLAYER', 'BYBLOCK']);
 
 const n = (v: number): string => {
   if (!Number.isFinite(v)) return '0';
@@ -58,7 +60,13 @@ export function scriviDxf(d: DisegnoDxf): string {
   for (const t of tipiLinea) {
     g(0, 'LTYPE'); g(2, t); g(70, 0);
     if (t === 'CONTINUOUS') { g(3, 'Solid line'); g(72, 65); g(73, 0); g(40, 0); }
-    else { g(3, '__ __ __'); g(72, 65); g(73, 2); g(40, 0.15); g(49, 0.1); g(49, -0.05); }
+    else {
+      // schema originale se c'è, altrimenti uno standard secondo lo stile (tratteggio o tratto e punto, in metri a 1:200)
+      const orig = d.tipiLinea?.[t];
+      const el = orig && orig.length ? orig : stileLinea(t) === 'trattopunto' ? [1, -0.25, 0, -0.25] : [0.3, -0.15];
+      g(3, el.some((x) => x === 0) ? '__ . __ .' : '__ __ __'); g(72, 65); g(73, el.length); g(40, el.reduce((a, x) => a + Math.abs(x), 0));
+      for (const x of el) g(49, x);
+    }
   }
   g(0, 'ENDTAB');
   g(0, 'TABLE'); g(2, 'LAYER'); g(70, layers.size);
