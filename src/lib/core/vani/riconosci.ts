@@ -10,7 +10,9 @@
  * - tipo dal testo nel vano (camera, bagno, ingresso, dis. …); dentro i poligoni B/C = accessorio indiretto;
  * - G e croci (X) = nessun vano; scala interna contata una volta, intera, al piano dell'unità;
  * - locale chiuso senza nome > 1 m² = accessorio diretto «da verificare»;
- * - superfici al m² intero, vano per vano (da 0,5 per eccesso), totali = somma dei vani arrotondati.
+ * - superfici al m² intero, vano per vano (da 0,5 per eccesso), totali = somma dei vani arrotondati;
+ * - superficie misurata fra i muri: sguinci delle finestre, stipiti, soglie, archi e nicchie nello spessore dei muri
+ *   non contano (si taglia lungo il filo del muro).
  * Il risultato è una PROPOSTA: il tecnico cambia il tipo di ogni vano, lo esclude, e corregge i totali.
  */
 import type { Entita } from '../raster/dxf';
@@ -50,6 +52,12 @@ export interface VanoRiconosciuto {
   comune?: boolean;
   /** locale staccato dall'abitazione (es. ripostiglio in giardino): accessorio non comunicante, poligono C */
   staccato?: boolean;
+  /** contorni prima di togliere sguinci, soglie e nicchie (per i poligoni, che comprendono i muri) */
+  contorniLordi?: XY[][];
+  /** forma corretta a mano dal tecnico nella finestra dei vani */
+  forma?: boolean;
+  /** il vano proposto dal programma, prima delle correzioni della forma */
+  originale?: { superficie: number; centro: XY; contorni: XY[][] };
 }
 
 export interface OpzioniVani {
@@ -152,6 +160,18 @@ function distSeg(p: XY, a: XY, b: XY): number {
   return Math.hypot(p[0] - a[0] - t * dx, p[1] - a[1] - t * dy);
 }
 /** i segmenti pq e ab si incrociano (estremi compresi) */
+/** punto dentro un quadrilatero convesso (vertici in ordine) */
+function dentroQuad(p: XY, q: XY[]): boolean {
+  let segno = 0;
+  for (let k = 0; k < q.length; k++) {
+    const a = q[k], b = q[(k + 1) % q.length];
+    const c = (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]);
+    if (Math.abs(c) < 1e-12) continue;
+    if (segno === 0) segno = Math.sign(c);
+    else if (Math.sign(c) !== segno) return false;
+  }
+  return true;
+}
 function intersecaSeg(p: XY, q: XY, a: XY, b: XY): boolean {
   const o = (u: XY, v: XY, w: XY) => (v[0] - u[0]) * (w[1] - u[1]) - (v[1] - u[1]) * (w[0] - u[0]);
   const d1 = o(a, b, p), d2 = o(a, b, q), d3 = o(p, q, a), d4 = o(p, q, b);
@@ -399,10 +419,24 @@ export function riconosciVani(entita: Entita[], poligoni: Poligono[], opzioni: O
       // il raggio corre lungo una linea esistente: siamo dentro lo spessore di un muro (fra due finestre), non in un vano
       if (lungoLinee(a, ha) || lungoLinee(b, hb)) return;
       // nel vano dell'apertura c'è una linea parallela (il vetro di una finestra, il davanzale): è una finestra, non
-      // una porta; lo sguincio resta del locale e non si chiude
+      // una porta. Lo sguincio non è superficie del locale (regola catastale: si misura fra i muri, esclusi sguinci,
+      // stipiti e soglie): si chiude sul filo dei due lati del muro, come una porta, ma non unisce mai due locali
       const cm0: XY = [(a[0] + b[0] + ha[0] + hb[0]) / 4, (a[1] + b[1] + ha[1] + hb[1]) / 4];
       const dentro = (q: XY) => segs.some(([s0, s1]) => intersecaSeg(cm0, q, s0, s1));
-      if (dentro([cm0[0] + d[0] * (L / 2 + 0.1), cm0[1] + d[1] * (L / 2 + 0.1)]) || dentro([cm0[0] - d[0] * (L / 2 + 0.1), cm0[1] - d[1] * (L / 2 + 0.1)])) return;
+      if (dentro([cm0[0] + d[0] * (L / 2 + 0.1), cm0[1] + d[1] * (L / 2 + 0.1)]) || dentro([cm0[0] - d[0] * (L / 2 + 0.1), cm0[1] - d[1] * (L / 2 + 0.1)])) {
+        // finestra vera: il vetro (o il davanzale) sta tutto nel vano dell'apertura, da una spalla all'altra, e i due
+        // raggi finiscono sull'altra spalla. Una linea che attraversa soltanto (il muro di un locale) non è un vetro:
+        // quella «apertura» è il locale stesso e non si chiude
+        const w = Math.min(ta, tb);
+        const quad = [a, ha, hb, b];
+        const nelVano = (q: XY) => quad.some((x, k) => distSeg(q, x, quad[(k + 1) % 4]) < 0.03) || dentroQuad(q, quad);
+        const vetro = segs.some(([s0, s1]) => {
+          const e = versore(s0, s1);
+          return Math.abs(e[0] * r[1] - e[1] * r[0]) < 0.05 && dist(s0, s1) >= 0.6 * w && nelVano(s0) && nelVano(s1);
+        });
+        if (vetro && pa.testa && pb.testa && w <= 2.6) chiusure.push(linea(a, ha), linea(b, hb));
+        return;
+      }
       chiusure.push(linea(a, ha), linea(b, hb));
       const cm: XY = [(a[0] + b[0] + ha[0] + hb[0]) / 4, (a[1] + b[1] + ha[1] + hb[1]) / 4], mj = L / 2 + 0.12;
       aperture.push({ w: Math.min(ta, tb), striscia: poligono([a, ha, hb, b]).convexHull(), da: 'testa', lati: [[cm[0] + d[0] * mj, cm[1] + d[1] * mj], [cm[0] - d[0] * mj, cm[1] - d[1] * mj]] });
@@ -533,7 +567,7 @@ export function riconosciVani(entita: Entita[], poligoni: Poligono[], opzioni: O
       const ca = [...categorieIn(geo.get(vicini[0]))].filter((c) => c !== 'V'), cb = [...categorieIn(geo.get(vicini[1]))].filter((c) => c !== 'V');
       if (ca.join() !== cb.join()) continue;
       const hs = vicini.map((k) => Math.min(...(altezzeIn(geo.get(k)).length ? altezzeIn(geo.get(k)) : [2.4])));
-      if (w * Math.min(...hs) > 4 && radice(vicini[0]) !== radice(vicini[1])) { padre[radice(vicini[1])] = radice(vicini[0]); unitePer.push(striscia); unito = true; break; }
+      if (w * Math.min(...hs) > 4 && radice(vicini[0]) !== radice(vicini[1])) { padre[radice(vicini[1])] = radice(vicini[0]); unito = true; break; }
     }
     if (!unito) break;
   }
@@ -560,8 +594,9 @@ export function riconosciVani(entita: Entita[], poligoni: Poligono[], opzioni: O
     unitePer.push(meglio.striscia);
   }
 
-  // la striscia dell'apertura che unisce due parti (soglia larga, es. corridoio fra due muri allineati) è dello stesso
-  // vano: si aggiunge, così non si perdono superficie e testi
+  // la striscia di una chiusura falsa (testa di muro in uno spazio aperto: nicchia, rientranza di un corridoio) è
+  // pavimento del locale: si aggiunge. La striscia di un'apertura larga vera fra due locali (arco) è nello spessore
+  // del muro e resta fuori, come le soglie delle porte (decisione di Fabrizio, 10/11/2026)
   for (const st of unitePer) {
     const sb = buffer(st, 0.01);
     for (const f of facce) {
@@ -578,16 +613,91 @@ export function riconosciVani(entita: Entita[], poligoni: Poligono[], opzioni: O
     if (vicini.length) x.p = puntoInterno(vicini[0][0]);
   }
 
+  // ---- sguinci, stipiti, soglie, nicchie: la superficie del vano si misura fra i muri (regola catastale). Dove il
+  // filo di un muro si interrompe e riprende sulla stessa retta (finestra, porta, arco, nicchia) il vano si taglia
+  // lungo quel filo: il pezzo staccato, se è basso quanto lo spessore di un muro, piccolo e senza testi, è nello
+  // spessore del muro e non conta (decisione di Fabrizio, 10/11/2026)
+  const fili: [XY, XY][] = [];
+  {
+    type S = { a: XY; b: XY; t0: number; t1: number };
+    const gruppiFilo = new Map<string, { d: XY; s: S[] }>();
+    for (const l of cont) {
+      let [a, b] = estremi(l);
+      if (dist(a, b) < 0.02) continue;
+      let ang = Math.atan2(b[1] - a[1], b[0] - a[0]);
+      if (ang < 0) ang += Math.PI;
+      if (ang >= Math.PI - 1e-9) ang -= Math.PI;
+      const d: XY = [Math.cos(ang), Math.sin(ang)];
+      const off = a[0] * -d[1] + a[1] * d[0];
+      const chiave = `${Math.round(ang * 2000)}|${Math.round(off * 500)}`;
+      let t0 = a[0] * d[0] + a[1] * d[1], t1 = b[0] * d[0] + b[1] * d[1];
+      if (t0 > t1) { [t0, t1] = [t1, t0]; [a, b] = [b, a]; }
+      const g = gruppiFilo.get(chiave) ?? { d, s: [] };
+      g.s.push({ a, b, t0, t1 });
+      gruppiFilo.set(chiave, g);
+    }
+    for (const { s: ss } of gruppiFilo.values()) {
+      ss.sort((x, y) => x.t0 - y.t0);
+      let fine = ss[0];
+      for (const x of ss.slice(1)) {
+        const gap = x.t0 - fine.t1;
+        if (gap >= 0.3 && gap <= 3.0) fili.push([fine.b, x.a]);
+        if (x.t1 > fine.t1) fine = x;
+      }
+    }
+  }
+  // anche i fili disegnati per intero: un pezzo attaccato al vano lungo una linea di muro (rimasto unito da una
+  // chiusura) si toglie con le stesse regole
+  for (const l of cont) if (l.getLength() >= 0.3) fili.push(estremi(l));
+  const ritagli = (g: G, conTesti: G[]): { g: G; tolto: number } => {
+    // vano fatto di più pezzi (o raccolta di geometrie): si ritaglia pezzo per pezzo
+    if (g.getGeometryType() !== 'Polygon') {
+      const ps = parti(g).filter((x) => x.getGeometryType() === 'Polygon' || x.getGeometryType() === 'MultiPolygon');
+      if (!ps.length) return { g, tolto: 0 };
+      const rs = ps.map((x) => ritagli(x, conTesti));
+      return { g: rs.length === 1 ? rs[0].g : unione(rs.map((r) => r.g)), tolto: rs.reduce((a, r) => a + r.tolto, 0) };
+    }
+    try { return ritagliPoligono(g, conTesti); } catch { return { g, tolto: 0 }; }
+  };
+  const ritagliPoligono = (g: G, conTesti: G[]): { g: G; tolto: number } => {
+    let f = g, tolto = 0;
+    const env = buffer(g, 0.01).getEnvelopeInternal();
+    for (const [p, q] of fili) {
+      if (Math.max(p[0], q[0]) < env.getMinX() || Math.min(p[0], q[0]) > env.getMaxX() || Math.max(p[1], q[1]) < env.getMinY() || Math.min(p[1], q[1]) > env.getMaxY()) continue;
+      const L = linea(p, q);
+      if (!buffer(f, 0.005).contains(L) || f.getBoundary().distance(punto(p)) > 0.005 || f.getBoundary().distance(punto(q)) > 0.005) continue;
+      // gli estremi cadono sul contorno solo a meno di qualche centesimo di millimetro: si portano esattamente sul
+      // vertice più vicino (entro 2 mm) o sul contorno, altrimenti il taglio non si chiude
+      const bordo = f.getBoundary(), vs = coordinate(bordo);
+      const aggancia = (x: XY): XY => {
+        const v = vs.reduce((m, y) => (dist(y, x) < dist(m, x) ? y : m), vs[0]);
+        return dist(v, x) < 0.002 ? v : proiezione(parti(bordo).reduce((m, b) => (b.distance(punto(x)) < m.distance(punto(x)) ? b : m)), x);
+      };
+      const pezzi = dividi(f, linea(aggancia(p), aggancia(q)));
+      if (pezzi.length !== 2) continue;
+      pezzi.sort((x, y) => y.getArea() - x.getArea());
+      const [grande, piccolo] = pezzi;
+      if (piccolo.getArea() > 2.0 || piccolo.getArea() > 0.25 * grande.getArea()) continue;
+      if (!buffer(piccolo, -0.4, true).isEmpty()) continue; // più profondo di un muro: è parte del locale
+      if (conTesti.some((x) => piccolo.contains(x))) continue;
+      tolto += piccolo.getArea();
+      f = grande;
+    }
+    return { g: f, tolto };
+  };
+
   // ---- vani
-  type V = { tipo: TipoVano; g: G; testi: string[]; nota?: string; scala?: boolean; zone?: { superficie: number; altezza: number | null }[]; scoperto?: 'D' | 'F'; comune?: boolean; staccato?: boolean };
+  /** g0: il vano prima di togliere sguinci e soglie (per sapere quali locali si toccano attraverso un'apertura) */
+  type V = { tipo: TipoVano; g: G; g0?: G; testi: string[]; nota?: string; scala?: boolean; zone?: { superficie: number; altezza: number | null }[]; scoperto?: 'D' | 'F'; comune?: boolean; staccato?: boolean };
   const gruppi = new Map<number, G[]>();
   validi.forEach((f, i) => { const r = radice(i); gruppi.set(r, [...(gruppi.get(r) ?? []), f]); });
   const apri = (g: G, r = 0.3): G => { const o = buffer(buffer(g, -r, true), r, true); return o.isEmpty() ? o : intersezione(o, g); };
   let vani: V[] = [];
   for (const fs of gruppi.values()) {
     const u0 = unione(fs);
-    const u = apri(u0);
-    if (u.isEmpty() || u.getArea() < 0.3) continue;
+    const u1 = apri(u0);
+    if (u1.isEmpty() || u1.getArea() < 0.3) continue;
+    const { g: u, tolto: sguinci } = ritagli(u1, testi.filter((x) => u0.contains(x.p)).map((x) => x.p));
     const tt = testi.filter((x) => u0.contains(x.p)).map((x) => x.t);
     // zone senza testo fatte di triangoli (X dei vuoti): non sono vani
     if (!tt.length && parti(u).every((g) => (g.getGeometryType() === 'Polygon' ? anello(semplifica(g, 0.05)).length <= 4 : true))) continue;
@@ -621,9 +731,13 @@ export function riconosciVani(entita: Entita[], poligoni: Poligono[], opzioni: O
     const zone = (pezziVano.length ? pezziVano : fs).map((f) => {
       const hs = testi.filter((x) => f.contains(x.p)).map((x) => altezzaDaTesto(x.t)).filter((h): h is number => h !== null);
       const h = hs.length ? hs.reduce((a, b) => a + b, 0) / hs.length : hVano.length === 1 ? hVano[0] : null;
-      return { superficie: f.getArea(), altezza: h };
+      return { superficie: sguinci > 0 ? intersezione(f, u).getArea() : f.getArea(), altezza: h };
     });
-    vani.push({ tipo, g: u, testi: tt, nota, zone, scoperto: comune ? undefined : scoperto && !nomi.length ? scoperto : undefined, comune: comune || undefined });
+    if (sguinci >= 0.05 && tipo !== 'escluso') {
+      const n = `esclusi ${sguinci.toLocaleString('it-IT', { maximumFractionDigits: 2 })} m² di sguinci, soglie o nicchie nello spessore dei muri`;
+      nota = nota ? `${nota}; ${n}` : n;
+    }
+    vani.push({ tipo, g: u, g0: u1, testi: tt, nota, zone, scoperto: comune ? undefined : scoperto && !nomi.length ? scoperto : undefined, comune: comune || undefined });
   }
 
   // ---- scale: gradini (almeno 8 pezzi quasi uguali) e vani senza nome che li contengono, contate una volta
@@ -645,7 +759,7 @@ export function riconosciVani(entita: Entita[], poligoni: Poligono[], opzioni: O
     if (!pz.length || Math.max(...pz.map((a) => pz.filter((b) => Math.abs(b - a) <= 0.1 * a + 0.005).length)) < 8) continue;
     let g = c;
     for (let k = 0; k < 3; k++) {
-      for (const v of residui) if (buffer(v.g, 0.05).intersects(g)) g = unione([g, v.g]);
+      for (const v of residui) if (buffer(v.g0 ?? v.g, 0.05).intersects(g)) g = unione([g, v.g]);
       if (ARCHI) {
         for (const f of facce) {
           const a = f.getArea();
@@ -662,7 +776,7 @@ export function riconosciVani(entita: Entita[], poligoni: Poligono[], opzioni: O
   // senza poligoni non si sa qual è il piano dell'unità: la scala si conta una volta sola, quella più grande
   // (al piano di partenza comprende l'inizio della rampa); le altre sono l'arrivo ai piani superiori
   const piuGrande = scale.reduce<G | null>((m, c) => (!m || c.getArea() > m.getArea() ? c : m), null);
-  const COMUNI = vani.filter((v) => v.comune).map((v) => buffer(v.g, 0.1));
+  const COMUNI = vani.filter((v) => v.comune).map((v) => buffer(v.g0 ?? v.g, 0.1));
   for (const c of scale) {
     if (COMUNI.some((x) => x.intersects(c))) { vani.push({ tipo: 'escluso', g: c, testi: ['scala'], scala: true, comune: true, nota: 'scala nelle parti comuni: non conta' }); continue; }
     if (senzaPoligoni && c !== piuGrande) vani.push({ tipo: 'escluso', g: c, testi: ['scala'], scala: true, nota: 'arrivo della scala a un piano superiore: la scala si conta una volta, al piano di partenza' });
@@ -672,7 +786,7 @@ export function riconosciVani(entita: Entita[], poligoni: Poligono[], opzioni: O
   // locali piccoli senza nome attaccati solo a parti comuni (pianerottolo, sottoscala): a comune anche loro
   for (const v of vani) {
     if (v.tipo !== 'verificare') continue;
-    const tocca = (w: V) => w !== v && w.g.distance(v.g) < 0.05;
+    const tocca = (w: V) => w !== v && (w.g0 ?? w.g).distance(v.g0 ?? v.g) < 0.05;
     if (vani.some((w) => w.comune && tocca(w)) && !vani.some((w) => !w.comune && w.tipo !== 'escluso' && tocca(w))) {
       v.tipo = 'escluso'; v.comune = true; v.nota = 'locale senza nome attaccato alle parti comuni: considerato a comune, da verificare';
     }
@@ -720,6 +834,8 @@ export function riconosciVani(entita: Entita[], poligoni: Poligono[], opzioni: O
         altezze: v.testi.map(altezzaDaTesto).filter((h): h is number => h !== null),
         zone: v.zone?.map((z) => ({ superficie: Math.round(z.superficie * 100) / 100, altezza: z.altezza })),
         contorni: parti(v.g).filter((g) => g.getGeometryType() === 'Polygon').map(anello),
+        // con sguinci e soglie: servono ai poligoni (superficie lorda, muri compresi), non ai vani
+        contorniLordi: v.g0 && Math.abs(v.g0.getArea() - v.g.getArea()) > 1e-6 ? parti(v.g0).filter((g) => g.getGeometryType() === 'Polygon').map(anello) : undefined,
         centro: c,
         scala: v.scala,
         nota: v.nota ?? (tipo === 'verificare' ? 'da verificare' : undefined),

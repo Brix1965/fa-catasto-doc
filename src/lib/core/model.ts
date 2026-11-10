@@ -379,6 +379,10 @@ export interface VanoProposto {
   centro: [number, number];
   scala?: boolean;
   nota?: string;
+  /** forma del vano corretta a mano dal tecnico (vertici spostati, aggiunti o tolti) */
+  forma?: boolean;
+  /** il vano come l'aveva proposto il programma, prima delle correzioni della forma */
+  originale?: { superficie: number; centro: [number, number]; contorni: [number, number][][] };
 }
 
 export interface PropostaVani {

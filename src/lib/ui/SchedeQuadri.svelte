@@ -5,7 +5,7 @@
 <script lang="ts">
   /**
    * Finestra a quadri come i modelli 1N/2N di Docfa: etichette a sinistra (sottolineate se obbligatorie),
-   * pallino verde a compilazione avvenuta; OK passa al successivo quadro obbligatorio non compilato.
+   * pallino verde a compilazione avvenuta; «Avanti» passa al successivo quadro obbligatorio non compilato.
    */
   import type { Snippet } from 'svelte';
   import Icona from './Icona.svelte';
@@ -19,7 +19,7 @@
     onannulla: () => void;
   } = $props();
 
-  /** OK: salta al prossimo quadro obbligatorio non compilato, altrimenti chiude. */
+  /** Avanti: salta al prossimo quadro obbligatorio non compilato, altrimenti chiude. */
   export function ok(): void {
     const i = quadri.findIndex((q) => q.id === corrente);
     const dopo = [...quadri.slice(i + 1), ...quadri.slice(0, i + 1)].find((q) => q.obbligatorio && !q.completo);
@@ -54,7 +54,7 @@
       {@render contenuto(corrente)}
       <div class="mt-6 flex justify-end gap-2 border-t border-line pt-4">
         <button type="button" class="btn" onclick={onannulla}>Chiudi</button>
-        <button type="button" class="btn btn-primario" onclick={ok}><Icona nome="spunta" /> OK <span class="tasto ml-1 border-white/40 bg-white/10 text-white">Ctrl+O</span></button>
+        <button type="button" class="btn btn-primario" onclick={ok}>Avanti <Icona nome="destra" /> <span class="tasto ml-1 border-white/40 bg-white/10 text-white">Ctrl+O</span></button>
       </div>
     </div>
   </div>

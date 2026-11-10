@@ -11,7 +11,7 @@
   import { preparaDxf } from '$lib/core/raster/dxf-correzioni';
   import { dxfPerFile, scriviDxf } from '$lib/core/raster/dxf-scrivi';
   import { haAltezza } from '$lib/core/superfici';
-  import { aggancia, area, dentro, dist, distanzaEntita, distSegmento, limiti, puntiAggancio, puntiArco, segmentiEntita, type Aggancio } from '$lib/core/disegno/geometria';
+  import { aggancia, allineaAiVicini, area, dentro, direzionePrincipale, dist, distanzaEntita, distSegmento, limiti, puntiAggancio, puntiArco, segmentiEntita, semplificaVertici, squadraPoligono, type Aggancio } from '$lib/core/disegno/geometria';
   import { analizzaDisegnoInBackground } from '$lib/core/vani/esegui';
   import { spessoreMuroPerScala } from '$lib/core/vani/poligoni';
   import type { RisultatoDisegno } from '$lib/core/vani/worker';
@@ -69,9 +69,17 @@
 
   const spessoreMuro = $derived(spessoreMuroPerScala(scheda.scala));
   const indiceAggancio = $derived(puntiAggancio(entita, poligoni));
+  /** orientamento dei muri (radianti): l'ortogonale e «Squadra» seguono l'edificio anche se il disegno è ruotato */
+  const angoloEdificio = $derived(direzionePrincipale(entita.flatMap((e) => (e.tipo === 'linea' || e.tipo === 'polilinea' ? segmentiEntita(e) : []))));
+  // ---- vertici del poligono selezionato: più vertici insieme (Maiusc+clic, riquadro con Maiusc+trascina)
+  let selVertici = $state<number[]>([]);
+  let aggiungiVertici = $state(false);
+  let rettangolo = $state.raw<{ a: Punto2; b: Punto2 } | null>(null);
+  let msgPoligoni = $state('');
+  $effect(() => { if (sel?.k !== 'poligono') { selVertici = []; aggiungiVertici = false; } });
 
   function carica(): void {
-    errore = ''; msg = ''; analisi = null; sel = null; punti = []; storia = []; futuro = []; modificato = false; strumento = 'seleziona'; trascina = null; versione++;
+    errore = ''; msg = ''; msgPoligoni = ''; analisi = null; sel = null; punti = []; storia = []; futuro = []; modificato = false; strumento = 'seleziona'; trascina = null; versione++;
     try {
       const p = preparaDxf(scheda.dxf ?? '');
       entita = p.letto.entita;
@@ -82,7 +90,8 @@
       usaPoligoni = poligoni.length > 0;
       adatta();
       // aperto da un poligono dell'anteprima: si parte con quello selezionato
-      if (poligonoIniziale !== null && poligoni[poligonoIniziale]) sel = { k: 'poligono', i: poligonoIniziale, v: null };
+      if (poligonoIniziale !== null && poligoni[poligonoIniziale]) { sel = { k: 'poligono', i: poligonoIniziale, v: null }; filtroSel = 'poligoni'; }
+      else filtroSel = 'tutto';
     } catch (e) {
       errore = `DXF non leggibile: ${e instanceof Error ? e.message : String(e)}`;
     }
@@ -127,7 +136,7 @@
   function puntoAgganciato(e: MouseEvent): Punto2 {
     const p = aDxf(e);
     const da = punti.length ? punti[punti.length - 1] : trascina?.origine ?? null;
-    const a = agganciAttivi || ortogonale || e.shiftKey ? aggancia(p, agganciAttivi ? indiceAggancio : [], agganciAttivi ? entita : [], px(10), { da, ortogonale: ortogonale || e.shiftKey, escludi: trascina?.punto ?? null }) : null;
+    const a = agganciAttivi || ortogonale || e.shiftKey ? aggancia(p, agganciAttivi ? indiceAggancio : [], agganciAttivi ? entita : [], px(10), { da, ortogonale: ortogonale || e.shiftKey, escludi: trascina?.punto ?? null, angolo: angoloEdificio }) : null;
     agg = a;
     return a ? [a.p[0], a.p[1]] : p;
   }
@@ -137,7 +146,17 @@
     | { tipo: 'vertice'; poligono?: number; entita?: number; v: number; origine: Punto2; punto: Punto2; mosso: boolean };
   let trascina = $state.raw<Trascina | null>(null);
   function giu(e: PointerEvent): void {
-    if (e.button === 1 || (e.button === 0 && strumento === 'seleziona' && !maniglia(e))) {
+    if (e.button === 0 && strumento === 'seleziona' && aggiungiVertici && sel?.k === 'poligono' && aggiungiSulBordo(e)) return;
+    // Maiusc + trascina sul vuoto con un poligono selezionato: riquadro per scegliere più vertici
+    const suManiglia = e.button === 0 && strumento === 'seleziona' && maniglia(e);
+    if (suManiglia) return;
+    if (e.button === 0 && strumento === 'seleziona' && e.shiftKey && sel?.k === 'poligono') {
+      const p = aDxf(e);
+      rettangolo = { a: p, b: p };
+      (e.currentTarget as Element).setPointerCapture(e.pointerId);
+      return;
+    }
+    if (e.button === 1 || (e.button === 0 && strumento === 'seleziona')) {
       if (e.button === 0) seleziona(aDxf(e));
       trascina = { tipo: 'vista', x: e.clientX, y: e.clientY, cx, cy };
       (e.currentTarget as Element).setPointerCapture(e.pointerId);
@@ -152,6 +171,8 @@
       const k = v.findIndex((q) => dist(q, p) < t);
       if (k >= 0) {
         sel = { k: 'poligono', i: sel.i, v: k };
+        if (e.shiftKey || e.ctrlKey || e.metaKey) { selVertici = selVertici.includes(k) ? selVertici.filter((x) => x !== k) : [...selVertici, k]; return true; }
+        selVertici = [k];
         trascina = { tipo: 'vertice', poligono: sel.i, v: k, origine: v[k], punto: v[k], mosso: false };
         (e.currentTarget as Element).setPointerCapture(e.pointerId);
         return true;
@@ -169,6 +190,26 @@
     return false;
   }
   function muovi(e: PointerEvent): void {
+    if (rettangolo) { rettangolo = { a: rettangolo.a, b: aDxf(e) }; return; }
+    if (trascina?.tipo === 'vertice' && trascina.poligono !== undefined) {
+      // vertice di un poligono: aggancio ai punti notevoli; con l'ortogonale si allinea ai due vertici vicini
+      // (lati paralleli ai muri dell'edificio), come il puntamento dei CAD
+      const raw = aDxf(e);
+      const a = agganciAttivi ? aggancia(raw, indiceAggancio, entita, px(10), { escludi: trascina.punto }) : null;
+      let p: Punto2 = a ? [a.p[0], a.p[1]] : raw;
+      agg = a;
+      if (ortogonale || e.shiftKey) {
+        const v = poligoni[trascina.poligono].vertici, k = trascina.v;
+        const r = allineaAiVicini(p, [v[(k - 1 + v.length) % v.length], v[(k + 1) % v.length]], angoloEdificio, px(14));
+        if (r.allineato) { p = r.p; agg = { p, tipo: 'ortogonale' }; }
+      }
+      cursore = p;
+      if (!trascina.mosso) memorizza();
+      trascina.mosso = true;
+      trascina.punto = p;
+      poligoni[trascina.poligono].vertici[trascina.v] = p;
+      return;
+    }
     if (trascina?.tipo === 'vista') {
       cx = trascina.cx - (e.clientX - trascina.x) / zoom;
       cy = trascina.cy + (e.clientY - trascina.y) / zoom;
@@ -191,7 +232,71 @@
     }
   }
   function su(): void {
+    if (rettangolo && sel?.k === 'poligono') {
+      const { a, b } = rettangolo;
+      const x0 = Math.min(a[0], b[0]), x1 = Math.max(a[0], b[0]), y0 = Math.min(a[1], b[1]), y1 = Math.max(a[1], b[1]);
+      const dentroR = poligoni[sel.i].vertici.map((q, k) => [q, k] as const).filter(([q]) => q[0] >= x0 && q[0] <= x1 && q[1] >= y0 && q[1] <= y1).map(([, k]) => k);
+      selVertici = [...new Set([...selVertici, ...dentroR])];
+      if (selVertici.length === 1) sel = { ...sel, v: selVertici[0] };
+    }
+    rettangolo = null;
     trascina = null;
+  }
+  /** «Aggiungi vertici»: clic sul bordo del poligono selezionato, il vertice nuovo si può subito trascinare */
+  function aggiungiSulBordo(e: PointerEvent): boolean {
+    if (sel?.k !== 'poligono') return false;
+    const p = aDxf(e);
+    const v = poligoni[sel.i].vertici;
+    let kb = -1, d = px(8);
+    for (let k = 0; k < v.length; k++) { const x = segDist(p, v[k], v[(k + 1) % v.length]); if (x < d) { d = x; kb = k; } }
+    if (kb < 0) return false;
+    memorizza();
+    const a = agganciAttivi ? aggancia(p, indiceAggancio, entita, px(10)) : null;
+    const q: Punto2 = a ? [a.p[0], a.p[1]] : p;
+    v.splice(kb + 1, 0, q);
+    sel = { k: 'poligono', i: sel.i, v: kb + 1 };
+    selVertici = [kb + 1];
+    trascina = { tipo: 'vertice', poligono: sel.i, v: kb + 1, origine: q, punto: q, mosso: true };
+    (e.currentTarget as Element).setPointerCapture(e.pointerId);
+    return true;
+  }
+  function togliVertici(): void {
+    if (sel?.k !== 'poligono') return;
+    const v = poligoni[sel.i].vertici;
+    const via = new Set(selVertici.length ? selVertici : sel.v !== null ? [sel.v] : []);
+    if (!via.size) return;
+    if (v.length - via.size < 3) { msgPoligoni = 'Un poligono deve avere almeno 3 vertici: per toglierlo tutto usa «Elimina il poligono».'; return; }
+    memorizza();
+    poligoni[sel.i].vertici = v.filter((_, k) => !via.has(k));
+    sel = { ...sel, v: null };
+    selVertici = [];
+  }
+  function squadra(tutti = false): void {
+    const quali = tutti ? poligoni.map((_, i) => i) : sel?.k === 'poligono' ? [sel.i] : [];
+    if (!quali.length) return;
+    memorizza();
+    let n = 0, a0 = 0, a1 = 0;
+    for (const i of quali) {
+      const prima = JSON.stringify(poligoni[i].vertici);
+      a0 += area(poligoni[i].vertici);
+      // tolleranza stretta (3°): si correggono le imprecisioni del disegno, non i muri davvero storti degli edifici esistenti
+      poligoni[i].vertici = squadraPoligono(poligoni[i].vertici, angoloEdificio, 3);
+      a1 += area(poligoni[i].vertici);
+      if (JSON.stringify(poligoni[i].vertici) !== prima) n++;
+    }
+    selVertici = [];
+    if (sel?.k === 'poligono') sel = { ...sel, v: null };
+    msgPoligoni = n ? `${n === 1 ? 'Poligono squadrato' : `${n} poligoni squadrati`}: lati entro 3° resi paralleli o perpendicolari ai muri (${fmt((angoloEdificio * 180) / Math.PI, 1)}°). Superficie ${fmt(a0)} → ${fmt(a1)} m². Ctrl+Z per tornare indietro.` : 'Niente da squadrare.';
+  }
+  function semplifica(tutti = false): void {
+    const quali = tutti ? poligoni.map((_, i) => i) : sel?.k === 'poligono' ? [sel.i] : [];
+    if (!quali.length) return;
+    memorizza();
+    let tolti = 0;
+    for (const i of quali) { const n0 = poligoni[i].vertici.length; poligoni[i].vertici = semplificaVertici(poligoni[i].vertici, 0.01); tolti += n0 - poligoni[i].vertici.length; }
+    selVertici = [];
+    if (sel?.k === 'poligono') sel = { ...sel, v: null };
+    msgPoligoni = tolti ? `Tolti ${tolti} vertici inutili (doppi o allineati entro 1 cm).` : 'Nessun vertice inutile.';
   }
   function rotella(e: WheelEvent): void {
     e.preventDefault();
@@ -205,22 +310,35 @@
   }
 
   // ---- selezione
+  /** cosa si seleziona col clic: tutto, solo i poligoni (linee e testi non si prendono) o solo linee e testi */
+  let filtroSel = $state<'tutto' | 'poligoni' | 'linee'>('tutto');
+  let ultimoClic: { p: Punto2; scelte: string[] } | null = null;
   function seleziona(p: Punto2): void {
+    selVertici = [];
     const t = px(6);
-    let best = -1, d = t;
-    entita.forEach((e, i) => { const x = distanzaEntita(e, p); if (x < d) { d = x; best = i; } });
-    if (best >= 0) { sel = { k: 'entita', i: best }; return; }
-    if (mostraPoligoni) {
-      // prima il bordo, poi il più piccolo che contiene il punto
-      let pb = -1; d = t;
-      poligoni.forEach((pg, i) => { for (let k = 0; k < pg.vertici.length; k++) { const a = pg.vertici[k], b = pg.vertici[(k + 1) % pg.vertici.length]; const x = segDist(p, a, b); if (x < d) { d = x; pb = i; } } });
-      if (pb < 0) {
-        let am = Infinity;
-        poligoni.forEach((pg, i) => { if (dentro(p, pg.vertici)) { const a = area(pg.vertici); if (a < am) { am = a; pb = i; } } });
-      }
-      if (pb >= 0) { sel = { k: 'poligono', i: pb, v: null }; return; }
+    // candidati in ordine: linee e testi vicini, bordi dei poligoni vicini, poligoni che contengono il punto (dal più
+    // piccolo). Clic di nuovo nello stesso punto: si passa al candidato dopo (come nei CAD), utile quando il bordo
+    // del poligono è sopra una linea del disegno
+    const cand: { k: string; s: Selezione; d: number }[] = [];
+    if (filtroSel !== 'poligoni') entita.forEach((e, i) => { const x = distanzaEntita(e, p); if (x < t) cand.push({ k: `e${i}`, s: { k: 'entita', i }, d: x }); });
+    cand.sort((a, b) => a.d - b.d);
+    if (mostraPoligoni && filtroSel !== 'linee') {
+      const bordi: typeof cand = [];
+      poligoni.forEach((pg, i) => { let d = Infinity; for (let k = 0; k < pg.vertici.length; k++) d = Math.min(d, segDist(p, pg.vertici[k], pg.vertici[(k + 1) % pg.vertici.length])); if (d < t) bordi.push({ k: `p${i}`, s: { k: 'poligono', i, v: null }, d }); });
+      bordi.sort((a, b) => a.d - b.d);
+      const dentroP = poligoni.map((pg, i) => ({ i, a: area(pg.vertici), ok: dentro(p, pg.vertici) })).filter((x) => x.ok && !bordi.some((b) => b.k === `p${x.i}`)).sort((a, b) => a.a - b.a)
+        .map((x) => ({ k: `p${x.i}`, s: { k: 'poligono', i: x.i, v: null } as Selezione, d: t }));
+      cand.push(...bordi, ...dentroP);
     }
-    sel = null;
+    if (!cand.length) { sel = null; ultimoClic = null; return; }
+    const chiaveSel = sel ? (sel.k === 'entita' ? `e${sel.i}` : `p${sel.i}`) : '';
+    let scelta = cand[0];
+    if (ultimoClic && dist(ultimoClic.p, p) < px(4) && chiaveSel) {
+      const k = cand.findIndex((c) => c.k === chiaveSel);
+      if (k >= 0) scelta = cand[(k + 1) % cand.length];
+    }
+    sel = scelta.s;
+    ultimoClic = { p, scelte: cand.map((c) => c.k) };
   }
   const segDist = distSegmento;
 
@@ -283,7 +401,7 @@
     // togliere una linea sposta gli indici di quelle dopo (aggiungerne in fondo no)
     memorizza(sel.k === 'entita');
     if (sel.k === 'entita') entita.splice(sel.i, 1);
-    else if (sel.v !== null && poligoni[sel.i].vertici.length > 3) { poligoni[sel.i].vertici.splice(sel.v, 1); sel = { ...sel, v: null }; return; }
+    else if (selVertici.length || sel.v !== null) { storia.pop(); togliVertici(); return; }
     else poligoni.splice(sel.i, 1);
     sel = null;
   }
@@ -355,6 +473,8 @@
       e.preventDefault(); e.stopPropagation();
       if (punti.length) { if (strumento === 'poligono' && punti.length >= 3) chiudiPoligono(); else punti = []; }
       else if (strumento !== 'seleziona') strumento = 'seleziona';
+      else if (aggiungiVertici) aggiungiVertici = false;
+      else if (selVertici.length > 1) selVertici = [];
       else if (sel) sel = null;
       else void chiudi();
       return;
@@ -375,6 +495,8 @@
     else if (k === 'm') scegliStrumento('misura');
     else if (k === 'f') adatta();
     else if (k === 'o') ortogonale = !ortogonale;
+    else if (k === 'q' && sel?.k === 'poligono') squadra();
+    else if ((k === '+' || k === 'v') && sel?.k === 'poligono') aggiungiVertici = !aggiungiVertici;
   }
 
   // ---- disegno SVG
@@ -411,6 +533,9 @@
         <label class="ml-1 flex items-center gap-1 text-xs"><input type="checkbox" class="check" bind:checked={agganciAttivi} /> Aggancio</label>
         <label class="flex items-center gap-1 text-xs" title="Anche tenendo premuto Maiusc"><input type="checkbox" class="check" bind:checked={ortogonale} /> Ortogonale (O)</label>
         <label class="flex items-center gap-1 text-xs"><input type="checkbox" class="check" bind:checked={mostraPoligoni} /> Poligoni</label>
+        <label class="flex items-center gap-1 text-xs" title="Cosa prende il clic. Clic di nuovo nello stesso punto: passa all'oggetto sotto">Seleziona
+          <select class="campo campo-piccolo w-40 py-0.5" bind:value={filtroSel}><option value="tutto">tutto</option><option value="poligoni">solo poligoni</option><option value="linee">solo linee e testi</option></select>
+        </label>
         <span class="ml-auto flex gap-2">
           <button type="button" class="btn btn-piccolo" onclick={esporta} title="Salva una copia del disegno come file DXF (R12) da aprire nel CAD"><Icona nome="esporta" /> Esporta DXF</button>
           <button type="button" class="btn btn-piccolo" onclick={chiudi}>Chiudi</button>
@@ -424,7 +549,7 @@
             <p class="p-6 text-sm text-red-700 dark:text-red-300">{errore}</p>
           {:else}
             <!-- svelte-ignore a11y_no_static_element_interactions, a11y_click_events_have_key_events -->
-            <svg bind:this={svgEl} class="absolute inset-0 h-full w-full select-none {strumento === 'seleziona' ? (trascina?.tipo === 'vista' ? 'cursor-grabbing' : 'cursor-default') : 'cursor-crosshair'}" viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`}
+            <svg bind:this={svgEl} class="absolute inset-0 h-full w-full select-none {strumento === 'seleziona' && !aggiungiVertici ? (trascina?.tipo === 'vista' ? 'cursor-grabbing' : 'cursor-default') : 'cursor-crosshair'}" viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`}
               onpointerdown={giu} onpointermove={muovi} onpointerup={su} onpointerleave={() => { cursore = null; agg = null; }} onwheel={rotella} onclick={clic} ondblclick={doppioClic} oncontextmenu={(e) => { e.preventDefault(); if (punti.length) { if (strumento === 'poligono') chiudiPoligono(); else punti = []; } }}>
               {#if riquadro}<polygon points={pts(riquadro)} fill="none" stroke="#94a3b8" stroke-width="1" vector-effect="non-scaling-stroke" stroke-dasharray="4 3" />{/if}
               {#if mostraVani}
@@ -457,11 +582,12 @@
               {/each}
               <!-- maniglie dell'oggetto selezionato -->
               {#if polSel}
-                {#each polSel.vertici as v, k (k)}<rect x={v[0] - px(4)} y={Y(v[1]) - px(4)} width={px(8)} height={px(8)} fill={sel?.k === 'poligono' && sel.v === k ? '#2563eb' : '#fff'} stroke="#2563eb" stroke-width="1.5" vector-effect="non-scaling-stroke" />{/each}
+                {#each polSel.vertici as v, k (k)}<rect x={v[0] - px(5)} y={Y(v[1]) - px(5)} width={px(10)} height={px(10)} fill={selVertici.includes(k) || (sel?.k === 'poligono' && sel.v === k) ? '#2563eb' : '#fff'} stroke="#2563eb" stroke-width="1.5" vector-effect="non-scaling-stroke" />{/each}
               {:else if entSel}
                 {@const vs = entSel.tipo === 'linea' ? [entSel.p1, entSel.p2] : entSel.tipo === 'polilinea' ? entSel.punti : entSel.tipo === 'testo' ? [entSel.punto] : []}
                 {#each vs as v, k (k)}<rect x={v[0] - px(4)} y={Y(v[1]) - px(4)} width={px(8)} height={px(8)} fill="#fff" stroke="#2563eb" stroke-width="1.5" vector-effect="non-scaling-stroke" />{/each}
               {/if}
+              {#if rettangolo}<rect x={Math.min(rettangolo.a[0], rettangolo.b[0])} y={Y(Math.max(rettangolo.a[1], rettangolo.b[1]))} width={Math.abs(rettangolo.b[0] - rettangolo.a[0])} height={Math.abs(rettangolo.b[1] - rettangolo.a[1])} fill="#2563eb" fill-opacity="0.08" stroke="#2563eb" stroke-width="1" stroke-dasharray="4 3" vector-effect="non-scaling-stroke" />{/if}
               <!-- tratto in corso -->
               {#if punti.length && cursore}
                 {#if strumento === 'poligono'}
@@ -516,11 +642,32 @@
               <h3 class="text-xs font-semibold text-fg-muted">Poligono {sel.i + 1}</h3>
               <label class="flex items-center gap-2">Tipo <select class="campo campo-piccolo w-20" value={polSel.tipo} onchange={(e) => { const v = e.currentTarget.value as TipoAmbientePoligono; memorizza(); polSel.tipo = v; }}>{#each Object.entries(NOMI_TIPO) as [v, n] (v)}<option value={v}>{n}</option>{/each}</select></label>
               {#if haAltezza(polSel.tipo)}<label class="flex items-center gap-2"><input type="checkbox" class="check" checked={!polSel.altezzaValida} onchange={(e) => { const v = e.currentTarget.checked; memorizza(); polSel.altezzaValida = !v; }} /> altezza inferiore a 1,50 m</label>{/if}
-              <p class="text-xs text-fg-muted">Superficie {fmt(area(polSel.vertici))} m², {polSel.vertici.length} vertici. Trascina un vertice per spostarlo; doppio clic sul bordo per aggiungerne uno.</p>
-              <button type="button" class="btn btn-piccolo btn-pericolo" onclick={elimina}><Icona nome="cestino" /> {sel.v !== null && polSel.vertici.length > 3 ? 'Togli il vertice' : 'Elimina il poligono'} (Canc)</button>
+              <p class="text-xs text-fg-muted">Superficie {fmt(area(polSel.vertici))} m², {polSel.vertici.length} vertici{selVertici.length ? `, ${selVertici.length} selezionati` : ''}.</p>
+              <div class="grid grid-cols-2 gap-1.5">
+                <button type="button" class="btn btn-piccolo justify-center {aggiungiVertici ? 'btn-primario' : ''}" onclick={() => (aggiungiVertici = !aggiungiVertici)} title="Poi clic sul bordo del poligono: il vertice nuovo si può subito trascinare (tasto V)"><Icona nome="piu" /> Aggiungi vertici</button>
+                <button type="button" class="btn btn-piccolo justify-center" onclick={togliVertici} disabled={!selVertici.length && sel.v === null} title="Toglie i vertici selezionati (Canc)"><Icona nome="cestino" /> Togli {selVertici.length > 1 ? `${selVertici.length} vertici` : 'vertice'}</button>
+                <button type="button" class="btn btn-piccolo justify-center" onclick={() => squadra()} title="Lati storti di non più di 3° resi esattamente paralleli o perpendicolari ai muri dell'edificio (tasto Q)"><Icona nome="spunta" /> Squadra</button>
+                <button type="button" class="btn btn-piccolo justify-center" onclick={() => semplifica()} title="Toglie i vertici doppi o allineati (entro 1 cm)"><Icona nome="bacchetta" /> Semplifica</button>
+              </div>
+              {#if msgPoligoni}<p class="text-xs">{msgPoligoni}</p>{/if}
+              <p class="text-xs text-fg-muted">
+                {#if aggiungiVertici}<strong class="text-fg">Clic sul bordo</strong> per aggiungere un vertice (Esc per finire).{:else}Trascina un vertice per spostarlo (con <strong>Ortogonale</strong> o Maiusc si allinea ai vertici vicini). Maiusc+clic o Maiusc+trascina sul vuoto: più vertici insieme.{/if}
+              </p>
+              <button type="button" class="btn btn-piccolo btn-pericolo" onclick={() => { selVertici = []; sel = sel?.k === 'poligono' ? { ...sel, v: null } : sel; elimina(); }}><Icona nome="cestino" /> Elimina il poligono</button>
             </section>
           {:else if strumento === 'seleziona'}
-            <p class="text-xs text-fg-muted">Clic su una linea, un testo o un poligono per selezionarlo. Canc elimina, Ctrl+Z annulla.</p>
+            <p class="text-xs text-fg-muted">Clic su una linea, un testo o un poligono per selezionarlo; clic di nuovo nello stesso punto per prendere l'oggetto sotto (o «Seleziona: solo poligoni»). Canc elimina, Ctrl+Z annulla.</p>
+            {#if poligoni.length}
+              <section class="space-y-1.5">
+                <h3 class="text-xs font-semibold text-fg-muted">Tutti i poligoni ({poligoni.length})</h3>
+                <div class="grid grid-cols-2 gap-1.5">
+                  <button type="button" class="btn btn-piccolo justify-center" onclick={() => squadra(true)} title="Squadra tutti i poligoni rispetto ai muri dell'edificio"><Icona nome="spunta" /> Squadra tutti</button>
+                  <button type="button" class="btn btn-piccolo justify-center" onclick={() => semplifica(true)} title="Toglie i vertici doppi o allineati da tutti i poligoni"><Icona nome="bacchetta" /> Semplifica tutti</button>
+                </div>
+                <p class="text-[11px] text-fg-faint">Orientamento dei muri: {fmt((angoloEdificio * 180) / Math.PI, 1)}°.</p>
+              </section>
+            {/if}
+            {#if msgPoligoni}<p class="text-xs">{msgPoligoni}</p>{/if}
           {/if}
 
           <section class="space-y-2 rounded-md border border-dashed border-amber-400/70 p-2.5">

@@ -4,7 +4,7 @@
    * quadro U, quadro D/note, dichiarante), poi elaborati grafici, modelli 1N/2N, classamento, elenco
    * subalterni, «Cosa manca» (controllo formale) ed esportazione. A sinistra l'albero degli schermi e delle unità,
    * cliccabile liberamente: i dati si caricano anche un po' per volta e la pratica resta salvata in bozza; gli errori
-   * bloccano solo l'esportazione. In fondo OK (Ctrl+O: passa al successivo, segnalando cosa manca nello schermo) e
+   * bloccano solo l'esportazione. In fondo «Avanti» (Ctrl+O: passa al successivo, segnalando cosa manca nello schermo) e
    * Annulla (Esc: scarta le modifiche dello schermo e torna al precedente); F1 apre l'aiuto.
    */
   import { dataIt, dataOraIt } from '$lib/formato-data';
@@ -135,7 +135,7 @@
 
   function vai(s: SezionePratica, unita?: number): void { entra(s, unita); }
 
-  /** OK: controlla lo schermo e passa al successivo (nel quadro U alla unità successiva). */
+  /** Avanti (Ctrl+O): controlla lo schermo e passa al successivo (nel quadro U alla unità successiva). */
   function ok(): void {
     const p = statoPratica.pratica;
     if (!p) return;
@@ -261,7 +261,7 @@
       </nav>
       <div class="border-t border-line p-4 text-xs text-fg-muted">
         <p class="flex items-center gap-1.5"><Icona nome="orologio" classe="size-3.5" /> Ultima modifica: {ora(f.meta.modificata)}</p>
-        <p class="mt-1 flex items-center gap-1.5"><Icona nome="tastiera" classe="size-3.5" /> <span><kbd class="tasto">Ctrl+O</kbd> OK · <kbd class="tasto">Esc</kbd> Annulla · <kbd class="tasto">F1</kbd> Aiuto</span></p>
+        <p class="mt-1 flex items-center gap-1.5"><Icona nome="tastiera" classe="size-3.5" /> <span><kbd class="tasto">Ctrl+O</kbd> Avanti · <kbd class="tasto">Esc</kbd> Annulla · <kbd class="tasto">F1</kbd> Aiuto</span></p>
         <VersioneApp classe="mt-2" />
       </div>
     </aside>
@@ -290,7 +290,7 @@
             {#key sezione}
             <svelte:boundary onerror={(e) => console.error('Errore nello schermo', sezione, e)}>
             {#if sezione === 'comune'}
-              <SchermoComune bind:pratica={statoPratica.file.pratica} />
+              <SchermoComune bind:pratica={statoPratica.file.pratica} onavanti={ok} />
             {:else if sezione === 'generali'}
               {#if acc}<QuadroA bind:pratica={statoPratica.file.pratica} />{:else}<QuadroB bind:pratica={statoPratica.file.pratica} />{/if}
             {:else if sezione === 'intestati'}
@@ -354,7 +354,7 @@
           {#if corrente}Schermo {indice + 1} di {schermi.length}{#if sezione === 'unita' && f.pratica.unita.length}{" · "}unità {unitaSelezionata + 1} di {f.pratica.unita.length}{/if}{/if}
         </span>
         <button type="button" class="btn" onclick={annulla} title="Annulla le modifiche dello schermo e torna al precedente (Esc)"><span><u class="underline-offset-2">A</u>nnulla</span></button>
-        <button type="button" class="btn btn-primario min-w-24" onclick={ok} disabled={sezione === 'esporta' && !okInterno} title="Conferma e passa allo schermo successivo (Ctrl+O)"><span><u class="underline-offset-2">O</u>K</span></button>
+        <button type="button" class="btn btn-primario min-w-28" onclick={ok} disabled={sezione === 'esporta' && !okInterno} title="Conferma e passa allo schermo successivo (Ctrl+O)"><span>Avanti</span> <Icona nome="destra" /></button>
       </footer>
     </div>
   </div>

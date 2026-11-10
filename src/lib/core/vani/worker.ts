@@ -34,9 +34,11 @@ export function calcolaVani(r: RichiestaVani): RisultatoVani[] {
 export function calcolaDisegno(r: RichiestaDisegno): RisultatoDisegno {
   const vani = riconosciVani(r.entita, r.usaPoligoni ? r.poligoni : [], { riquadro: r.riquadro });
   const linee = vani.linee.filter((l) => !l.tratteggiata).map((l) => [l.a, l.b] as [Punto2, Punto2]);
-  const generati = generaPoligoni(vani.vani, linee);
+  // i poligoni sono superfici lorde: i vani entrano con sguinci e soglie (nello spessore dei muri)
+  const lordi = vani.vani.map((v) => (v.contorniLordi ? { ...v, contorni: v.contorniLordi } : v));
+  const generati = generaPoligoni(lordi, linee);
   const ent = r.entita.map((e) => ({ ...e, tratteggiata: !CONTINUE.has((e.tipoLinea ?? '').toUpperCase()) }));
-  return { vani, generati, muri: lineeDiMuro(ent, vani.vani, linee) };
+  return { vani, generati, muri: lineeDiMuro(ent, lordi, linee) };
 }
 
 // solo dentro il worker (il modulo si importa anche altrove per le funzioni di calcolo)

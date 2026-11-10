@@ -37,7 +37,7 @@ export function schermiPratica(p: Pratica): Schermo[] {
     { id: 'elaborati', titolo: 'Elaborati grafici', breve: 'Elaborati grafici', gruppo: 'Funzioni', icona: 'immagine',
       aiuto: "Per ogni unità si associa la planimetria (DXF vettoriale: formato e scala dal riquadro). I poligoni del layer Docfa_Poligoni (colori 1-8 = A, B, C, D, E, F, G, A2) danno le superfici per i dati metrici e la superficie catastale. Qui si associa anche l'elaborato planimetrico." },
     { id: 'modelli', titolo: 'Modelli 1N/2N', breve: 'Modelli 1N/2N', gruppo: 'Funzioni', icona: 'edificio',
-      aiuto: "1N parte I per il fabbricato, 1N parte II per ogni unità ordinaria, 2N per le unità speciali. In ogni modello i quadri obbligatori sono in fucsia e il pallino diventa verde quando sono compilati; OK passa al successivo quadro obbligatorio. Il 1N parte II si può copiare tra unità della stessa categoria (le superfici lorde non si copiano)." },
+      aiuto: "1N parte I per il fabbricato, 1N parte II per ogni unità ordinaria, 2N per le unità speciali. In ogni modello i quadri obbligatori sono in fucsia e il pallino diventa verde quando sono compilati; «Avanti» passa al successivo quadro obbligatorio. Il 1N parte II si può copiare tra unità della stessa categoria (le superfici lorde non si copiano)." },
     { id: 'classamento', titolo: 'Classamento', breve: 'Classamento', gruppo: 'Funzioni', icona: 'calcolo',
       aiuto: 'Validazione del classamento proposto delle unità ordinarie, con la rendita calcolata dalle tariffe del comune.' },
     { id: 'elenco', titolo: 'Elenco subalterni', breve: 'Elenco subalterni', gruppo: 'Funzioni', icona: 'elenco',

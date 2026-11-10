@@ -48,14 +48,14 @@ describe('vani: regole', () => {
 // disegni reali (non pubblicati): la prova gira solo dove ci sono
 const DIR = 'fixtures-private/vani';
 const CASI: [string, object][] = [
-  ['caso-1.dxf', { principaliN: 10, principaliSup: 144, bagniN: 9, bagniSup: 29, direttiN: 4, direttiSup: 26 }],
+  ['caso-1.dxf', { principaliN: 10, principaliSup: 143, bagniN: 9, bagniSup: 29, direttiN: 4, direttiSup: 26 }],
   ['caso-2.dxf', { principaliN: 10, principaliSup: 139, bagniN: 7, bagniSup: 25, direttiN: 5, direttiSup: 30 }],
   ['caso-3.dxf', { principaliN: 3, principaliSup: 43, bagniN: 1, bagniSup: 7, direttiN: 2, direttiSup: 13, indirettiN: 2, indirettiSup: 18 }],
 ];
 // planimetria di un altro professionista (DXF da programma BIM, senza poligoni): cucina «K», camere senza nome,
 // freccia d'ingresso diversa, vano scale e resede «a comune», terrazza, giardino, corte e ripostiglio in giardino
 const ALTRI: [string, object, string][] = [
-  ['altri-1.dxf', { principaliN: 6, principaliSup: 88, bagniN: 1, bagniSup: 4, direttiN: 1, direttiSup: 12, indirettiN: 1, indirettiSup: 3 }, 'ACDF'],
+  ['altri-1.dxf', { principaliN: 6, principaliSup: 88, bagniN: 1, bagniSup: 4, direttiN: 1, direttiSup: 11, indirettiN: 1, indirettiSup: 3 }, 'ACDF'],
 ];
 describe.skipIf(!existsSync(DIR))('vani: disegni reali', () => {
   for (const [f, atteso] of CASI)
@@ -146,4 +146,31 @@ describe.skipIf(!existsSync(DIR))('disegni reali: poligoni, spessori, altezze, s
       expect(h!.altezzaMediaCm).toBeLessThan(320);
     }
   }, 120000);
+});
+
+describe('superficie fra i muri: sguinci delle finestre esclusi', () => {
+  // camera 4 × 3 m con muri di 50 cm (edificio esistente); finestra strombata nel muro in alto: sguinci obliqui dal
+  // filo interno (1,60 m) al vetro (1,20 m, a 40 cm), poi la mazzetta dritta fino al filo esterno
+  const L = (a: [number, number], b: [number, number]) => ({ tipo: 'linea' as const, layer: '0', colore: 7, spessore: 0, tipoLinea: 'CONTINUOUS', p1: a, p2: b });
+  const T = (t: string, p: [number, number]) => ({ tipo: 'testo' as const, layer: '0', colore: 7, spessore: 0, testo: t, punto: p, altezza: 0.2, rotazione: 0, allineamentoH: 'centro' as const, allineamentoV: 'medio' as const, larghezza: 1 });
+  const entita = [
+    // interno
+    L([0, 0], [4, 0]), L([4, 0], [4, 3]), L([0, 3], [0, 0]),
+    L([0, 3], [1.2, 3]), L([2.8, 3], [4, 3]),
+    // esterno
+    L([-0.5, -0.5], [4.5, -0.5]), L([4.5, -0.5], [4.5, 3.5]), L([-0.5, 3.5], [-0.5, -0.5]),
+    L([-0.5, 3.5], [1.4, 3.5]), L([2.6, 3.5], [4.5, 3.5]),
+    // spalle della finestra e vetro
+    L([1.2, 3], [1.4, 3.4]), L([2.8, 3], [2.6, 3.4]), L([1.4, 3.4], [1.4, 3.5]), L([2.6, 3.4], [2.6, 3.5]), L([1.4, 3.4], [2.6, 3.4]),
+    T('camera', [2, 1.5]),
+  ];
+  const poligoni = [{ tipo: 'A' as const, vertici: [[-0.5, -0.5], [4.5, -0.5], [4.5, 3.5], [-0.5, 3.5]] as [number, number][], altezzaValida: true }];
+  it('la camera misura 12 m² (lo sguincio fino al vetro non conta)', () => {
+    // senza la regola: 12 + (1,6 + 1,2) / 2 × 0,4 = 12,56 m², 13 al m² intero
+    const r = riconosciVani(entita as never, poligoni);
+    const cam = r.vani.find((v) => v.testi.includes('camera'))!;
+    expect(cam.superficie).toBeCloseTo(12, 2);
+    expect(cam.m2).toBe(12);
+    expect(cam.nota).toContain('sguinci');
+  });
 });

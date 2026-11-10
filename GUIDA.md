@@ -57,7 +57,7 @@ far sbagliare meno il tecnico.
 **Navigazione libera**
 - In Docfa gli schermi vanno percorsi in un ordine obbligato. Qui un albero a sinistra permette di aprire
   **qualsiasi schermo in qualsiasi momento**, anche la singola unità immobiliare.
-- **OK non blocca**: se mancano dati il programma lo dice («mancano ancora N dati») e prosegue.
+- **«Avanti» non blocca**: se mancano dati il programma lo dice («mancano ancora N dati») e prosegue.
 - **Pallini e contatori** su ogni schermo e su ogni unità: verde = completo, fucsia = dati obbligatori mancanti,
   numero rosso = errori, numero ambra = avvisi.
 - **«Cosa manca»**: un'unica pagina con tutto quello che va completato o corretto, raggruppato per schermo.
@@ -160,7 +160,7 @@ momento; Quadro U ed Elaborati grafici si espandono sulle singole unità.
 
 | Tasto | Effetto |
 |---|---|
-| Ctrl+O | OK: passa allo schermo (o all'unità) successivo |
+| Ctrl+O | Avanti: passa allo schermo (o all'unità) successivo |
 | Esc | Annulla: scarta le modifiche fatte nello schermo e torna al precedente |
 | F1 | Aiuto dello schermo |
 | Ctrl+S | Salva subito (comunque il salvataggio è automatico) |
@@ -179,8 +179,12 @@ Il titolo della pratica si modifica cliccandoci sopra.
 ## 5. Gli schermi
 
 ### Comune
-Scegli la provincia e cerca il comune, oppure digita direttamente il codice catastale (es. D612).
-Il comune amministrativo si compila da solo.
+Scegli la provincia e cerca il comune (Invio prende il primo dell'elenco), oppure digita direttamente il codice
+catastale (es. D612). Il comune scelto compare **in evidenza in alto** («Comune scelto: FIRENZE (FI) D612»), nella
+casella di ricerca e in verde nell'elenco; **«Cambia comune»** svuota la ricerca. Doppio clic su un comune = sceglie
+e va **avanti**. Il comune amministrativo si compila da solo.
+
+In fondo a ogni schermo il pulsante **«Avanti →»** (Ctrl+O) conferma e passa allo schermo successivo.
 
 ### Quadro A (accatastamento) / Quadro B (variazione)
 - **Accatastamento**: ditte (anche più d'una), tipo mappale, ditta da intestare (nuova o già in atti),
@@ -249,11 +253,25 @@ Nel dettaglio:
 - Strumenti: **Seleziona** (S), **Linea** (L), **Poligono** (P), **Testo** (T), **Misura** (M). Rotella = zoom,
   trascinare = spostare la vista, F = adatta alla finestra.
 - **Aggancio** a estremi, punti medi, centri, vertici dei poligoni e punto più vicino su una linea (quadratino
-  verde). **Ortogonale**: casella oppure tasto Maiusc tenuto premuto.
+  verde). **Ortogonale** (casella, tasto O, oppure Maiusc tenuto premuto): segue l'**orientamento dei muri**
+  dell'edificio, anche se il disegno è ruotato.
+- **Selezione**: se il bordo di un poligono è sopra una linea del disegno, **clic di nuovo nello stesso punto**
+  per prendere l'oggetto sotto, oppure **«Seleziona: solo poligoni»** in alto (impostato da solo quando l'editor
+  si apre da «Modifica la forma»).
 - Oggetto selezionato: per le linee si cambia **tratteggiata/continua** e **muro sezionato** (spessore), si
   spostano gli estremi trascinando i quadratini; per i testi si corregge il testo e l'altezza; per i poligoni si
-  cambia il tipo e l'altezza < 1,50 m, si trascinano i vertici, doppio clic sul bordo aggiunge un vertice, Canc
-  toglie il vertice selezionato (o tutto il poligono). Ctrl+Z annulla, Ctrl+Y ripete.
+  cambia il tipo e l'altezza < 1,50 m e se ne corregge la forma:
+  - **trascina un vertice** per spostarlo; con **Ortogonale** (o Maiusc) si allinea ai due vertici vicini, così i
+    lati restano paralleli ai muri;
+  - **«Aggiungi vertici»** (tasto V): poi clic sul bordo, il vertice nuovo si può subito trascinare (anche doppio
+    clic sul bordo);
+  - **più vertici insieme**: Maiusc+clic sui vertici, oppure Maiusc+trascina sul vuoto per prenderli con un
+    riquadro; **«Togli vertice/i»** o Canc li toglie (il poligono resta con almeno 3 vertici);
+  - **«Squadra»** (tasto Q): i lati storti di non più di 3° diventano esattamente paralleli o perpendicolari ai
+    muri; i lati davvero obliqui restano come sono. Il messaggio dice la superficie prima e dopo;
+  - **«Semplifica»**: toglie i vertici doppi o allineati (entro 1 cm), utile per i poligoni con molti vertici;
+  - «Squadra tutti» e «Semplifica tutti» (senza nulla selezionato) lavorano su tutti i poligoni della scheda.
+  «Elimina il poligono» lo toglie tutto. Ctrl+Z annulla, Ctrl+Y ripete.
 - **Muri sezionati (sperimentale)**: «Trova i muri sezionati», poi «Spessore ai muri sezionati» ingrossa le linee
   dei muri tagliati (0,07 a 1:200, in proporzione alle altre scale); «Togli tutti gli spessori» le riporta sottili.
 - **«Salva nella scheda»** riscrive il DXF della scheda (formato R12) e i poligoni, e rigenera l'anteprima.
@@ -274,7 +292,7 @@ e può avere più schede.
 
 «Compila» è grigio quando non ci sono unità per quel modello.
 
-Nell'editor «OK (Ctrl+O)» porta al prossimo quadro obbligatorio ancora da compilare.
+Nell'editor «Avanti (Ctrl+O)» porta al prossimo quadro obbligatorio ancora da compilare.
 
 ### Vani dalla planimetria (sperimentale)
 
@@ -301,6 +319,14 @@ Il bordo tratteggiato segnala un locale senza nome, proposto come accessorio dir
   oppure dal menu a tendina nella tabella sotto il disegno.
 - **Correggere la superficie**: nella tabella ogni vano ha i suoi m², modificabili. «Ripristina proposta»
   rimette i valori calcolati.
+- **Ingrandire**: rotella del mouse (o i pulsanti + e −), trascinare per spostare la vista, F o il pulsante
+  «adatta» per tornare a tutto il disegno.
+- **Correggere la forma di un vano**: clic sul vano → **«Modifica la forma»** (o «modifica la forma» nella
+  tabella). La vista si porta sul vano e compaiono i suoi vertici: si trascinano (si agganciano agli spigoli dei
+  muri; con Ortogonale o Maiusc si allineano ai vertici vicini), **«Aggiungi vertici»** e clic sul bordo ne
+  aggiunge, **«Togli vertice»** o Canc toglie quello selezionato. I m² si ricalcolano subito; il vano è segnato
+  «forma corretta a mano» e la forma resta anche riaprendo la finestra. **«Forma proposta»** torna a quella del
+  programma, **«Fine»** (o Esc) chiude la modifica.
 - In fondo ci sono i totali, la consistenza indicativa, l'**altezza media utile** e la **superficie con altezza
   inferiore a 2,30 m** (dai testi «h…» del disegno, media pesata sulla superficie) e, per confronto, i valori già
   presenti nel quadro C.
@@ -310,7 +336,10 @@ Il bordo tratteggiato segnala un locale senza nome, proposto come accessorio dir
   ritrovano le scelte fatte; «Ricalcola» rilegge il disegno.
 
 **Come conta.**
-- Superficie utile netta di ogni vano, arrotondata al **m² intero** (da 0,5 per eccesso, sotto per difetto,
+- Superficie utile netta di ogni vano **misurata fra i muri**: **sguinci delle finestre, stipiti, soglie delle
+  porte, archi e nicchie** nello spessore dei muri non contano (il programma taglia lungo il filo del muro e lo
+  scrive nella nota del vano, «esclusi … m² di sguinci, soglie o nicchie»).
+- Superficie arrotondata al **m² intero** (da 0,5 per eccesso, sotto per difetto,
   come vuole Docfa); i totali sono la somma dei vani già arrotondati.
 - Il tipo viene dal **nome scritto nel vano**. Dentro i poligoni B e C i locali sono accessori indiretti.
 - Le zone dentro i poligoni G e quelle barrate con una croce (X) non sono vani.
