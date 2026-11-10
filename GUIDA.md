@@ -215,7 +215,10 @@ Beni comuni non censibili (fino a 20) ed estremi del titolo giustificativo; note
 (massimo 380 caratteri).
 
 ### Dichiarante
-Tecnico compilatore (scegliendolo dalla tendina dei tecnici memorizzati) e dichiarante.
+Tecnico compilatore (scegliendolo dalla tendina dei tecnici memorizzati) e dichiarante. Scelto il comune di
+residenza, il **C.A.P.** si scrive da solo come in Docfa (dal suo archivio Cap.dat: per le città con più C.A.P.
+quello generico, es. Firenze 50100); si può sempre correggere. Per i comuni nati dopo il 2000 (fusioni) l'archivio
+non ha il C.A.P.: si scrive a mano.
 
 ### Elaborati grafici
 La planimetria si prepara in **tre passi numerati**, in ordine: ogni passo si sblocca quando il precedente è

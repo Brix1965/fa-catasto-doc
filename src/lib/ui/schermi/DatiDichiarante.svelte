@@ -1,7 +1,8 @@
 <script lang="ts">
   /** Dati del Dichiarante: in alto il tecnico compilatore (richiamabile dall'elenco dei tecnici), in basso il dichiarante. */
-  import type { Pratica, Tecnico } from '$lib/core/model';
+  import type { Comune, Pratica, Tecnico } from '$lib/core/model';
   import { ALBI_TECNICO } from '$lib/core/regole-docfa';
+  import { capComune } from '$lib/core/archivi';
   import { impostazioni } from '$lib/stato/impostazioni.svelte';
   import Campo from '../Campo.svelte';
   import ComuneProvincia from '../ComuneProvincia.svelte';
@@ -16,6 +17,13 @@
   }
   let attestazione = $state(false);
   const M = (v: string) => v.toUpperCase();
+  /** scelto il comune di residenza, il C.A.P. si scrive da solo come in Docfa (generico per le città: Firenze 50100) */
+  let capAutomatico = $state(false);
+  function comuneScelto(c: Comune | undefined): void {
+    const cap = c ? capComune(c.codice) : undefined;
+    if (cap) { pratica.dichiarante.cap = cap; capAutomatico = true; }
+    else if (capAutomatico) { pratica.dichiarante.cap = ''; capAutomatico = false; }
+  }
 </script>
 
 <div class="space-y-5">
@@ -51,8 +59,8 @@
       <Campo etichetta="Nome" obbligatorio><input type="text" class="campo uppercase" maxlength="20" value={pratica.dichiarante.nome} oninput={(e) => (pratica.dichiarante.nome = M(e.currentTarget.value))} /></Campo>
       <Campo etichetta="Indirizzo" obbligatorio><input type="text" class="campo uppercase" maxlength="35" value={pratica.dichiarante.indirizzo} oninput={(e) => (pratica.dichiarante.indirizzo = M(e.currentTarget.value))} /></Campo>
       <Campo etichetta="Numero civico" obbligatorio aiuto="SNC se assente"><input type="text" class="campo uppercase" maxlength="5" value={pratica.dichiarante.civico} oninput={(e) => (pratica.dichiarante.civico = M(e.currentTarget.value.trim()))} /></Campo>
-      <div class="sm:col-span-2"><ComuneProvincia bind:provincia={pratica.dichiarante.provincia} bind:comune={pratica.dichiarante.comune} etichettaComune="Comune di residenza" obbligatorio /></div>
-      <Campo etichetta="C.A.P." obbligatorio><input type="text" class="campo" maxlength="5" inputmode="numeric" value={pratica.dichiarante.cap} oninput={(e) => (pratica.dichiarante.cap = e.currentTarget.value.replace(/\D/g, ''))} /></Campo>
+      <div class="sm:col-span-2"><ComuneProvincia bind:provincia={pratica.dichiarante.provincia} bind:comune={pratica.dichiarante.comune} etichettaComune="Comune di residenza" obbligatorio scelto={comuneScelto} /></div>
+      <Campo etichetta="C.A.P." obbligatorio aiuto={capAutomatico ? "dal comune, come Docfa" : undefined}><input type="text" class="campo" maxlength="5" inputmode="numeric" value={pratica.dichiarante.cap} oninput={(e) => { pratica.dichiarante.cap = e.currentTarget.value.replace(/\D/g, ''); capAutomatico = false; }} /></Campo>
       <Campo etichetta="Indirizzo PEC" aiuto="facoltativo"><input type="email" class="campo" maxlength="60" value={pratica.dichiarante.pec ?? ''} oninput={(e) => (pratica.dichiarante.pec = e.currentTarget.value || undefined)} /></Campo>
     </div>
   </Sezione>

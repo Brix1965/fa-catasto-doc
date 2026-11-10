@@ -78,3 +78,14 @@ describe('rendita con l\'aritmetica di Docfa', () => {
     expect(rendita(0, 315000)).toBe(0);
   });
 });
+
+describe('C.A.P. del comune (Cap.dat di Docfa)', async () => {
+  const { capComune } = await import('../archivi');
+  it('un C.A.P. per comune, generico per le città come Docfa', () => {
+    expect(capComune('F648')).toBe('50025'); // Montespertoli
+    expect(capComune('D612')).toBe('50100'); // Firenze: generico
+    expect(capComune('h501')).toBe('00100'); // Roma
+    expect(capComune('A001')).toBe('35031');
+    expect(capComune('ZZZZ')).toBeUndefined();
+  });
+});

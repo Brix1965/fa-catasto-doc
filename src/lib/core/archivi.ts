@@ -13,6 +13,7 @@ import { decode1252 } from './bytes';
 import type { Comune } from './model';
 import { lireInEuro5 } from './classamento/comune';
 import { COMUNI_INCORPORATI, DATA_COMUNI_INCORPORATI } from './dati/comuni.generated';
+import { CAP_INCORPORATI } from './dati/cap.generated';
 
 export function leggiComuni(data: Uint8Array): Comune[] {
   const out: Comune[] = [];
@@ -115,6 +116,17 @@ export function leggiSetup(data: Uint8Array): { data: string; cognome: string; n
 
 
 /** Elenco dei comuni incorporato nel programma (da Comuni.dat di Docfa 4.00.5). */
+let capPerCodice: Map<string, string> | null = null;
+/**
+ * C.A.P. del comune (dal codice catastale), come lo propone Docfa nei dati del dichiarante: dall'archivio Cap.dat
+ * di Docfa 4.00.5, un C.A.P. per comune; per le città con più C.A.P. quello generico (Firenze 50100). I comuni
+ * nati dopo l'archivio (fusioni) non ci sono: il C.A.P. si scrive a mano.
+ */
+export function capComune(codice: string): string | undefined {
+  if (!capPerCodice) capPerCodice = new Map(CAP_INCORPORATI.split(' ').map((r) => [r.slice(0, 4), r.slice(4)]));
+  return capPerCodice.get(codice.trim().toUpperCase());
+}
+
 export function comuniIncorporati(): { comuni: Comune[]; data: string } {
   const comuni: Comune[] = COMUNI_INCORPORATI.split('\n').map((r) => {
     const [codice, nome, provincia, codiceAmministrativo] = r.split('|');
