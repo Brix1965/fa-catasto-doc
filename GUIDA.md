@@ -318,18 +318,29 @@ Serve che l'unità abbia almeno una planimetria caricata da DXF. Il calcolo rich
 
 Il bordo tratteggiato segnala un locale senza nome, proposto come accessorio diretto **da verificare**.
 
-- **Cambiare tipo**: clic sul vano nel disegno e scelta dal menu (principale, bagno, diretto, indiretto, escluso),
-  oppure dal menu a tendina nella tabella sotto il disegno.
+- **Cambiare tipo**: clic sul vano nel disegno e scelta con i pulsanti sopra il disegno, oppure dal menu a tendina
+  nella tabella.
 - **Correggere la superficie**: nella tabella ogni vano ha i suoi m², modificabili. «Ripristina proposta»
   rimette i valori calcolati.
 - **Ingrandire**: rotella del mouse (o i pulsanti + e −), trascinare per spostare la vista, F o il pulsante
   «adatta» per tornare a tutto il disegno.
-- **Correggere la forma di un vano**: clic sul vano → **«Modifica la forma»** (o «modifica la forma» nella
-  tabella). La vista si porta sul vano e compaiono i suoi vertici: si trascinano (si agganciano agli spigoli dei
-  muri; con Ortogonale o Maiusc si allineano ai vertici vicini), **«Aggiungi vertici»** e clic sul bordo ne
-  aggiunge, **«Togli vertice»** o Canc toglie quello selezionato. I m² si ricalcolano subito; il vano è segnato
-  «forma corretta a mano» e la forma resta anche riaprendo la finestra. **«Forma proposta»** torna a quella del
-  programma, **«Fine»** (o Esc) chiude la modifica.
+- **Scegliere il tipo**: clic su un vano: sopra il disegno compare la riga «Vano N» con i pulsanti dei tipi
+  (Principale, Bagno, Acc. diretto, Acc. indiretto, Escluso).
+- **Modificare le forme**: pulsante verde **«Modifica le forme»** sopra il disegno. Compare una fila di
+  strumenti, ognuno col suo nome, e sotto la spiegazione di cosa fare:
+  - **Sposta vertici**: clic su un vano, compaiono i suoi vertici (quadratini): si trascinano (si agganciano agli
+    spigoli dei muri; con «Ortogonale» si allineano ai vertici vicini);
+  - **Aggiungi vertice**: clic su un vano, poi clic sul suo bordo dove serve il vertice nuovo;
+  - **Togli vertice**: clic su un vano, poi clic sul quadratino da togliere;
+  - **Dividi vano**: clic su un vano, poi clic su un punto del bordo e su un punto del bordo opposto: il vano
+    diventa due (poi si sceglie il tipo di ogni pezzo);
+  - **Unisci vani**: clic sul primo vano e poi su quello da unire: diventano un vano solo;
+  - **Nuovo vano**: clic sui vertici, uno dopo l'altro, poi «Chiudi il vano» (o clic sul primo vertice);
+  - **Elimina vano**: toglie il vano scelto;
+  - **Annulla** torna indietro di una modifica alla volta; **«Fine modifiche»** chiude gli strumenti.
+  I m² si ricalcolano subito. Le forme corrette restano anche riaprendo la finestra: **«Ricalcola»** rifà tutto dal
+  disegno (chiede conferma, perché le correzioni a mano si perdono). Nella tabella «mostra e modifica la forma»
+  porta la vista su quel vano; «ripristina proposta» torna alla forma del programma.
 - In fondo ci sono i totali, la consistenza indicativa, l'**altezza media utile** e la **superficie con altezza
   inferiore a 2,30 m** (dai testi «h…» del disegno, media pesata sulla superficie) e, per confronto, i valori già
   presenti nel quadro C.

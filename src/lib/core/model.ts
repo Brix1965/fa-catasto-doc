@@ -388,6 +388,9 @@ export interface VanoProposto {
 export interface PropostaVani {
   /** ISO 8601 della conferma */
   confermata: string;
+  /** forma dei vani corretta a mano (vani spostati, divisi, uniti, disegnati, eliminati): riaprendo la finestra la
+   * proposta si riprende così com'è invece di ricalcolarla dal disegno */
+  modificata?: boolean;
   /** una voce per scheda della planimetria (piani su più fogli) */
   schede: { vani: VanoProposto[] }[];
 }
