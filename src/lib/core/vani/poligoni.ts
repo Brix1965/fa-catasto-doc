@@ -4,10 +4,12 @@
  *   dall'abitazione (ripostiglio in giardino); D: balconi, terrazze, logge, portici; F: giardini, corti, resedi, aie.
  * - Gli spazi a comune o di altre unità (vano scale a comune, resede a comune, androne…) non entrano mai.
  * - I muri che delimitano all'esterno balconi, terrazze e giardini vanno con questi (vademecum Docfa).
- * - Ogni poligono comprende i muri che toccano i suoi vani, fino a `spessoreMax` (60 cm): muri interni e
- *   perimetrali esterni per intero; i muri di confine con altre unità o con spazi a comune (vano scale, androne,
- *   resede a comune, «altra u.i.») fino alla mezzeria (regola di Fabrizio, 10/11/2026; DPR 138/98, allegato C: muri
- *   in comunione al 50%). Le altre unità si riconoscono dai testi nel DXF («altra u.i.», «altra proprietà», «… a
+ * - Ogni poligono comprende i muri che toccano i suoi vani (riconosciuti fino a `spessoreMax`, 1 m: i muri degli
+ *   edifici esistenti possono essere spessi): muri interni e
+ *   perimetrali esterni per intero fino a 50 cm di spessore; i muri di confine con altre unità o con spazi a comune
+ *   (vano scale, androne, resede a comune, «altra u.i.») fino alla mezzeria, al massimo 25 cm (DPR 138/98, allegato C:
+ *   muri interni e perimetrali per intero fino a 50 cm, muri in comunione al 50% fino a 25 cm; regola confermata da
+ *   Fabrizio il 10/11/2026). Le altre unità si riconoscono dai testi nel DXF («altra u.i.», «altra proprietà», «… a
  *   comune»). Una striscia stretta con scritto «altra u.i.» lungo i propri muri (l'unità vicina non è disegnata, il
  *   testo sta nello spessore del muro) è il muro di confine: entra fino a metà.
  * - Un muro fra un vano A e uno B va al poligono A.
@@ -81,6 +83,61 @@ function piuVicinoAlConfine(R: G, X: G, fino: number): G {
   return pezzi.length ? buffer(semplifica(unione(pezzi), 0.02), 0) : Xv;
 }
 
+/** DPR 138/98, allegato C: muri per intero fino a 50 cm, muri in comunione al 50% fino a 25 cm */
+export const MURO_INTERO_MAX = 0.5;
+export const MURO_COMUNE_MAX = 0.25;
+
+/**
+ * Muri in comunione più spessi di 50 cm: per ogni lato del contorno dei vani e ogni lato dello spazio confinante
+ * paralleli, affacciati e a distanza di uno spessore di muro (≤ `max`), la parte del muro fra i due oltre i 25 cm dal
+ * filo dei vani, nel tratto in cui si sovrappongono e per 50 cm oltre i capi (il muro esterno che passa davanti).
+ */
+function fasceDiConfine(R: G, X: G, max: number): G[] {
+  const lati = (g: G): [XY, XY][] => {
+    const out: [XY, XY][] = [];
+    for (const p of parti(g)) {
+      if (p.getGeometryType() !== 'Polygon') continue;
+      const anelli = [p.getExteriorRing(), ...Array.from({ length: p.getNumInteriorRing() }, (_, i) => p.getInteriorRingN(i))];
+      for (const a of anelli) {
+        const c = a.getCoordinates();
+        for (let i = 0; i + 1 < c.length; i++) if (Math.hypot(c[i + 1].x - c[i].x, c[i + 1].y - c[i].y) > 0.05) out.push([[c[i].x, c[i].y], [c[i + 1].x, c[i + 1].y]]);
+      }
+    }
+    return out;
+  };
+  const Xv = intersezione(X, buffer(R, max + 0.05));
+  if (Xv.isEmpty()) return [];
+  const lr = lati(R), lx = lati(Xv);
+  const fasce: G[] = [];
+  for (const [a1, a2] of lr) {
+    const L = Math.hypot(a2[0] - a1[0], a2[1] - a1[1]);
+    const u: XY = [(a2[0] - a1[0]) / L, (a2[1] - a1[1]) / L];
+    for (const [b1, b2] of lx) {
+      const M = Math.hypot(b2[0] - b1[0], b2[1] - b1[1]);
+      const v: XY = [(b2[0] - b1[0]) / M, (b2[1] - b1[1]) / M];
+      if (Math.abs(u[0] * v[1] - u[1] * v[0]) > 0.09) continue; // non paralleli (> 5°)
+      const d = u[0] * (b1[1] - a1[1]) - u[1] * (b1[0] - a1[0]); // distanza con segno dalla retta di a
+      if (Math.abs(d) < 0.02 || Math.abs(d) > max) continue;
+      const t1 = (b1[0] - a1[0]) * u[0] + (b1[1] - a1[1]) * u[1], t2 = (b2[0] - a1[0]) * u[0] + (b2[1] - a1[1]) * u[1];
+      const t0 = Math.max(0, Math.min(t1, t2)), t3 = Math.min(L, Math.max(t1, t2));
+      if (t3 - t0 < 0.05) continue;
+      const n: XY = [-u[1] * Math.sign(d), u[0] * Math.sign(d)];
+      const m: XY = [a1[0] + u[0] * (t0 + t3) / 2, a1[1] + u[1] * (t0 + t3) / 2];
+      // affacciati: fra i due lati non ci sono né i vani né lo spazio confinante
+      const q: XY = [m[0] + n[0] * Math.abs(d) / 2, m[1] + n[1] * Math.abs(d) / 2];
+      if (R.contains(punto(q)) || Xv.contains(punto(q)) || R.contains(punto([m[0] + n[0] * 0.01, m[1] + n[1] * 0.01]))) continue;
+      const P = (t: number, k: number): XY => [a1[0] + u[0] * t + n[0] * k, a1[1] + u[1] * t + n[1] * k];
+      // la fascia prosegue di 50 cm oltre i due capi (spessore del muro esterno che le passa davanti), così il limite
+      // dei 25 cm resta una linea dritta fino al filo esterno
+      const e0 = t0 <= 1e-6 ? 0.5 : 0, e3 = t3 >= L - 1e-6 ? 0.5 : 0;
+      // solo la parte oltre i 25 cm dal filo dei vani (misurati perpendicolarmente al muro)
+      if (Math.abs(d) <= 2 * MURO_COMUNE_MAX) continue;
+      fasce.push(poligono([P(t0 - e0, MURO_COMUNE_MAX), P(t3 + e3, MURO_COMUNE_MAX), P(t3 + e3, Math.abs(d)), P(t0 - e0, Math.abs(d))]));
+    }
+  }
+  return fasce;
+}
+
 /** testo di un'altra unità («altra u.i.», «altra proprietà»): la striscia che lo contiene può essere il muro di confine */
 const RE_ALTRA = /(^|[\s(])altr[ae]\s*(u\.?\s*i|propriet|ditta)/i;
 
@@ -89,7 +146,7 @@ const unisciVani = (vs: VanoPerPoligoni[]): G | null => {
   return r.length ? unione(r) : null;
 };
 
-export function generaPoligoni(vani: VanoPerPoligoni[], linee: [XY, XY][], spessoreMax = 0.6): PoligoniGenerati {
+export function generaPoligoni(vani: VanoPerPoligoni[], linee: [XY, XY][], spessoreMax = 1.0): PoligoniGenerati {
   const avvisi: string[] = [];
   // strisce strette con «altra u.i.» (≤ 1,2 m): sono il muro di confine, l'unità vicina non è disegnata
   const strisce: { g: G; spessore: number }[] = [];
@@ -103,21 +160,33 @@ export function generaPoligoni(vani: VanoPerPoligoni[], linee: [XY, XY][], spess
   }
   // spazi di altre unità e a comune: i muri verso di loro si fermano alla mezzeria
   const confine = unisciVani(altriSpazi);
-  const impronta = (tipo: TipoAmbientePoligono): G | null => {
+  const impronta = (tipo: TipoAmbientePoligono, Rprec: G | null): G | null => {
     const R = unisciVani(vani.filter((v) => tipologiaPoligono(v) === tipo));
     if (!R) return null;
     // la parte dei muri più vicina agli spazi confinanti che ai propri vani non è dell'unità (mezzeria)
-    const oltre = confine && confine.distance(R) <= spessoreMax ? piuVicinoAlConfine(R, confine, spessoreMax) : null;
-    const muri = muriAttorno(R, linee, spessoreMax, oltre).map((f) => (strisce.length ? differenza(f, unione(strisce.map((x) => x.g))) : f)).filter((f) => !f.isEmpty());
+    let oltre = confine && confine.distance(R) <= spessoreMax ? piuVicinoAlConfine(R, confine, spessoreMax) : null;
+    // muri in comunione oltre 50 cm: si conta al massimo 25 cm dalla parte dell'unità
+    if (oltre && confine) {
+      const fasce = fasceDiConfine(R, confine, spessoreMax);
+      if (fasce.length) oltre = unione([oltre, differenza(unione(fasce), R)]);
+    }
+    // un muro che tocca i vani di un gruppo precedente (es. fra camera e balcone) è di quel gruppo, con le sue
+    // aperture: qui non si prende
+    const bordoPrec = Rprec ? buffer(Rprec, 0.02) : null;
+    const muri = muriAttorno(R, linee, spessoreMax, oltre)
+      .filter((f) => !bordoPrec || intersezione(bordoPrec, f.getBoundary()).getLength() <= 0.3)
+      .map((f) => (strisce.length ? differenza(f, unione(strisce.map((x) => x.g))) : f))
+      .filter((f) => !f.isEmpty());
     // metà della striscia di confine verso i propri vani
     for (const { g, spessore } of strisce) {
       if (g.distance(R) > 0.6) continue;
-      const meta = intersezione(g, buffer(R, R.distance(g) + spessore / 2, true));
+      const meta = intersezione(g, buffer(R, R.distance(g) + Math.min(spessore / 2, MURO_COMUNE_MAX), true));
       if (!meta.isEmpty()) muri.push(meta);
     }
     // chiusura: riempie le fessure fra vani e muri più strette di 30 cm (tramezzi non chiusi nel disegno); verso gli
     // spazi confinanti la chiusura non deve riempire di nuovo la metà di muro tolta
-    const chiuso = buffer(buffer(unione([R, ...muri]), 0.15, true), -0.15, true);
+    // muri per intero al massimo 50 cm dai vani
+    const chiuso = intersezione(buffer(buffer(unione([R, ...muri]), 0.15, true), -0.15, true), buffer(R, MURO_INTERO_MAX, true));
     const vietato = [...(oltre ? [oltre] : []), ...strisce.map((x) => x.g)];
     return vietato.length ? differenza(chiuso, differenza(unione(vietato), unione([R, ...muri]))) : chiuso;
   };
@@ -125,8 +194,11 @@ export function generaPoligoni(vani: VanoPerPoligoni[], linee: [XY, XY][], spess
   const ordine: TipoAmbientePoligono[] = ['A', 'B', 'C', 'D', 'F'];
   const prese: G[] = [];
   const gruppi: [TipoAmbientePoligono, G | null][] = [];
+  const vaniPrec: G[] = [];
   for (const t of ordine) {
-    let g = impronta(t);
+    let g = impronta(t, vaniPrec.length ? unione(vaniPrec) : null);
+    const Rt = unisciVani(vani.filter((v) => tipologiaPoligono(v) === t));
+    if (Rt) vaniPrec.push(Rt);
     if (g && prese.length) g = differenza(g, unione(prese));
     if (g && !g.isEmpty()) prese.push(g);
     gruppi.push([t, g]);

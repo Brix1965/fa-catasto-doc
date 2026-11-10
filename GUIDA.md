@@ -236,8 +236,9 @@ Poligoni generati: **A** vani e accessori diretti con i loro muri, **B** accesso
 staccati dall'abitazione (es. ripostiglio in giardino), **D** balconi, terrazze, logge e portici, **F** giardini,
 corti, resedi, aie e orti. Gli spazi **a comune** o di altre unità (vano scale a comune, resede a comune, androne,
 «altra u.i.») non entrano mai; una corte o una terrazza senza «a comune» è dell'unità.
-**Muri**: i muri interni e quelli esterni (verso la strada, il cortile, il giardino) entrano per intero; i muri di
-confine con un'altra unità o con uno spazio a comune entrano **fino alla mezzeria**. Perché il programma li
+**Muri** (DPR 138/98, allegato C): i muri interni e quelli esterni (verso la strada, il cortile, il giardino)
+entrano per intero **fino a 50 cm** di spessore; i muri di confine con un'altra unità o con uno spazio a comune
+entrano **fino alla mezzeria, al massimo 25 cm**. Il muro fra un vano e il balcone va con il vano. Perché il programma li
 riconosca, nel DXF scrivi il testo nello spazio confinante («vano scale a comune», «altra u.i.», «altra proprietà»);
 se l'unità vicina non è disegnata basta scrivere «altra u.i.» nello spessore del muro di confine. Sono sempre
 proposte: controllale sull'anteprima.

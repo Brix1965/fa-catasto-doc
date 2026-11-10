@@ -510,7 +510,17 @@ export function riconosciVani(entita: Entita[], poligoni: Poligono[], opzioni: O
   // con i poligoni del tecnico, terrazze e giardini con il loro nome restano dell'unità anche se fuori dai poligoni
   // (tipicamente: poligoni A disegnati o proposti prima, senza D/F); ciò che è «a comune» mai
   const scopertoNominato = (f: G): boolean => { const c = categorieIn(f); return !senzaPoligoni && (c.has('D') || c.has('F')) && !c.has('V') && !c.has('X'); };
-  const eMuro = (f: G) => { const o = buffer(f, -0.3, true); return o.isEmpty() || o.getArea() < 0.05; };
+  // muro: faccia sottile (sotto 60 cm). Negli edifici esistenti i muri arrivano a 80-100 cm: la faccia dei muri che gira
+  // attorno ai locali (con dei buchi grandi, i locali stessi), senza testi e in media sottile (2 × area / perimetro sotto
+  // 70 cm) è un muro anche se in qualche punto è più spessa di 60 cm
+  const eMuro = (f: G) => {
+    const o = buffer(f, -0.3, true);
+    if (o.isEmpty() || o.getArea() < 0.05) return true;
+    if (f.getGeometryType() !== 'Polygon' || !f.getNumInteriorRing() || (2 * f.getArea()) / f.getLength() >= 0.7) return false;
+    let buchiGrandi = false;
+    for (let i = 0; i < f.getNumInteriorRing(); i++) if (poligono(coordinate(f.getInteriorRingN(i))).getArea() > 2) buchiGrandi = true;
+    return buchiGrandi && !testi.some((x) => f.contains(x.p));
+  };
   // senza poligoni: lo spazio fra il disegno e il riquadro (tocca il bordo della zona) è l'esterno, non un vano
   const bordoZona = senzaPoligoni ? buffer(unione(di('A')).getBoundary(), 0.05) : null;
   let validi = facce.filter((f) => { const rp = puntoInterno(f); return !Gz.contains(rp) && !eMuro(f) && (DENTRO.contains(rp) || scopertoNominato(f)) && f.getArea() >= 0.3 && !(bordoZona && f.intersects(bordoZona)); });

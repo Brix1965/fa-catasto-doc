@@ -197,4 +197,22 @@ describe('poligoni: muri di confine alla mezzeria, muri esterni per intero', () 
     expect(Math.min(...ys)).toBeCloseTo(-0.3, 2);
     expect(Math.max(...ys)).toBeCloseTo(3.3, 2);
   });
+  it('a norma del DPR 138/98: muro di confine di 80 cm → 25 cm; muro esterno di 55 cm → 50 cm', async () => {
+    const { calcolaDisegno } = await import('../worker');
+    // camera 4 × 3; muri esterni di 55 cm; muro verso le scale a comune di 80 cm
+    const e = [
+      ...rett(-0.55, -0.55, 7.35, 3.55),
+      ...rett(0, 0, 4, 3),
+      ...rett(4.8, 0, 6.8, 3),
+      T('camera', [2, 1.5]), T('vano scale a comune', [5.8, 1.5]),
+    ];
+    const r = calcolaDisegno({ op: 'disegno', entita: e as never, poligoni: [], usaPoligoni: false, riquadro: [[-2, -2], [9, -2], [9, 5], [-2, 5]] });
+    const A = r.generati.poligoni.filter((p) => p.tipo === 'A');
+    expect(A.length).toBe(1);
+    const xs = A[0].vertici.map((v) => v[0]), ys = A[0].vertici.map((v) => v[1]);
+    expect(Math.min(...xs)).toBeCloseTo(-0.5, 2); // esterno: 50 cm su 55
+    expect(Math.max(...xs)).toBeCloseTo(4.25, 2); // comunione: 25 cm su 80
+    expect(Math.min(...ys)).toBeCloseTo(-0.5, 2);
+    expect(Math.max(...ys)).toBeCloseTo(3.5, 2);
+  });
 });
