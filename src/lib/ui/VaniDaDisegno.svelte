@@ -13,7 +13,7 @@
   import { altezzeUnita, m2Intero, totaliVani, type RisultatoVani, type TipoVano, type VanoRiconosciuto } from '$lib/core/vani/riconosci';
   import { riconosciInBackground, schedeConDxf } from '$lib/core/vani/esegui';
   import { consistenzaVani } from '$lib/core/vani/totali';
-  import { allineaAiVicini, direzionePrincipale, dist, distSegmento, type P } from '$lib/core/disegno/geometria';
+  import { agganciaAlDisegno, allineaAiVicini, direzionePrincipale, dist, distSegmento, type P, type TipoAggancioDisegno } from '$lib/core/disegno/geometria';
   import { areaContorni, centroContorni, dividiVano, unisciVani } from '$lib/core/vani/forme';
   import { conferma as chiedi } from '$lib/piattaforma';
   import Icona from './Icona.svelte';
@@ -190,12 +190,13 @@
   function su(): void {
     spinta = null;
     if (trascinaV) { trascinaV = null; }
+    agganciato = null;
   }
 
   // ---- «Modifica le forme»: pulsante sempre visibile; strumenti con il loro nome, uno alla volta, senza tasto destro
   type Strumento = 'sposta' | 'aggiungi' | 'togli' | 'dividi' | 'unisci' | 'nuovo';
   const STRUMENTI: { s: Strumento; nome: string; aiuto: string }[] = [
-    { s: 'sposta', nome: 'Sposta vertici', aiuto: 'Clic su un vano: compaiono i suoi vertici (quadratini). Trascina un quadratino per spostarlo.' },
+    { s: 'sposta', nome: 'Sposta vertici', aiuto: 'Clic su un vano: compaiono i suoi vertici (quadratini). Trascina un quadratino per spostarlo: si aggancia da solo agli spigoli, agli incroci e alle linee dei muri (segno arancione).' },
     { s: 'aggiungi', nome: 'Aggiungi vertice', aiuto: 'Clic su un vano, poi clic sul suo bordo dove vuoi il vertice nuovo (lo puoi subito trascinare).' },
     { s: 'togli', nome: 'Togli vertice', aiuto: 'Clic su un vano, poi clic sul quadratino del vertice da togliere.' },
     { s: 'dividi', nome: 'Dividi vano', aiuto: 'Clic su un vano, poi clic su un punto del bordo e su un punto del bordo opposto: il vano diventa due.' },
@@ -218,8 +219,11 @@
   const vanoInModifica = $derived(modifica ? vani[modifica.s]?.find((x) => x.id === modifica!.id) : undefined);
   /** orientamento dei muri, per l'ortogonale */
   const angolo = $derived(direzionePrincipale((risultati[scheda]?.linee ?? []).filter((l) => !l.tratteggiata).map((l) => [l.a, l.b] as [P, P])));
-  /** estremi delle linee del disegno, per agganciare i vertici agli spigoli dei muri */
-  const spigoli = $derived((risultati[scheda]?.linee ?? []).flatMap((l) => [l.a, l.b] as P[]));
+  /** linee del disegno (muri), per l'aggancio anche senza ortogonale: spigoli, incroci, linee */
+  const lineeDisegno = $derived((risultati[scheda]?.linee ?? []).map((l) => [l.a, l.b] as [P, P]));
+  /** aggancio in corso, mostrato con un segno sul disegno */
+  let agganciato = $state<{ p: P; tipo: TipoAggancioDisegno } | null>(null);
+  const NOME_AGGANCIO: Record<TipoAggancioDisegno, string> = { spigolo: 'spigolo', incrocio: 'incrocio dei muri', linea: 'sulla linea' };
 
   // annulla: istantanee di tutti i vani
   let storia: string[] = [];
@@ -276,8 +280,11 @@
     const t2 = upp * 8;
     const vs = (conBordo ? vanoInModifica?.contorni.flat() ?? [] : []) as P[];
     d = t2;
-    for (const q of [...vs, ...spigoli, ...punti]) { const x = dist(q, p); if (x < d) { d = x; best = q; } }
-    if (best) return [best[0], best[1]];
+    agganciato = null;
+    for (const q of [...vs, ...punti]) { const x = dist(q, p); if (x < d) { d = x; best = q; } }
+    if (best) { agganciato = { p: [best[0], best[1]], tipo: 'spigolo' }; return [best[0], best[1]]; }
+    const ag = agganciaAlDisegno(p, lineeDisegno, t2);
+    if (ag && ag.tipo !== 'linea') { agganciato = ag; return ag.p; }
     if (conBordo && vanoInModifica) {
       let bp: P | null = null; d = t;
       for (const c of vanoInModifica.contorni) for (let k = 0; k < c.length; k++) {
@@ -288,6 +295,7 @@
       if (bp) return bp;
     }
     if ((ortogonale || e.shiftKey) && punti.length) return allineaAiVicini(p, [punti[punti.length - 1]], angolo, upp * 14).p;
+    if (ag) { agganciato = ag; return ag.p; }
     return p;
   }
   function giuVertice(e: PointerEvent, r: number, k: number): void {
@@ -311,14 +319,16 @@
     if (!v || !trascinaV) return;
     const [sx, sy] = puntoSvg(e);
     let p: P = [sx, -sy];
-    let best: P | null = null, d = upp * 9;
-    for (const q of spigoli) { const x = dist(q, p); if (x < d) { d = x; best = q; } }
-    if (best) p = [best[0], best[1]];
+    // aggancio al disegno sempre attivo (anche per gli edifici non squadrati): spigoli e incroci dei muri, poi
+    // con l'ortogonale l'allineamento ai vertici vicini, altrimenti il punto più vicino sulla linea del muro
+    const ag = agganciaAlDisegno(p, lineeDisegno, upp * 10);
+    agganciato = null;
+    if (ag && ag.tipo !== 'linea') { p = ag.p; agganciato = ag; }
     else if (ortogonale || e.shiftKey) {
       const c = v.contorni[trascinaV.r];
       const n = c.length;
       p = allineaAiVicini(p, [c[(trascinaV.k - 1 + n) % n] as P, c[(trascinaV.k + 1) % n] as P], angolo, upp * 14).p;
-    }
+    } else if (ag) { p = ag.p; agganciato = ag; }
     if (!trascinaV.mosso) memorizza();
     v.contorni[trascinaV.r][trascinaV.k] = p;
     trascinaV.mosso = true;
@@ -517,7 +527,7 @@
             {/if}
             <div class="area-disegno relative min-h-[22rem] flex-1 overflow-hidden bg-white dark:bg-neutral-950" bind:clientWidth={largArea}>
               <!-- svelte-ignore a11y_no_static_element_interactions, a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
-              <svg bind:this={svgEl} class="h-full w-full touch-none select-none {modoForme && strumento !== 'sposta' ? 'cursor-crosshair' : spinta && trascinato ? 'cursor-grabbing' : ''}" viewBox={viewBox} preserveAspectRatio="xMidYMid meet" role="img" aria-label="Planimetria con i vani colorati" onwheel={rotella} onpointerdown={giu} onpointermove={muovi} onpointerup={su} onpointercancel={su} onclick={clic} onpointerleave={() => (cursore = null)}>
+              <svg bind:this={svgEl} class="h-full w-full touch-none select-none {modoForme && strumento !== 'sposta' ? 'cursor-crosshair' : spinta && trascinato ? 'cursor-grabbing' : ''}" viewBox={viewBox} preserveAspectRatio="xMidYMid meet" role="img" aria-label="Planimetria con i vani colorati" onwheel={rotella} onpointerdown={giu} onpointermove={muovi} onpointerup={su} onpointercancel={su} onclick={clic} onpointerleave={() => { cursore = null; if (!trascinaV) agganciato = null; }}>
                 {#each risultati[scheda]?.linee ?? [] as l, i (i)}
                   <line x1={l.a[0]} y1={-l.a[1]} x2={l.b[0]} y2={-l.b[1]} stroke="currentColor" class="text-neutral-500" stroke-width="1" vector-effect="non-scaling-stroke" stroke-dasharray={l.tratteggiata ? '5 3' : undefined} />
                 {/each}
@@ -536,6 +546,15 @@
                 {#if modoForme && punti.length}
                   <polyline points={[...punti, ...(cursore ? [cursore] : [])].map(([x, y]) => `${x},${-y}`).join(' ')} fill={strumento === 'nuovo' ? '#2563eb' : 'none'} fill-opacity="0.12" stroke="#2563eb" stroke-width="2" stroke-dasharray="6 4" vector-effect="non-scaling-stroke" />
                   {#each punti as q, k (k)}<circle cx={q[0]} cy={-q[1]} r={upp * 5} fill="#2563eb" />{/each}
+                {/if}
+                {#if modoForme && agganciato}
+                  {@const a = agganciato}
+                  <g class="pointer-events-none" stroke="#ea580c" stroke-width="2" fill="none">
+                    {#if a.tipo === 'spigolo'}<rect x={a.p[0] - upp * 7} y={-a.p[1] - upp * 7} width={upp * 14} height={upp * 14} vector-effect="non-scaling-stroke" />
+                    {:else if a.tipo === 'incrocio'}<path d={`M${a.p[0] - upp * 7},${-a.p[1] - upp * 7}L${a.p[0] + upp * 7},${-a.p[1] + upp * 7}M${a.p[0] - upp * 7},${-a.p[1] + upp * 7}L${a.p[0] + upp * 7},${-a.p[1] - upp * 7}`} vector-effect="non-scaling-stroke" />
+                    {:else}<circle cx={a.p[0]} cy={-a.p[1]} r={upp * 6} vector-effect="non-scaling-stroke" />{/if}
+                    <text x={a.p[0] + upp * 10} y={-a.p[1] - upp * 10} font-size={upp * 12} fill="#ea580c" stroke="none">{NOME_AGGANCIO[a.tipo]}</text>
+                  </g>
                 {/if}
                 {#each vani[scheda] ?? [] as v (v.id)}
                   <text x={v.centro[0]} y={-v.centro[1]} font-size={upp * 15} text-anchor="middle" class="pointer-events-none fill-neutral-900 dark:fill-neutral-100" font-weight="600">{v.id}</text>

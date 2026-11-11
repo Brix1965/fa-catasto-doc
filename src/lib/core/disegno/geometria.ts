@@ -21,6 +21,44 @@ export function proietta(p: P, a: P, b: P): P {
 }
 export const distSegmento = (p: P, a: P, b: P): number => dist(p, proietta(p, a, b));
 
+/** Incrocio delle rette per a-b e c-d (null se parallele). */
+export function incrocioRette(a: P, b: P, c: P, d: P): P | null {
+  const r = [b[0] - a[0], b[1] - a[1]], q = [d[0] - c[0], d[1] - c[1]];
+  const den = r[0] * q[1] - r[1] * q[0];
+  if (Math.abs(den) < 1e-12 * (Math.hypot(r[0], r[1]) * Math.hypot(q[0], q[1]) || 1)) return null;
+  const t = ((c[0] - a[0]) * q[1] - (c[1] - a[1]) * q[0]) / den;
+  return [a[0] + t * r[0], a[1] + t * r[1]];
+}
+
+export type TipoAggancioDisegno = 'spigolo' | 'incrocio' | 'linea';
+
+/**
+ * Aggancio di un punto alle linee del disegno, senza bisogno dell'ortogonale (edifici non squadrati):
+ * 1) estremo di una linea, 2) incrocio di due linee vicine (anche se nel disegno non si toccano del tutto:
+ * spigolo di due muri), 3) punto più vicino su una linea. `tol` in unità del disegno.
+ */
+export function agganciaAlDisegno(p: P, linee: [P, P][], tol: number, altriPunti: P[] = []): { p: P; tipo: TipoAggancioDisegno } | null {
+  const vicine = linee.filter(([a, b]) => distSegmento(p, a, b) <= tol * 1.5);
+  let best: P | null = null, dm = tol;
+  for (const q of altriPunti) { const d = dist(p, q); if (d < dm) { dm = d; best = q; } }
+  for (const [a, b] of vicine) for (const q of [a, b]) { const d = dist(p, q); if (d < dm) { dm = d; best = q; } }
+  if (best) return { p: [best[0], best[1]], tipo: 'spigolo' };
+  dm = tol;
+  for (let i = 0; i < vicine.length; i++) for (let j = i + 1; j < vicine.length; j++) {
+    const [a, b] = vicine[i], [c, d2] = vicine[j];
+    const x = incrocioRette(a, b, c, d2);
+    // l'incrocio deve stare sulle due linee (o appena oltre, entro la tolleranza)
+    if (!x || distSegmento(x, a, b) > tol || distSegmento(x, c, d2) > tol) continue;
+    const d = dist(p, x);
+    if (d < dm) { dm = d; best = x; }
+  }
+  if (best) return { p: best, tipo: 'incrocio' };
+  dm = tol * 0.8;
+  let sl: P | null = null;
+  for (const [a, b] of vicine) { const q = proietta(p, a, b); const d = dist(p, q); if (d < dm) { dm = d; sl = q; } }
+  return sl ? { p: sl, tipo: 'linea' } : null;
+}
+
 /** Punti di un arco (gradi antiorari), per disegnarlo e selezionarlo. */
 export function puntiArco(c: P, r: number, inizio: number, fine: number, n = 24): P[] {
   const a0 = Number.isFinite(inizio) ? inizio % 360 : 0, amp = ampiezzaArco(a0, fine);

@@ -1,7 +1,7 @@
 // Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
 // SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 import { describe, expect, it } from 'vitest';
-import { allineaAiVicini, area, direzionePrincipale, latiPoligono, ortogonaleDa, ruota, semplificaVertici, squadraPoligono, type P } from '../geometria';
+import { agganciaAlDisegno, allineaAiVicini, area, direzionePrincipale, latiPoligono, ortogonaleDa, ruota, semplificaVertici, squadraPoligono, type P } from '../geometria';
 
 const vicino = (a: P, b: P, t = 1e-6) => Math.hypot(a[0] - b[0], a[1] - b[1]) < t;
 
@@ -42,5 +42,28 @@ describe('strumenti per i poligoni', () => {
     expect(r.allineato).toBe(true);
     expect(vicino(r.p, [1, 3])).toBe(true);
     expect(allineaAiVicini([1.5, 1.5], [[1, 0], [5, 3]], 0, 0.05).allineato).toBe(false);
+  });
+});
+
+describe('aggancio al disegno senza ortogonale (edifici non squadrati)', () => {
+  // due muri obliqui che nel disegno non si toccano del tutto (2 cm di distacco allo spigolo)
+  const linee: [P, P][] = [[[0, 0], [4, 1]], [[4.02, 1.03], [3, 5]], [[10, 10], [12, 10]]];
+  it("spigolo: l'estremo di una linea", () => {
+    expect(agganciaAlDisegno([0.05, 0.03], linee, 0.1)).toEqual({ p: [0, 0], tipo: 'spigolo' });
+  });
+  it('incrocio di due muri che non si toccano', () => {
+    const a = agganciaAlDisegno([4.06, 1.0], linee, 0.1)!;
+    expect(a.tipo).toBe('spigolo'); // l'estremo più vicino vince
+    // muri che si attraversano: lo spigolo non è l'estremo di nessuna linea
+    const b = agganciaAlDisegno([4.05, 0.97], [[[0, 0], [5, 1.25]], [[4.5, -1], [3.5, 3]]], 0.15)!;
+    expect(b.tipo).toBe('incrocio');
+    expect(b.p[0]).toBeCloseTo(4, 9);
+    expect(b.p[1]).toBeCloseTo(1, 9);
+  });
+  it('sulla linea, altrimenti niente', () => {
+    const a = agganciaAlDisegno([2, 0.56], linee, 0.1)!;
+    expect(a.tipo).toBe('linea');
+    expect(a.p[1]).toBeCloseTo(a.p[0] / 4, 9);
+    expect(agganciaAlDisegno([7, 7], linee, 0.1)).toBeNull();
   });
 });

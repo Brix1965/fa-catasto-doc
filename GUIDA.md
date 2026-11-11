@@ -340,8 +340,10 @@ Il bordo tratteggiato segnala un locale senza nome, proposto come accessorio dir
   (Principale, Bagno, Acc. diretto, Acc. indiretto, Escluso).
 - **Modificare le forme**: pulsante verde **«Modifica le forme»** sopra il disegno. Compare una fila di
   strumenti, ognuno col suo nome, e sotto la spiegazione di cosa fare:
-  - **Sposta vertici**: clic su un vano, compaiono i suoi vertici (quadratini): si trascinano (si agganciano agli
-    spigoli dei muri; con «Ortogonale» si allineano ai vertici vicini);
+  - **Sposta vertici**: clic su un vano, compaiono i suoi vertici (quadratini): si trascinano. L'**aggancio al
+    disegno** è sempre attivo, anche senza «Ortogonale» (edifici non squadrati): spigoli dei muri, incroci di due
+    muri (anche se nel disegno le linee si attraversano) e punto sulla linea del muro; un segno arancione dice a
+    cosa si è agganciato. Con «Ortogonale» i vertici si allineano anche a quelli vicini;
   - **Aggiungi vertice**: clic su un vano, poi clic sul suo bordo dove serve il vertice nuovo;
   - **Togli vertice**: clic su un vano, poi clic sul quadratino da togliere;
   - **Dividi vano**: clic su un vano, poi clic su un punto del bordo e su un punto del bordo opposto: il vano
