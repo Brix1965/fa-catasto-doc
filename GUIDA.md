@@ -114,7 +114,7 @@ far sbagliare meno il tecnico.
   delle release su GitHub: non invia nessun dato.
 
 **Piattaforme**
-- Windows, macOS (Apple Silicon) e Linux. Su Windows c'è anche la versione portatile, senza installazione.
+- Windows, macOS (Apple Silicon e Intel) e Linux. Su Windows c'è anche la versione portatile, senza installazione.
 - Non serve Java né altro software. Nessun server: i file restano sul computer.
 
 ---

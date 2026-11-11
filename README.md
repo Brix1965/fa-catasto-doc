@@ -7,6 +7,7 @@
 | **Windows** (nessuna installazione) | [FaCatastoDoc-Windows-portatile.exe](https://github.com/Brix1965/fa-catasto-doc/releases/latest/download/FaCatastoDoc-Windows-portatile.exe) |
 | **Windows** (con installazione) | [FaCatastoDoc-Windows-installer.exe](https://github.com/Brix1965/fa-catasto-doc/releases/latest/download/FaCatastoDoc-Windows-installer.exe) |
 | **Mac** (Apple Silicon: M1, M2, M3, M4) | [FaCatastoDoc-macOS-AppleSilicon.dmg](https://github.com/Brix1965/fa-catasto-doc/releases/latest/download/FaCatastoDoc-macOS-AppleSilicon.dmg) |
+| **Mac** (processore Intel) | [FaCatastoDoc-macOS-Intel.dmg](https://github.com/Brix1965/fa-catasto-doc/releases/latest/download/FaCatastoDoc-macOS-Intel.dmg) |
 | **Linux** | [FaCatastoDoc-Linux.AppImage](https://github.com/Brix1965/fa-catasto-doc/releases/latest/download/FaCatastoDoc-Linux.AppImage) · [.deb](https://github.com/Brix1965/fa-catasto-doc/releases/latest/download/FaCatastoDoc-Linux.deb) |
 
 Il file si scarica subito, sempre nella versione più recente. Al primo avvio il sistema chiede una conferma:
@@ -54,7 +55,7 @@ aggiornata automaticamente a ogni modifica.
 
 Gli eseguibili non sono firmati con un certificato a pagamento: al primo avvio il sistema chiede una conferma.
 
-**macOS (Apple Silicon)** — `FaCatastoDoc-macOS-AppleSilicon.dmg`
+**macOS** — `FaCatastoDoc-macOS-AppleSilicon.dmg` (M1, M2, M3, M4) oppure `FaCatastoDoc-macOS-Intel.dmg` (processore Intel; per saperlo: menu Apple → Informazioni su questo Mac, voce «Chip» o «Processore»)
 1. Apri il `.dmg` e trascina **Fa.Catasto.Doc** nella cartella **Applicazioni**.
 2. Apri il **Terminale** e scrivi (dopo ogni installazione o aggiornamento):
    `xattr -cr "/Applications/Fa.Catasto.Doc.app"`

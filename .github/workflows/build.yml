@@ -31,12 +31,24 @@ jobs:
           - os: windows-latest
             nome: Windows
             args: ''
+            rust: ''
+            artefatto: windows-latest
           - os: ubuntu-22.04
             nome: Linux
             args: ''
+            rust: ''
+            artefatto: ubuntu-22.04
           - os: macos-latest
             nome: macOS (Apple Silicon)
             args: '--target aarch64-apple-darwin'
+            rust: aarch64-apple-darwin
+            artefatto: macos-latest
+          # Mac con processore Intel: compilato sullo stesso Mac di GitHub (Apple Silicon) per x86_64
+          - os: macos-latest
+            nome: macOS (Intel)
+            args: '--target x86_64-apple-darwin'
+            rust: x86_64-apple-darwin
+            artefatto: macos-intel
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
@@ -45,6 +57,8 @@ jobs:
       - name: pnpm
         run: npm install -g pnpm@10
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust }}
       - name: Dipendenze di sistema (Linux)
         if: runner.os == 'Linux'
         run: |
@@ -74,7 +88,7 @@ jobs:
       - name: Pacchetti (tutti)
         uses: actions/upload-artifact@v5
         with:
-          name: fa-catasto-doc-${{ matrix.os }}
+          name: fa-catasto-doc-${{ matrix.artefatto }}
           path: |
             src-tauri/target/**/release/bundle/**/*.exe
             src-tauri/target/**/release/bundle/**/*.msi
@@ -116,6 +130,7 @@ jobs:
           find artefatti/fa-catasto-doc-windows-latest -name '*-setup.exe' -exec cp {} dist/FaCatastoDoc-Windows-installer.exe \;
           find artefatti/fa-catasto-doc-windows-latest -name '*.msi' -exec cp {} dist/FaCatastoDoc-Windows.msi \;
           find artefatti/fa-catasto-doc-macos-latest -name '*.dmg' -exec cp {} dist/FaCatastoDoc-macOS-AppleSilicon.dmg \;
+          find artefatti/fa-catasto-doc-macos-intel -name '*.dmg' -exec cp {} dist/FaCatastoDoc-macOS-Intel.dmg \;
           find artefatti/fa-catasto-doc-ubuntu-22.04 -name '*.AppImage' -exec cp {} dist/FaCatastoDoc-Linux.AppImage \;
           find artefatti/fa-catasto-doc-ubuntu-22.04 -name '*.deb' -exec cp {} dist/FaCatastoDoc-Linux.deb \;
           ls -la dist
@@ -141,7 +156,7 @@ jobs:
 
           Gli eseguibili non sono firmati con un certificato a pagamento: al primo avvio il sistema chiede una conferma.
 
-          **macOS (Apple Silicon)** — `FaCatastoDoc-macOS-AppleSilicon.dmg`
+          **macOS** — `FaCatastoDoc-macOS-AppleSilicon.dmg` (M1, M2, M3, M4) oppure `FaCatastoDoc-macOS-Intel.dmg` (Mac con processore Intel)
           1. Apri il `.dmg` e trascina **Fa.Catasto.Doc** nella cartella **Applicazioni**.
           2. Apri il **Terminale** e scrivi (dopo ogni installazione o aggiornamento):
              `xattr -cr "/Applications/Fa.Catasto.Doc.app"`
