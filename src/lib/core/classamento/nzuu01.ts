@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * NZUU01YN di Docfa 4, funzione '1': divide i tre piani dell'unità (4 caratteri ciascuno) sul trattino
  * ("1-3" → "1", "3") e li elenca in al più 6 posizioni.

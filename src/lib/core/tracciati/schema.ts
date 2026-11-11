@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Tracciati record del "documento attuale" Docfa 4 (versione "D3"), curati a mano
  * a partire dal documento ufficiale "DocumentiAttuali.rtf" (4.00.3) e verificati

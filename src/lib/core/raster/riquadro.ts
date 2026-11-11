@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Riquadro DXF di partenza: il rettangolo del modello dell'Agenzia (vertice in 0,0, misure del formato alla
  * scala scelta) sul layer RIQUADRO, il layer DOCFA_POLIGONI già spento e un piccolo esempio (layer ESEMPIO, da

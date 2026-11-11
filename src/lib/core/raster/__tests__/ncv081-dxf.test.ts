@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Confronto con Docfa sui DXF reali di NCV081 (fixtures-private/NCV081/dxf, saltato se mancano):
  * elaborato planimetrico su 3 schede e planimetrie su più schede (6 e 5), immagine e poligoni NTF.

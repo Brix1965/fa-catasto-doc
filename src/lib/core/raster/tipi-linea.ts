@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Tipi di linea del DXF nella planimetria: grafica uniforme, indipendente dalla scala del disegno e dal
  * fattore di scala dei tipi di linea ($LTSCALE) usato da chi ha preparato il DXF (decisione di Fabrizio, 10/11/2026).

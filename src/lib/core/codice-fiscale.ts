@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /** Calcolo del codice fiscale delle persone fisiche (DM 23/12/1976), come il tasto "Calcola" di Docfa. */
 const VOCALI = 'AEIOU';
 const MESI = 'ABCDEHLMPRST';

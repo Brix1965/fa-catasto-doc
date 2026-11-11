@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 import { describe, expect, it } from 'vitest';
 import { allineaAiVicini, area, direzionePrincipale, latiPoligono, ortogonaleDa, ruota, semplificaVertici, squadraPoligono, type P } from '../geometria';
 

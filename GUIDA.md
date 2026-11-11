@@ -425,10 +425,13 @@ modulo fa molti meno errori; senza nome deve indovinare.
 Anche con un DXF ben preparato, **controlla sempre** la proposta prima di confermarla.
 
 ### Classamento
-Per ogni unità ordinaria, **classamento proposto** e **classamento automatico** affiancati: si sceglie quale
-convalidare. Scegliendo l'automatico i suoi dati passano nel proposto, dove si possono ancora modificare.
-In variazione, la sezione «Dati per il classamento automatico» chiede il classamento in atti delle unità
-variate o soppresse e le categorie presenti nel fabbricato con la classe più elevata.
+Riquadri separati, come nel quadro B. In variazione, in alto, **«Classamento in atti»** (unità variate o
+soppresse) e **«Classi più elevate nel fabbricato»** (pulsante «Aggiungi categoria»): senza questi dati Docfa
+non esegue il classamento automatico.
+Per ogni unità ordinaria due riquadri, **«Classamento proposto»** e **«Classamento automatico»**, ciascuno con
+il suo pulsante **«Convalida…»**; quello scelto ha il bordo colorato e la scritta «Convalidato». Convalidando
+l'automatico i suoi dati passano nel proposto, dove si possono ancora modificare. Sotto, una riga riassume il
+classamento convalidato e la rendita.
 
 ### Elenco subalterni
 **«Aggiorna»** riporta le unità del documento (e i b.c.n.c. in accatastamento) con la descrizione dal modello 1N,

@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Formato di salvataggio delle pratiche (*.catasto.json): la Pratica del motore più i metadati
  * dell'applicazione. I dati binari (TIFF/NTF importati) sono serializzati in base64.

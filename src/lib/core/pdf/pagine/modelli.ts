@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Pagine dei modelli 1N (parte I per il fabbricato, parte II per ogni u.i.u.) e 2N (parte I e, per
  * ogni corpo di fabbrica, parte II), disegnate dai layout JSON estratti dai PDF di Docfa e riempite

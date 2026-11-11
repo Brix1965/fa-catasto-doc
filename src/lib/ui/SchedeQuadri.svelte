@@ -1,3 +1,5 @@
+<!-- Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+     SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE) -->
 <script lang="ts" module>
   export interface VoceQuadro { id: string; sigla: string; titolo: string; obbligatorio?: boolean; completo: boolean }
 </script>

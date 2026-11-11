@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Avviso di nuova versione: all'avvio (e ogni 6 ore) l'app legge da GitHub l'ultima release pubblicata
  * («ultima versione», rigenerata a ogni rilascio) e la confronta con la propria build.

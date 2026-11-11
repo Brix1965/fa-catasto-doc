@@ -1,3 +1,5 @@
+<!-- Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+     SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE) -->
 <script lang="ts">
   /**
    * Barra «È disponibile una nuova versione»: controllo all'avvio e ogni 6 ore, pulsante per la pagina di

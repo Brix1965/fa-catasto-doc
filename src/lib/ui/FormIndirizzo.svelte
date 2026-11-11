@@ -1,3 +1,5 @@
+<!-- Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+     SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE) -->
 <script lang="ts">
   /**
    * Ubicazione della u.i.u. (quadro U): fino a 4 indirizzi, ciascuno con toponimo (dallo stradario certificato

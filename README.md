@@ -125,7 +125,12 @@ I dati di prova inclusi nel repository sono anonimizzati.
 - `src/lib/ui/`, `src/routes/` — interfaccia (Svelte 5 + Tailwind)
 - `src-tauri/` — involucro desktop
 
-## Licenza
+## Autore e licenza
 
-GNU General Public License v3.0 (vedi `LICENSE`). I font Liberation Serif inclusi sono distribuiti
+**Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra.**
+
+GNU General Public License v3.0 (vedi `LICENSE`), con i termini aggiuntivi dell'articolo 7 scritti
+nel file `NOTICE`: chi ridistribuisce il programma, anche modificato, deve conservare questa
+attribuzione (qui, nel `NOTICE` e nella finestra Informazioni), indicare le proprie modifiche e
+usare un nome diverso da «Fa.Catasto.Doc» per le versioni modificate. I font Liberation Serif inclusi sono distribuiti
 con licenza SIL OFL; il profilo colore sRGB con la licenza dell'International Color Consortium.

@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+# SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 """
 Estrae dai PDF reali prodotti da Docfa 4 il layout dei modelli (1N parte I e II, 2N parte I e II)
 e lo salva come JSON in src/lib/core/pdf/layout/.

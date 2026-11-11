@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Formattazione dei valori come li stampa Docfa: numeri senza zeri iniziali allineati a destra in un
  * campo di larghezza fissa (riempito con spazi), separatore delle migliaia "." e decimali ",".

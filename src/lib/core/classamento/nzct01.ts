@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * NZCT01 di Docfa 4: regia del classamento automatico.
  * Riceve i record NCLAS1 scritti da NZCT02 (402 caratteri), l'area L4c dei "dati in atti" (da 0x3ea0,

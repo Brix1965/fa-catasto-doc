@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Supporto ai test del generatore PDF: strumenti Python (pikepdf, pypdfium2) e poppler usati tramite
  * tools/pdf_test_utils.py, caricamento dei documenti di prova in fixtures-private.

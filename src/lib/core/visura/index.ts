@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Lettura delle visure catastali in PDF scaricate da Sister (Agenzia delle Entrate): "Visura attuale sintetica per
  * soggetto" e, dove il formato è lo stesso, "Visura per immobile" (attuale; della storica si legge la situazione attuale).

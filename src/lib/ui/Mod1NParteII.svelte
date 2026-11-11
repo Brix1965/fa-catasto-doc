@@ -1,3 +1,5 @@
+<!-- Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+     SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE) -->
 <script lang="ts" module>
   import type { Pratica, UnitaImmobiliare } from '$lib/core/model';
   import type { VoceQuadro } from './SchedeQuadri.svelte';

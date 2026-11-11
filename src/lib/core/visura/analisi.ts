@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Analisi del testo posizionato di una visura Sister: sezioni per comune, tabella degli immobili del Catasto
  * Fabbricati (colonne dalle intestazioni), intestati.

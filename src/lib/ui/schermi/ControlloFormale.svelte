@@ -1,3 +1,5 @@
+<!-- Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+     SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE) -->
 <script lang="ts">
   /** Controllo formale del documento: diagnostici di tipo G (struttura), E (errori) e W (avvertimenti), come in Docfa. */
   import type { Pratica } from '$lib/core/model';

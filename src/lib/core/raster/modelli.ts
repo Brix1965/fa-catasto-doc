@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Modelli (template) delle planimetrie e degli elaborati planimetrici: i TIFF A4.mod, A3.mod,
  * EP2_A4.mod, EP2_A3.mod della cartella PGM di Docfa 4, con il cartiglio già stampato.

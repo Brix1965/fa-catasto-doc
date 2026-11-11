@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Pagine "Acquisizione dati metrici - calcolo delle superfici catastali": un riquadro per ogni
  * u.i.u. con modello 1N parte II, con gli ambienti (tipologia e superficie) su tre colonne, e la

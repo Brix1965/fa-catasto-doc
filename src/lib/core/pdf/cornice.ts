@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Elementi comuni a tutte le pagine dei modelli: intestazione (ufficio provinciale e comune),
  * riquadro con la sigla del modello e piè di pagina (identificativo, versione del programma,

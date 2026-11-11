@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Correzione automatica dei DXF all'importazione: risolve da solo i problemi tipici dei disegni che Docfa non
  * accetta e dice cosa ha fatto. Il disegno viene sempre portato a: metri, riquadro con vertice in (0,0),

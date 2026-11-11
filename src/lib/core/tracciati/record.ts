@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 import { encode1252, decode1252 } from '../bytes';
 import type { FieldDef, RecordSchema } from './types';
 import { RECORD_LENGTH, SCHEMAS, VERSIONE } from './schema';

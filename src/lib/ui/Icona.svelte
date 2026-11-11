@@ -1,3 +1,5 @@
+<!-- Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+     SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE) -->
 <script lang="ts">
   /** Icone SVG inline (tratti 1,75 px, 24×24), nessuna dipendenza esterna. */
   export type NomeIcona =

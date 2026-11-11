@@ -1,3 +1,5 @@
+<!-- Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+     SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE) -->
 <script lang="ts">
   /** Finestra "Confermi la data di ultimazione dei lavori?" (prima della chiusura e dell'esportazione). */
   import { dataIt, dataOraIt } from '$lib/formato-data';

@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Calcoli sul disegno in un Web Worker (durano qualche secondo e non devono bloccare l'interfaccia):
  * - `vani`: riconoscimento dei vani delle schede della planimetria (quadro C del 1N parte II);

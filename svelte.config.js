@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 // Tauri doesn't have a Node.js server to do proper SSR
 // so we use adapter-static with a fallback to index.html to put the site in SPA mode
 // See: https://svelte.dev/docs/kit/single-page-apps

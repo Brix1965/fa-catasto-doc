@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Classamento automatico (funzione "Classamento automatico" di Docfa): categoria, classe e consistenza
  * calcolate dai modelli 1N (parte I e II) e dai prospetti provinciali NCL (V1…V8).

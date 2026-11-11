@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Estrazione del testo con le posizioni da un PDF (pdf.js, caricato solo quando serve).
  * Coordinate PDF: origine in basso a sinistra, y cresce verso l'alto.

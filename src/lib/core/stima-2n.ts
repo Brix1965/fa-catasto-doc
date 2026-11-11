@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Modello 2N parte I, quadro H: stima e rendita catastale proposta (u.i.u. delle categorie D ed E).
  *

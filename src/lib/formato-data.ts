@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /** Date all'italiana per l'interfaccia, sempre gg/mm/aaaa (indipendenti dalla lingua del computer). */
 import type { Data } from '$lib/core/model';
 

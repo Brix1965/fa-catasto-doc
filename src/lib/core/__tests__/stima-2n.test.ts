@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Modello 2N, quadro H: prospetto in euro, Va × saggio = rendita, coerenza col quadro U.
  * Unità dei record verificate su NCV081 (vedi stima-2n.ts).

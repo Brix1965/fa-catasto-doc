@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Scrittura di un DXF ASCII R12 (AC1009) dalle entità lette (già esplose): serve all'editor del disegno e al
  * riquadro di partenza. R12 è il formato più semplice (niente handle) e lo aprono tutti i CAD; il programma lo

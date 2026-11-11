@@ -1,6 +1,6 @@
 {
   "name": "fa-catasto-doc",
-  "version": "0.7.5",
+  "version": "0.7.6",
   "description": "",
   "type": "module",
   "scripts": {
@@ -13,6 +13,7 @@
     "tauri": "tauri"
   },
   "license": "GPL-3.0-only",
+  "author": "Giacomo Lombardo Geometra",
   "dependencies": {
     "@napi-rs/canvas": "^1.0.13",
     "@tauri-apps/api": "^2",

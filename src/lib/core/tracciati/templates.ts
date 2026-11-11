@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Modelli (template) dei record a 350 byte, ricavati dai file prodotti da Docfa 4.00.5
  * azzerando i campi dati. Contengono i byte 0xFF (qui 'ÿ') e le costanti delle zone riservate.

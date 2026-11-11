@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * NZCT03 di Docfa 4: categoria dell'unità del gruppo A (A01, A02, A03, A04, A07, A08).
  * 80 condizioni sul vettore dell'unità (record NCLAS1 di NZCT02) e sul prospetto V8 della sezione,

@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Pratica BPM (variazione D/5, 2N senza corpi, elenco subalterni di 262 righe) esportata da Docfa 4.00.5 il
  * 02/11/2026: decompilata e ricompilata deve dare NCV, ATT ed EPV identici byte per byte. Il campione è reale e

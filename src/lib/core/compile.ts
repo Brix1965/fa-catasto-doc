@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Compilatore: dal modello della pratica ai file dell'Agenzia.
  *   - NCVnnn.DAT  record a 350 byte (documento attuale)

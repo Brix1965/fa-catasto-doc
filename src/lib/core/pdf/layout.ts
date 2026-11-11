@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Layout dei modelli 1N e 2N estratti dai PDF di Docfa (tools/pdf_layout_extract.py) e loro
  * riempimento con i valori dei record del documento.

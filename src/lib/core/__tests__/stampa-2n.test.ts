@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Modello 2N senza corpi di fabbrica: Docfa (NZST40) va in errore 163 in esportazione/stampa se mancano
  * le 3 righe «altro tipo di stima» (record O tipo 1). Verificato il 02/11/2026 in Docfa 4.00.5.

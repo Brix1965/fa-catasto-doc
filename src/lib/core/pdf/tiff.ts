@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Lettura dei TIFF delle planimetrie (una sola strip compressa CCITT G4, come li produce Docfa e
  * come richiede l'Agenzia) per incorporarli nel PDF senza ricodificarli: lo stream /CCITTFaxDecode

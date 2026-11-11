@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /** Cartelle delle pratiche col numero del documento (NCVnnn/NCAnnn), in ordine di redazione come Docfa. */
 import { describe, it, expect } from 'vitest';
 import { nomeCartellaPratica, nuovaPratica, tecnicoVuoto } from '../pratica-file';

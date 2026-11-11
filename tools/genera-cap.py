@@ -1,3 +1,5 @@
+# Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+# SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 """Genera src/lib/core/dati/cap.generated.ts da Cap.dat (archivio distribuito con Docfa 4).
 Uso: python3 tools/genera-cap.py <percorso Cap.dat> [data AAAA-MM-GG del file]
 Cap.dat (Micro Focus, record di 9 caratteri): codice catastale del comune (4) + C.A.P. (5), uno per comune.

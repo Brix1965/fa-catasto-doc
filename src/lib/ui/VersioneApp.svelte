@@ -1,3 +1,5 @@
+<!-- Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+     SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE) -->
 <script lang="ts">
   /** Versione e data di rilascio dell'app, in piccolo (in basso a sinistra). */
   import { VERSIONE_APP } from '$lib/versione';

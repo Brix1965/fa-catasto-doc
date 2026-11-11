@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+# SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 """
 Prepara gli asset incorporati nel generatore PDF (src/lib/core/pdf/assets/):
   - i font Liberation Serif (regolare e grassetto), ridotti ai soli glifi Windows-1252 con fontTools

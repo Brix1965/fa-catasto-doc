@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Scrittura e lettura (minimale) di TIFF bilivello compressi CCITT G4, nel formato che Docfa
  * produce per le planimetrie (file nnnnnnn.sss) e che usa per i modelli (A4.mod, A3.mod...).

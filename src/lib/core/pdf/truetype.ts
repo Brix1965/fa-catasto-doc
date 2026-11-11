@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Lettura minimale di un font TrueType per ricavare i dati richiesti dal PDF
  * (FontDescriptor e Widths con codifica WinAnsi): tabelle head, hhea, maxp, OS/2, post, cmap, hmtx.

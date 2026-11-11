@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Organizzazione del modello 1N parte I (record B e C) in sezioni come nel modello cartaceo, con le
  * etichette italiane. Le etichette qui definite hanno la precedenza su quelle generate

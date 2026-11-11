@@ -1,3 +1,5 @@
+<!-- Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+     SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE) -->
 <script lang="ts">
   /**
    * Editor minimale del disegno di una scheda (planimetria): linee, testi, poligoni DOCFA_POLIGONI, tipo di linea

@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Composizione della scheda di planimetria come la produce Docfa: modello TIFF dell'Agenzia
  * (cartiglio già stampato) + valori del cartiglio + disegno del DXF nel riquadro.

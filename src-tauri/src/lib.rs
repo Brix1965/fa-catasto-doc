@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 //! Fa.Catasto.Doc: la logica sta tutta nel frontend (TypeScript); qui si registrano solo i plugin.
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+# SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 """Genera src/lib/core/dati/docfa-tabelle.generated.ts dai dati estratti da Docfa 4.00.5 (tools/dati-docfa/*.json).
 
 I JSON sono stati ricavati dall'help in linea (cartella HTML) e dalle librerie del programma (cartella PGM):

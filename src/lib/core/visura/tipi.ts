@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /** Dati strutturati di una visura catastale (servizio Sister dell'Agenzia delle Entrate). */
 
 export type TipoVisura = 'sintetica-soggetto' | 'immobile' | 'altro';

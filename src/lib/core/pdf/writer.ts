@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Writer PDF minimale ma completo per quanto serve al documento Docfa: oggetti, stream (FlateDecode),
  * tabella xref, trailer con /ID, /Info, metadati XMP (PDF/A-1b), OutputIntent con profilo ICC,

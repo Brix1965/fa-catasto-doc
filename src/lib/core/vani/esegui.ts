@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /** Avvio dei calcoli sul disegno nel worker (o direttamente, dove i worker non ci sono). */
 import type { Planimetria, Poligono, SchedaGrafica } from '../model';
 import type { RisultatoVani } from './riconosci';

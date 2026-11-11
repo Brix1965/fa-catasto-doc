@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /** Prove dei difetti trovati nel controllo QA del 03/11/2026 (perché non tornino). */
 import { describe, expect, it } from 'vitest';
 import { superficieCatastale } from '../superfici';

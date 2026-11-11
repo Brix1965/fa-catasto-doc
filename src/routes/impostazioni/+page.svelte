@@ -1,3 +1,5 @@
+<!-- Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+     SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE) -->
 <script lang="ts">
   /** Impostazioni: tecnico, cartella pratiche, archivi dell'Agenzia. */
   import { ALBI } from '$lib/core/esporta';
@@ -170,10 +172,15 @@
 
     <Sezione titolo="Informazioni" descrizione="{PROGETTO.nome} {version}{VERSIONE_APP.rilascio ? ` del ${VERSIONE_APP.rilascio}` : ''}: software libero e gratuito ({PROGETTO.licenza}).">
       <div class="space-y-3 text-sm">
+        <p><strong>{PROGETTO.nome} – {PROGETTO.copyright}</strong></p>
         <p>
           Il programma è fornito <strong>così com'è, senza alcuna garanzia</strong>, nemmeno implicita di commerciabilità o
           di idoneità a uno scopo particolare: il professionista resta responsabile dei documenti che firma e presenta.
           {PROGETTO.nome} non è un software dell'Agenzia delle Entrate né di Sogei.
+        </p>
+        <p class="text-xs text-fg-muted">
+          Licenza GNU GPL v3 con i termini aggiuntivi del file NOTICE: chi ridistribuisce il programma, anche modificato,
+          deve conservare questa attribuzione e usare un nome diverso da «{PROGETTO.nome}» per le versioni modificate.
         </p>
         <div class="flex flex-wrap gap-2">
           <button type="button" class="btn btn-piccolo" onclick={() => apriUrl(PROGETTO.sorgenti)}>Codice sorgente</button>

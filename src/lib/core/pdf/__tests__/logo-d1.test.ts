@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Logo del D1: incorporato nel programma, identico a quello che Docfa stampa sulla prima pagina del D1
  * (stessa immagine JPEG in NCV002, NCV081 e nella pratica BPM).

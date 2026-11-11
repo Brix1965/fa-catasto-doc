@@ -1,3 +1,5 @@
+# Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+# SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 """Genera src/lib/core/dati/comuni.generated.ts da Comuni.dat (archivio distribuito con Docfa 4).
 Uso: python3 tools/genera-comuni.py <percorso Comuni.dat> [data AAAA-MM-GG del file]
 Il risultato è l'elenco dei comuni incorporato nel programma: chi importa un Comuni.dat più recente lo sostituisce."""

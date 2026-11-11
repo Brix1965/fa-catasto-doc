@@ -1,0 +1,31 @@
+Fa.Catasto.Doc
+Copyright (C) 2026 Giacomo Lombardo Geometra
+
+Questo programma è software libero: puoi ridistribuirlo e/o modificarlo secondo i termini della
+GNU General Public License versione 3, pubblicata dalla Free Software Foundation (file LICENSE).
+È distribuito nella speranza che sia utile, ma SENZA ALCUNA GARANZIA, nemmeno quella implicita
+di commerciabilità o di idoneità a uno scopo particolare.
+
+TERMINI AGGIUNTIVI (articolo 7 della GNU GPL v3)
+
+1. Attribuzione (art. 7, lettera b). Chi distribuisce il programma, anche modificato o incluso in
+   un'altra opera, deve conservare la dicitura
+       «Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra»
+   nel file NOTICE, nel README e nelle Comunicazioni Legali Appropriate mostrate dal programma
+   (in Fa.Catasto.Doc: Impostazioni → Informazioni).
+
+2. Versioni modificate (art. 7, lettera c). Le versioni modificate devono essere indicate in modo
+   chiaro come diverse dall'originale, con il nome di chi le ha modificate e la data, e non possono
+   essere presentate come la versione originale.
+
+3. Nome (art. 7, lettera e). Non si concede alcun diritto sul nome «Fa.Catasto.Doc» né sui suoi
+   segni distintivi: le versioni modificate distribuite da terzi devono usare un nome diverso.
+
+Il codice sorgente originale è pubblicato su https://github.com/Brix1965/fa-catasto-doc
+
+-------------------------------------------------------------------------------------------------
+English summary: Copyright (C) 2026 Giacomo Lombardo Geometra. Licensed under the GNU GPL v3 with
+additional terms under section 7: (b) the attribution above must be preserved in NOTICE, README
+and the program's About screen; (c) modified versions must be marked as such and must not be
+presented as the original; (e) no rights are granted to use the name "Fa.Catasto.Doc" for
+modified versions.

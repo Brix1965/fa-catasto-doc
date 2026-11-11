@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Modifiche a mano della forma dei vani (finestra «Vani dalla planimetria»): dividere un vano con un segmento,
  * unire due vani, superficie e centro dei contorni. I contorni sono anelli esterni in coordinate del DXF (metri).

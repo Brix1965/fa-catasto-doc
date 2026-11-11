@@ -1,3 +1,5 @@
+<!-- Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+     SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE) -->
 <script lang="ts">
   /**
    * Selezione modelli 1N/2N: quattro riquadri (1N parte I, 1N parte II per le unità ordinarie, 2N parte I e II

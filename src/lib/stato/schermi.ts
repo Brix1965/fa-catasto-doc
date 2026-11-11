@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Sequenza degli schermi della pratica, nell'ordine di Docfa: prima il modello D (scelta comune, quadro A o B,
  * quadro I, quadro U, quadro D/note, dichiarante), poi elaborati grafici, modelli 1N/2N, classamento, elenco

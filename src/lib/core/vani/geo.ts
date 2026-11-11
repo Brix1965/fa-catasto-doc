@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Geometria per il riconoscimento dei vani: un sottile strato sopra JSTS (porting di JTS, lo stesso motore di
  * shapely/GEOS usato dal prototipo Python), con le sole operazioni che servono.

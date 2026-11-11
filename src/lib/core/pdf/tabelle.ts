@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Tabelle di decodifica usate nella stampa: province (sigla → nome, come compare in
  * "Ufficio Provinciale di" e nell'albo del tecnico), albi professionali e causali.

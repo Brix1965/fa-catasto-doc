@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Poligoni delle planimetrie nel formato "NTF" di Docfa (file Nnnnnnnn.sss, un record da 80 byte
  * terminato da CR). Ricavato dal tracciato "DettaglioPoligoniNTF" e dai file reali.

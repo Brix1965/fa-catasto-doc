@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Poligoni DOCFA_POLIGONI generati dai vani riconosciuti (SPERIMENTALE): il tecnico li controlla e li corregge.
  * - A: vani principali, bagni e accessori diretti; B: accessori indiretti comunicanti; C: locali staccati

@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Test del documento completo sui PDF reali in fixtures-private (saltati se mancano):
  *  (a) struttura e requisiti PDF/A-1b verificabili (qpdf, XMP, OutputIntent, font incorporati, /ID);

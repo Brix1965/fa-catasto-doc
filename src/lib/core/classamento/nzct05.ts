@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * NZCT05 di Docfa 4: consistenza dell'unità (vani per il gruppo A, m³ per il B, m² per il C),
  * scritta nel record NCLAS1 alle posizioni 0x9b-0xa1 (7 caratteri, es. "    4,5").

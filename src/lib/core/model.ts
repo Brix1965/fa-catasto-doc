@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Modello dati di una pratica Docfa (documento di variazione o accatastamento).
  * È il formato "umano" con cui lavora l'interfaccia; il compilatore (compile.ts)

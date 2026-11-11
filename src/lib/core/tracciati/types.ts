@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /** Descrizione di un campo a posizione fissa (posizioni 1-based, estremi inclusi, come nei tracciati dell'Agenzia). */
 export interface FieldDef {
   id: string;

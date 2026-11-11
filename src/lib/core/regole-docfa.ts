@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Regole e tabelle del modello D di Docfa 4.00.5, ricavate dall'help in linea e dai programmi del pacchetto
  * (schermi NZU080 scelta comune, NZU210 quadro A, NZU110 quadro B, NZU230 note, NZU240 dichiarante;

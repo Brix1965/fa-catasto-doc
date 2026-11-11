@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Modelli TIFF dell'Agenzia delle Entrate (cartella PGM di Docfa 4) incorporati come stream
  * CCITT G4 in base64. File generato da tools/genera-modelli.py: non modificare a mano.

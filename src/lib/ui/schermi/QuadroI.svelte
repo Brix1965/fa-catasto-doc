@@ -1,3 +1,5 @@
+<!-- Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+     SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE) -->
 <script lang="ts">
   /** Quadro I – Ditta da intestare: soggetti (persona fisica, giuridica o bene comune censibile) con titolo e quota. */
   import type { Comune, Intestato, Pratica, QuadroA } from '$lib/core/model';

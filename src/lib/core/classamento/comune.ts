@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Funzioni comuni ai moduli del classamento automatico (ricostruzione di NZCT01…NZCT06 di Docfa 4).
  * Le stringhe sono "latin1": un carattere per byte, come nei record di Docfa.

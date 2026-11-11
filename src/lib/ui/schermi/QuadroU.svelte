@@ -1,3 +1,5 @@
+<!-- Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+     SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE) -->
 <script lang="ts">
   /** Quadro U – U.I.U.: dati generali, identificativi, beni comuni censibili associati, ubicazione e classamento. */
   import { conferma } from '$lib/piattaforma';

@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+# SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 """
 Estrae dal PDF reale NCV081 (Docfa 4.00.5, fixtures-private/NCV081.PDF) il modulo fisso delle tre pagine del
 modello 2N (parte I pagina 1 e 2, parte II): il primo content stream di ogni pagina, identico in tutti i

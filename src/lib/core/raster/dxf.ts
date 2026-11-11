@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Parser DXF ASCII (R12 e 2000+) limitato a quanto serve per le planimetrie catastali:
  * LINE, LWPOLYLINE (con bulge), POLYLINE/VERTEX 2D, CIRCLE, ARC, ELLIPSE, SPLINE, SOLID/TRACE, TEXT,

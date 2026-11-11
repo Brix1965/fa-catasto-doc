@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Modello D1 (prima pagina del documento): quadro B (dichiarazione di variazione), quadro U
  * (elenco delle unità immobiliari, anche su più pagine), quadro D (note), dichiarazioni del tecnico

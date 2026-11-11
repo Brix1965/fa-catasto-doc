@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * NZCT06 di Docfa 4: dopo il classamento calcola le rendite e riporta i risultati nel record 3 del documento.
  *

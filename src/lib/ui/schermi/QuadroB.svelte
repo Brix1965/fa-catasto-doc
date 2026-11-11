@@ -1,3 +1,5 @@
+<!-- Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+     SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE) -->
 <script lang="ts">
   /** Quadro B – Denuncia di variazione: dati generali, causali (con le compatibilità di Docfa) e tipologia di documento. */
   import { schedeElaborato, type Pratica } from '$lib/core/model';

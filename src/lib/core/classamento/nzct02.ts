@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * NZCT02 di Docfa 4: dal documento (record D3 da 350 caratteri) ai record NCLAS1 (402 caratteri) per il
  * classamento automatico, con i dati del fabbricato (modello 1N parte I), il vettore delle caratteristiche

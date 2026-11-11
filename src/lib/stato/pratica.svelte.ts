@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Pratica aperta: caricamento, salvataggio (con autosalvataggio) ed elenco delle pratiche nella
  * cartella di lavoro. Ogni pratica vive in una sottocartella <cartella pratiche>/<id>/ che

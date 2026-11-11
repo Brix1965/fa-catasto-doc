@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /** Lettura dei valori stampati in visura e conversione nei formati dell'app (come Docfa). */
 import type { ImmobileVisura, IndirizzoVisura, IntestatoVisura, UnitaConsistenza } from './tipi';
 

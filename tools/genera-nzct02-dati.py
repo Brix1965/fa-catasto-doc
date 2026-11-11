@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+# SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 """Genera src/lib/core/classamento/nzct02-dati.generated.ts: modelli dei record e working storage iniziale di NZCT02.
 Uso: genera-nzct02-dati.py <NZCT02.bin> <nzct02_modelli.json>
 (NZCT02.bin = codice del modulo estratto da PGM/NZCT00.lbr; la working storage iniziale è il blocco

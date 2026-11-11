@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Versione dell'app e data di rilascio (data e ora della build), scritte da vite.config.js al momento della
  * compilazione. La data si mostra nel fuso di Roma.

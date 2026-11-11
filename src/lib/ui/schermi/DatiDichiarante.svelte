@@ -1,3 +1,5 @@
+<!-- Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+     SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE) -->
 <script lang="ts">
   /** Dati del Dichiarante: in alto il tecnico compilatore (richiamabile dall'elenco dei tecnici), in basso il dichiarante. */
   import type { Comune, Pratica, Tecnico } from '$lib/core/model';

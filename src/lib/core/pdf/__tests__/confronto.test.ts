@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Confronto testo per testo con i PDF reali di Docfa: per ogni documento di prova in fixtures-private
  * il PDF rigenerato deve avere, pagina per pagina, gli stessi testi nelle stesse posizioni

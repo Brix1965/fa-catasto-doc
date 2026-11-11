@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * «Visura attuale per immobile» nel formato a voci (non a tabella): un riquadro iniziale «Informazioni riportate
  * negli atti del catasto al …» con identificativi, classamento, indirizzo e superficie, poi l'intestazione. A

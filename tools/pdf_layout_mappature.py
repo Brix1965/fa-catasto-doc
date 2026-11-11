@@ -1,3 +1,5 @@
+# Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+# SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 # -*- coding: utf-8 -*-
 """
 Mappatura campo → posizione per le pagine dei modelli 1N e 2N (eseguito da pdf_layout_extract.py).

@@ -1,3 +1,5 @@
+<!-- Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+     SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE) -->
 <script lang="ts">
   /** Quadro A – Dichiarazione di fabbricato urbano (accatastamento): dati generali per ogni ditta. */
   import { schedeElaborato, type Pratica, type QuadroA } from '$lib/core/model';

@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * NCV081 (variazione con elaborato planimetrico su 3 schede e planimetrie su 6 e 5 schede): importazione del PDF di
  * Docfa e nuova esportazione. Stesse pagine nello stesso ordine, stesse immagini, stessi file dati.

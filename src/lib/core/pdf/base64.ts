@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /** Decodifica base64 → byte, senza dipendere da Buffer (serve anche nel webview di Tauri). */
 export function decodificaBase64(b64: string): Uint8Array {
   const pulita = b64.replace(/[^A-Za-z0-9+/=]/g, '');

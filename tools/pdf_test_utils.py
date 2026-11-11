@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+# SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 """
 Utilità Python usate dai test del generatore PDF (src/lib/core/pdf/__tests__): pikepdf, pypdfium2 e
 Pillow fanno quello che in TypeScript non abbiamo (lettura di PDF arbitrari, rendering, decodifica CCITT).

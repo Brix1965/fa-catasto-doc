@@ -1,3 +1,5 @@
+// Fa.Catasto.Doc – Copyright (C) 2026 Giacomo Lombardo Geometra
+// SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /**
  * Geometria semplice per l'editor del disegno: distanze per la selezione, punti di aggancio (estremi, punti
  * medi, centri, vertici dei poligoni, punto più vicino su una linea), aree e limiti. Coordinate del DXF (metri).
