@@ -97,3 +97,23 @@ describe('regressioni audit 31/10/2026', () => {
     expect(imp.pratica.unita[0].identificativo.subalterno).toBe('1');
   }, 60000);
 });
+
+describe('elenco subalterni (EPV) importabile in Docfa', () => {
+  const riga = (sub: string, foglio = '12', numero = '345'): import('../model').ElencoSubalterno =>
+    ({ identificativo: { foglio, numero, subalterno: sub }, piani: ['T'], descrizione: `SUB ${sub}`, flagInserimento: 1, tipo: sub === '10' ? 'B' : 'U', entita: [] });
+  it('righe ordinate per identificativo come Docfa (fuori ordine: «NZZ110 ERRORE WRITE EP300Y 21»)', async () => {
+    const { compilaElencoSubalterni } = await import('../compile');
+    const p = variazione();
+    p.elaboratoPlanimetrico = { identificativo: { foglio: '12', numero: '345' }, progressivoImmagine: 9000001, subalterni: [riga('5'), riga('2'), riga('10'), riga('1', '12', '300'), riga('3')] };
+    const righe = splitCRLF(compilaElencoSubalterni(p)).map((b) => String.fromCharCode(...b.subarray(3, 28)));
+    expect(righe).toEqual([...righe].sort());
+    expect(righe.map((r) => r.slice(-4))).toEqual(['0001', '0002', '0003', '0005', '0010']);
+    expect(righe[0]).toContain('00300');
+  });
+  it('la stessa riga due volte è un errore', async () => {
+    const { controllaPratica } = await import('$lib/stato/validazione');
+    const p = variazione();
+    p.elaboratoPlanimetrico = { identificativo: { foglio: '12', numero: '345' }, progressivoImmagine: 9000001, subalterni: [riga('2'), riga('3'), riga('02')] };
+    expect(controllaPratica(p).errori.some((e) => /riga 3 \(sub 02\) ripete la riga 1/.test(e.testo))).toBe(true);
+  });
+});

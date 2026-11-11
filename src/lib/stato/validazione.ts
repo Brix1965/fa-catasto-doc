@@ -513,6 +513,15 @@ export function controllaPratica(p: Pratica): EsitoControlli {
     if (acc && !unicaSuParticella) ep.subalterni.forEach((s, k) => {
       if (s.tipo === 'U' && !s.entita.length && s.categoria !== 'F01') err('elenco', `Elenco subalterni, riga ${k + 1} (sub ${s.identificativo.subalterno ?? ''}): indicare i corpi di fabbrica`);
     });
+    // la stessa riga due volte: Docfa importando non può scriverla nel suo archivio (chiave doppia)
+    const visteEp = new Map<string, number>();
+    ep.subalterni.forEach((s, k) => {
+      const i = s.identificativo;
+      const ch = [(i.sezione ?? '').trim(), Number(i.foglio) || i.foglio, Number(i.numero) || i.numero, Number(i.denominatore) || 0, Number(i.subalterno) || (i.subalterno ?? '').trim()].join('|');
+      const prima = visteEp.get(ch);
+      if (prima !== undefined) err('elenco', `Elenco subalterni: la riga ${k + 1} (sub ${i.subalterno ?? ''}) ripete la riga ${prima + 1}`);
+      else visteEp.set(ch, k);
+    });
     const disegni = ep.disegni ?? [];
     if (!disegni.length) err('elaborati', "Elaborato planimetrico: caricare il DXF del disegno (almeno una scheda)");
     disegni.forEach((d, k) => { if (!d.dxf && !d.tiff) err('elaborati', `Elaborato planimetrico: scheda ${k + 1} senza disegno (DXF o immagine)`); });

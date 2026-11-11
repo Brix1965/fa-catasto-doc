@@ -699,6 +699,11 @@ export function compilaElencoSubalterni(p: Pratica): Uint8Array {
     });
     recs.push(r.bytes());
   }
+  // Docfa importando scrive le righe in un archivio indicizzato (EP300Y) per comune e identificativo, in sequenza:
+  // fuori ordine l'importazione si ferma con «NZZ110 ERRORE WRITE EP300Y 21» (stato COBOL 21 = chiave fuori
+  // sequenza). Docfa le scrive ordinate (EPV081: sub 2, 500, 501…): si ordinano allo stesso modo, sui byte 4-28.
+  const chiave = (b: Uint8Array) => String.fromCharCode(...b.subarray(3, 28));
+  recs.sort((a, b) => (chiave(a) < chiave(b) ? -1 : chiave(a) > chiave(b) ? 1 : 0));
   return joinCRLF(recs);
 }
 
