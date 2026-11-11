@@ -1,6 +1,6 @@
 [package]
 name = "fa-catasto-doc"
-version = "0.7.6"
+version = "0.7.7"
 description = "Fa.Catasto.Doc: alternativa open source a Docfa 4"
 authors = ["Giacomo Lombardo Geometra"]
 edition = "2024"

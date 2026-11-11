@@ -64,6 +64,8 @@ In alternativa al Terminale: prova ad aprire l'app, poi **Impostazioni di Sistem
 
 **Windows** — `FaCatastoDoc-Windows-portatile.exe` (nessuna installazione), oppure l'installer o il `.msi`
 - Se compare «Windows ha protetto il PC»: **Ulteriori informazioni → Esegui comunque**.
+- Se aggiornando compare «Error launching installer» o «Unable to uninstall!» (installer della 0.7.6):
+  installa la 0.7.7 o successiva; se l'errore resta, disinstalla prima Fa.Catasto.Doc da **Impostazioni → App** e poi avvia l'installer.
 
 **Linux** — `FaCatastoDoc-Linux.AppImage` oppure `FaCatastoDoc-Linux.deb`
 - AppImage: `chmod +x FaCatastoDoc-Linux.AppImage` e poi avviarlo con doppio clic o `./FaCatastoDoc-Linux.AppImage`.
