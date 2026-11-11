@@ -59,13 +59,18 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.rust }}
-      - name: Dipendenze di sistema (Linux)
+      - name: Dipendenze di sistema (Linux) – elenco pacchetti
         if: runner.os == 'Linux'
-        # 11/11/2026: apt-get è rimasto fermo più di 25 minuti sui mirror di Ubuntu; con i timeout fallisce presto
-        # e si riprova solo questo job («Re-run failed jobs»)
-        timeout-minutes: 10
+        # 11/11/2026: questo passo è rimasto fermo per ore; con i timeout fallisce presto e si rilancia solo il job
+        timeout-minutes: 8
         run: |
+          # i trigger di man-db (indice delle pagine di manuale) sui runner di GitHub possono durare moltissimo
+          sudo rm -f /var/lib/man-db/auto-update
           sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 -o DPkg::Lock::Timeout=120 update
+      - name: Dipendenze di sistema (Linux) – installazione
+        if: runner.os == 'Linux'
+        timeout-minutes: 15
+        run: |
           sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 -o DPkg::Lock::Timeout=120 install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libgtk-3-dev
       - run: pnpm install --frozen-lockfile
       - name: Build Tauri
