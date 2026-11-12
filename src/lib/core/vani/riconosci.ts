@@ -65,6 +65,18 @@ export interface VanoRiconosciuto {
 export interface OpzioniVani {
   /** vertici del riquadro del disegno: se il DXF non ha poligoni, i vani si cercano qui dentro */
   riquadro?: XY[] | null;
+  /** parole del tecnico (dizionario personale) */
+  dizionario?: Record<string, ParolaVano>;
+}
+
+/**
+ * Testo che non dice niente al programma: non è un nome di vano (né nella lista di base né nel dizionario
+ * personale), un'altezza, uno spazio esterno o a comune, un numero. Si mostra al tecnico per insegnarglielo.
+ */
+export function parolaSconosciuta(t: string, diz: Record<string, ParolaVano> = {}): boolean {
+  const k = chiaveParola(t);
+  if (!k || k in diz || !/[a-zà-ù]{2}/i.test(k)) return false;
+  return !tipoDaTesto(t, diz) && altezzaDaTesto(t) === null && !scopertoDaTesto(t) && !RE_COMUNE.test(t) && !/^h\s*[=:]?\s*\d/.test(k) && !/^(sup|s\.?u|mq|m2|m²|piano|scala\s+1)/.test(k);
 }
 
 export interface RisultatoVani {
@@ -83,13 +95,24 @@ const CONTINUE = new Set(['', 'CONTINUOUS', 'CONTINUA', 'BYLAYER', 'BYBLOCK']);
 const tratteggiata = (e: Entita) => !CONTINUE.has((e.tipoLinea ?? '').toUpperCase());
 
 const NOMI: [TipoVano, string[]][] = [
-  ['principale', ['camera', 'letto', 'soggiorno', 'pranzo', 'studio', 'sala', 'salotto', 'cucina', 'tinello', 'vano', 'stanza']],
-  ['bagno', ['bagno', 'wc', 'w.c.', 'servizio', 'doccia']],
-  ['diretto', ['ingresso', 'corridoio', 'disimpegno', 'disimp', 'dis.', 'dis', 'rip', 'ripostiglio', 'guardaroba', 'cottura', 'lavanderia', 'dispensa', 'cabina armadio', 'cabina armadi', 'cab. armadi', 'antibagno', 'anti', 'veranda', 'loggia chiusa', 'scala', 'vano scala']],
+  ['principale', ['camera', 'cameretta', 'letto', 'soggiorno', 'pranzo', 'studio', 'sala', 'salotto', 'salone', 'cucina', 'tinello', 'vano', 'stanza', 'living', 'open space', 'ufficio', 'biblioteca']],
+  ['bagno', ['bagno', 'bagnetto', 'wc', 'w.c.', 'servizio', 'servizi', 'doccia', 'toilette', 'toelette', 'gabinetto']],
+  ['diretto', ['ingresso', 'corridoio', 'disimpegno', 'disimp', 'dis.', 'dis', 'rip', 'ripostiglio', 'guardaroba', 'cottura', 'angolo cottura', 'cucinino', 'cucinotto', 'retrocucina', 'lavanderia', 'dispensa', 'cabina armadio', 'cabina armadi', 'cab. armadi', 'spogliatoio', 'antibagno', 'anti', 'anticamera', 'andito', 'atrio', 'passaggio', 'passetto', 'disbrigo', 'stireria', 'stanzino', 'camerino', 'sottoscala', 'veranda', 'loggia chiusa', 'scala', 'vano scala']],
+  // nomi che dipendono dall'uso (tavernetta, mansarda, sala hobby): il tecnico decide
+  ['verificare', ['tavernetta', 'taverna', 'mansarda', 'hobby', 'sala hobby', 'locale hobby']],
   // spazi che non sono vani: balconi e terrazzi (poligoni D/E), parti comuni e altre proprietà
-  ['escluso', ['balcone', 'terrazzo', 'terrazza', 'lastrico', 'portico', 'corte', 'cortile', 'resede', 'giardino', 'scale a comune', 'scale comuni', 'scala comune', 'scala condominiale', 'vano scala comune', 'pianerottolo', 'androne', 'ballatoio comune', 'parti comuni', 'comune', 'b.c.n.c', 'bcnc', 'altra proprietà', 'altra proprieta', 'altra u.i.u', 'altra uiu', 'altra ditta', 'proprietà di terzi', 'vuoto', 'cavedio', 'chiostrina']],
-  ['indiretto', ['soffitta', 'cantina', 'sottotetto', 'soffitte', 'locale tecnico', 'centrale termica', 'lavatoio', 'sgombero', 'deposito', 'garage', 'autorimessa', 'magazzino']],
+  ['escluso', ['balcone', 'balconcino', 'terrazzo', 'terrazza', 'terrazzino', 'lastrico', 'portico', 'corte', 'cortile', 'resede', 'giardino', 'scale a comune', 'scale comuni', 'scala comune', 'scala condominiale', 'vano scala comune', 'scala esterna', 'pianerottolo', 'androne', 'ballatoio comune', 'parti comuni', 'comune', 'b.c.n.c', 'bcnc', 'altra proprietà', 'altra proprieta', 'altra u.i.u', 'altra uiu', 'altra ditta', 'proprietà di terzi', 'vuoto', 'cavedio', 'chiostrina', 'pozzo luce', 'ascensore', 'vano ascensore']],
+  ['indiretto', ['soffitta', 'cantina', 'cantinola', 'cantinetta', 'sottotetto', 'soffitte', 'solaio', 'locale tecnico', 'centrale termica', 'lavatoio', 'stenditoio', 'sgombero', 'locale sgombero', 'locale di sgombero', 'deposito', 'garage', 'autorimessa', 'rimessa', 'box', 'magazzino', 'fondo', 'legnaia']],
 ];
+
+/**
+ * Parole del tecnico (dizionario personale, Impostazioni): nome in minuscolo → tipo, oppure «ignora» per i testi che
+ * non sono nomi di vani. Valgono prima della lista di base; si impostano per la durata di `riconosciVani`.
+ */
+export type ParolaVano = TipoVano | 'ignora';
+let dizionario: Record<string, ParolaVano> = {};
+/** Testo normalizzato come chiave del dizionario: minuscolo, spazi singoli, senza punto finale. */
+export const chiaveParola = (t: string): string => t.toLowerCase().replace(/\s+/g, ' ').trim().replace(/\.$/, '');
 
 /** Sigle che valgono solo da sole (per «k» un confronto con l'inizio della parola sarebbe sbagliato). */
 const SIGLE: Record<string, TipoVano> = { k: 'principale', cuc: 'principale', 'k-pranzo': 'principale', 'w.c': 'bagno', rip: 'diretto', disimp: 'diretto', ingr: 'diretto', corr: 'diretto', ripost: 'diretto', lav: 'diretto' };
@@ -109,7 +132,9 @@ export function scopertoDaTesto(t0: string): 'D' | 'F' | null {
 }
 
 /** Tipo di vano dal testo (null se il testo non è un nome di vano, es. «h260»). */
-export function tipoDaTesto(t0: string): TipoVano | null {
+export function tipoDaTesto(t0: string, diz: Record<string, ParolaVano> = dizionario): TipoVano | null {
+  const k = chiaveParola(t0);
+  if (k in diz) { const v = diz[k]; return v === 'ignora' ? null : v; }
   let t = t0.toLowerCase().trim();
   if (t.endsWith('.')) t = t.slice(0, -1);
   if (SIGLE[t]) return SIGLE[t];
@@ -214,6 +239,15 @@ function paralleli(a: G, b: G, tol = 0.05): boolean {
  * `poligoni`: poligoni DOCFA_POLIGONI dell'unità (servono per sapere dov'è l'unità e cosa è B/C/G).
  */
 export function riconosciVani(entita: Entita[], poligoni: Poligono[], opzioni: OpzioniVani = {}): RisultatoVani {
+  dizionario = opzioni.dizionario ?? {};
+  try {
+    return riconosci(entita, poligoni, opzioni);
+  } finally {
+    dizionario = {};
+  }
+}
+
+function riconosci(entita: Entita[], poligoni: Poligono[], opzioni: OpzioniVani): RisultatoVani {
   const avvisi: string[] = [];
   let pol = poligoni.filter((p) => p.vertici.length >= 3).map((p) => ({ tipo: p.tipo, g: poligono(p.vertici) })).filter((p) => !p.g.isEmpty() && p.g.getArea() > 1e-6);
   const storti = pol.filter((p) => !p.g.isValid()).length;
@@ -713,7 +747,7 @@ export function riconosciVani(entita: Entita[], poligoni: Poligono[], opzioni: O
     const tt = testi.filter((x) => u0.contains(x.p)).map((x) => x.t);
     // zone senza testo fatte di triangoli (X dei vuoti): non sono vani
     if (!tt.length && parti(u).every((g) => (g.getGeometryType() === 'Polygon' ? anello(semplifica(g, 0.05)).length <= 4 : true))) continue;
-    const tipi = tt.map(tipoDaTesto).filter((x): x is TipoVano => !!x);
+    const tipi = tt.map((t) => tipoDaTesto(t)).filter((x): x is TipoVano => !!x);
     const nomi = tipi.filter((x) => x !== 'escluso');
     const comune = tt.some((t) => RE_COMUNE.test(t)) || RE_COMUNE.test(tt.join(' '));
     const scoperto = tt.map(scopertoDaTesto).find((x): x is 'D' | 'F' => !!x);

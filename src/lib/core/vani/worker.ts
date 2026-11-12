@@ -8,10 +8,10 @@
 import { preparaDxf } from '../raster/dxf-correzioni';
 import type { Entita, Punto2 } from '../raster/dxf';
 import type { Poligono } from '../model';
-import { riconosciVani, type RisultatoVani } from './riconosci';
+import { riconosciVani, type ParolaVano, type RisultatoVani } from './riconosci';
 import { generaPoligoni, lineeDiMuro, type PoligoniGenerati } from './poligoni';
 
-export interface RichiestaVani { op?: 'vani'; schede: { dxf: string; poligoni: Poligono[] }[] }
+export interface RichiestaVani { op?: 'vani'; schede: { dxf: string; poligoni: Poligono[] }[]; dizionario?: Record<string, ParolaVano> }
 export interface RichiestaDisegno {
   op: 'disegno';
   entita: Entita[];
@@ -19,6 +19,8 @@ export interface RichiestaDisegno {
   poligoni: Poligono[];
   usaPoligoni: boolean;
   riquadro: Punto2[] | null;
+  /** parole del tecnico (dizionario personale dei vani) */
+  dizionario?: Record<string, ParolaVano>;
 }
 export interface RisultatoDisegno { vani: RisultatoVani; generati: PoligoniGenerati; muri: number[] }
 export type RispostaVani = { ok: true; risultati: RisultatoVani[] } | { ok: false; errore: string };
@@ -29,12 +31,12 @@ const CONTINUE = new Set(['', 'CONTINUOUS', 'CONTINUA', 'BYLAYER', 'BYBLOCK']);
 export function calcolaVani(r: RichiestaVani): RisultatoVani[] {
   return r.schede.map((s) => {
     const d = preparaDxf(s.dxf).letto;
-    return riconosciVani(d.entita, s.poligoni.length ? s.poligoni : d.poligoni, { riquadro: d.riquadro });
+    return riconosciVani(d.entita, s.poligoni.length ? s.poligoni : d.poligoni, { riquadro: d.riquadro, dizionario: r.dizionario });
   });
 }
 
 export function calcolaDisegno(r: RichiestaDisegno): RisultatoDisegno {
-  const vani = riconosciVani(r.entita, r.usaPoligoni ? r.poligoni : [], { riquadro: r.riquadro });
+  const vani = riconosciVani(r.entita, r.usaPoligoni ? r.poligoni : [], { riquadro: r.riquadro, dizionario: r.dizionario });
   const linee = vani.linee.filter((l) => !l.tratteggiata).map((l) => [l.a, l.b] as [Punto2, Punto2]);
   // i poligoni sono superfici lorde: i vani entrano con sguinci e soglie (nello spessore dei muri)
   const lordi = vani.vani.map((v) => (v.contorniLordi ? { ...v, contorni: v.contorniLordi } : v));

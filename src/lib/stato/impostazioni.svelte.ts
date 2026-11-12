@@ -10,6 +10,8 @@ import { leggiComuni, leggiStradario, leggiTariffe, leggiSetup, leggiZone, conta
 import { leggiProspetti, type Prospetti } from '$lib/core/classamento-automatico';
 import { appDataDir, leggiFile, scriviFile, esisteFile, unisci, nomeFile, elencoFile, eliminaFile, type VoceCartella, scriviFileSicuro } from '$lib/piattaforma';
 import { tecnicoVuoto } from './pratica-file';
+import { chiaveParola, type ParolaVano } from '$lib/core/vani/riconosci';
+import { usaDizionarioVani } from '$lib/core/vani/esegui';
 
 export interface ArchivioProvinciale {
   /** sigla della provincia (dal nome dei file: FI-topo-com.dat → FI) */
@@ -41,6 +43,11 @@ export interface Impostazioni {
    * redazione, senza riusare i numeri liberi
    */
   prossimoDocumento?: { variazione?: number; accatastamento?: number };
+  /**
+   * dizionario personale dei vani: parole dei disegni (in minuscolo) → tipo di vano, oppure «ignora»; valgono prima
+   * della lista di base, per adattare il riconoscimento ai nomi usati nella propria zona
+   */
+  paroleVani?: Record<string, ParolaVano>;
 }
 
 /** Primo numero immagine proposto: lontano dai numeri che assegna Docfa (partono da 1). */
@@ -95,6 +102,7 @@ class StatoImpostazioni {
           archivi: { comuni: letto.archivi?.comuni, provinciali: letto.archivi?.provinciali ?? [] },
           prossimaImmagine: letto.prossimaImmagine,
           prossimoDocumento: letto.prossimoDocumento,
+          paroleVani: letto.paroleVani ?? {},
         };
       }
       await this.caricaArchivi();
@@ -146,6 +154,17 @@ class StatoImpostazioni {
     const attuale = this.dati.prossimoDocumento?.[tipo] ?? 1;
     const prossimo = n >= 999 ? 1 : Math.max(attuale, n + 1);
     this.dati.prossimoDocumento = { ...(this.dati.prossimoDocumento ?? {}), [tipo]: prossimo };
+    await this.salva().catch(() => {});
+  }
+
+  /** Insegna una parola al riconoscimento dei vani (dizionario personale); `null` la toglie. */
+  async impostaParolaVano(parola: string, tipo: ParolaVano | null): Promise<void> {
+    const k = chiaveParola(parola);
+    if (!k) return;
+    const d = { ...(this.dati.paroleVani ?? {}) };
+    if (tipo) d[k] = tipo;
+    else delete d[k];
+    this.dati.paroleVani = d;
     await this.salva().catch(() => {});
   }
 
@@ -431,3 +450,5 @@ class StatoImpostazioni {
 }
 
 export const impostazioni = new StatoImpostazioni();
+// il riconoscimento dei vani usa le parole del tecnico
+usaDizionarioVani(() => $state.snapshot(impostazioni.dati.paroleVani ?? {}) as Record<string, ParolaVano>);

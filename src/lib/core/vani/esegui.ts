@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only (termini aggiuntivi nel file NOTICE)
 /** Avvio dei calcoli sul disegno nel worker (o direttamente, dove i worker non ci sono). */
 import type { Planimetria, Poligono, SchedaGrafica } from '../model';
-import type { RisultatoVani } from './riconosci';
+import type { ParolaVano, RisultatoVani } from './riconosci';
 import type { RichiestaDisegno, RichiestaVani, RisultatoDisegno } from './worker';
 
 /** Schede della planimetria con il DXF (la prima e le altre), con i loro poligoni. */
@@ -16,7 +16,15 @@ export function oggettiSchede(pl: Planimetria | undefined): (Planimetria | Sched
   return [pl, ...(pl.altreSchede ?? [])].filter((s) => !!s.dxf);
 }
 
-async function nelWorker<T>(richiesta: RichiestaVani | RichiestaDisegno, estrai: (d: { ok: true } & Record<string, unknown>) => T): Promise<T> {
+/** Dizionario personale dei vani (dalle impostazioni): lo registra lo stato dell'app, qui si legge a ogni calcolo. */
+let fonteDizionario: () => Record<string, ParolaVano> = () => ({});
+export function usaDizionarioVani(f: () => Record<string, ParolaVano>): void {
+  fonteDizionario = f;
+}
+
+async function nelWorker<T>(richiesta0: RichiestaVani | RichiestaDisegno, estrai: (d: { ok: true } & Record<string, unknown>) => T): Promise<T> {
+  // copia semplice del dizionario (passa al worker)
+  const richiesta = { ...richiesta0, dizionario: richiesta0.dizionario ?? JSON.parse(JSON.stringify(fonteDizionario() ?? {})) };
   // $state.snapshot dei chiamanti: qui arrivano dati semplici, copiabili nel worker
   if (typeof Worker === 'undefined') {
     const m = await import('./worker');

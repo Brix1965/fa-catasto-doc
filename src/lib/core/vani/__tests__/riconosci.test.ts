@@ -34,6 +34,28 @@ describe('vani: regole', () => {
     expect(tipoDaTesto('cantina')).toBe('indiretto');
     expect(tipoDaTesto('h260')).toBeNull();
   });
+  it('nomi delle varie zone e dizionario personale del tecnico', async () => {
+    const { parolaSconosciuta, chiaveParola } = await import('../riconosci');
+    expect(tipoDaTesto('andito')).toBe('diretto');
+    expect(tipoDaTesto('Angolo cottura')).toBe('diretto');
+    expect(tipoDaTesto('cucinino')).toBe('diretto');
+    expect(tipoDaTesto('cucina')).toBe('principale');
+    expect(tipoDaTesto('fondo')).toBe('indiretto');
+    expect(tipoDaTesto('box auto')).toBe('indiretto');
+    expect(tipoDaTesto('tavernetta')).toBe('verificare');
+    expect(tipoDaTesto('scala esterna')).toBe('escluso');
+    expect(tipoDaTesto('servizi igienici')).toBe('bagno');
+    // dizionario personale: vale prima della lista di base
+    expect(tipoDaTesto('Fondo', { fondo: 'principale' })).toBe('principale');
+    expect(tipoDaTesto('salottino')).toBeNull();
+    expect(tipoDaTesto('Salottino.', { salottino: 'principale' })).toBe('principale');
+    expect(tipoDaTesto('arch. Rossi', { 'arch. rossi': 'ignora' })).toBeNull();
+    expect(chiaveParola('  Sala   Hobby. ')).toBe('sala hobby');
+    // parole da chiedere al tecnico: non i nomi noti, le altezze, i numeri, gli spazi a comune
+    expect(parolaSconosciuta('salottino')).toBe(true);
+    expect(parolaSconosciuta('salottino', { salottino: 'ignora' })).toBe(false);
+    for (const t of ['camera', 'h=2,70', 'H 300', '12', 'terrazza', 'vano scale a comune', 'altra u.i.']) expect(parolaSconosciuta(t)).toBe(false);
+  });
   it('altezze', () => {
     expect(altezzaDaTesto('h260')).toBe(2.6);
     expect(altezzaDaTesto('h=2,40')).toBe(2.4);
@@ -233,6 +255,14 @@ describe('poligoni: muri di confine alla mezzeria, muri esterni per intero', () 
     const area = (t: string) => r.generati.poligoni.filter((p) => p.tipo === t).reduce((s, p) => s + poligono(p.vertici).getArea(), 0);
     expect(area('A')).toBeCloseTo(4.6 * 3.6, 1); // muri per intero, finestra compresa
     expect(area('D')).toBeCloseTo(4.6 * 2, 1); // la terrazza si ferma al filo esterno del muro
+  });
+  it('il dizionario personale arriva al riconoscimento dei vani', () => {
+    const e = [...rett(-0.3, -0.3, 4.3, 3.3), ...rett(0, 0, 4, 3), T('fondo', [2, 1.5])];
+    const zona: [number, number][] = [[-2, -2], [9, -2], [9, 5], [-2, 5]];
+    expect(riconosciVani(e as never, [], { riquadro: zona }).vani.find((v) => v.testi.includes('fondo'))?.tipo).toBe('indiretto');
+    expect(riconosciVani(e as never, [], { riquadro: zona, dizionario: { fondo: 'principale' } }).vani.find((v) => v.testi.includes('fondo'))?.tipo).toBe('principale');
+    // il dizionario vale solo per quel calcolo
+    expect(tipoDaTesto('fondo')).toBe('indiretto');
   });
   it('estremi dei muri lasciati aperti: si chiudono di traverso', async () => {
     const { chiudiEstremiAperti } = await import('../poligoni');

@@ -10,7 +10,8 @@
    * i m² si ricalcolano.
    */
   import type { Mod1NParteII, PropostaVani, UnitaImmobiliare, VanoProposto } from '$lib/core/model';
-  import { altezzeUnita, m2Intero, totaliVani, type RisultatoVani, type TipoVano, type VanoRiconosciuto } from '$lib/core/vani/riconosci';
+  import { altezzeUnita, chiaveParola, m2Intero, parolaSconosciuta, tipoDaTesto, totaliVani, type ParolaVano, type RisultatoVani, type TipoVano, type VanoRiconosciuto } from '$lib/core/vani/riconosci';
+  import { impostazioni } from '$lib/stato/impostazioni.svelte';
   import { riconosciInBackground, schedeConDxf } from '$lib/core/vani/esegui';
   import { consistenzaVani } from '$lib/core/vani/totali';
   import { agganciaAlDisegno, allineaAiVicini, direzionePrincipale, dist, distSegmento, type P, type TipoAggancioDisegno } from '$lib/core/disegno/geometria';
@@ -90,6 +91,32 @@
   }
 
   $effect(() => { if (aperto) untrack(() => void calcola()); });
+
+  // ---- parole che il programma non conosce: il tecnico le insegna una volta (dizionario personale, per tutte le pratiche)
+  const sconosciute = $derived.by(() => {
+    const diz = impostazioni.dati.paroleVani ?? {};
+    const out = new Map<string, { testo: string; vani: number[] }>();
+    for (const v of vani[scheda] ?? []) for (const t of v.testi ?? []) {
+      if (!parolaSconosciuta(t, diz)) continue;
+      const k = chiaveParola(t);
+      if (!out.has(k)) out.set(k, { testo: t.trim(), vani: [] });
+      if (!out.get(k)!.vani.includes(v.id)) out.get(k)!.vani.push(v.id);
+    }
+    return [...out.values()];
+  });
+  let msgParole = $state('');
+  async function insegna(testo: string, tipo: ParolaVano): Promise<void> {
+    await impostazioni.impostaParolaVano(testo, tipo);
+    const k = chiaveParola(testo);
+    // i vani con quella parola e senza altri nomi riconosciuti prendono subito il tipo
+    if (tipo !== 'ignora') for (const v of vani[scheda] ?? []) {
+      const testi = v.testi ?? [];
+      if (!testi.some((t) => chiaveParola(t) === k)) continue;
+      if (testi.some((t) => chiaveParola(t) !== k && tipoDaTesto(t))) continue;
+      v.tipo = tipo;
+    }
+    msgParole = tipo === 'ignora' ? `«${testo}» non è un nome di vano: d'ora in poi non lo chiedo più.` : `«${testo}» = ${TIPI.find((x) => x.tipo === tipo)?.breve ?? tipo}: lo ricordo per tutte le pratiche (Impostazioni → Parole dei vani).`;
+  }
 
   function scegli(s: number, id: number, tipo: TipoVano): void {
     const v = vani[s].find((x) => x.id === id);
@@ -571,6 +598,26 @@
 
           <!-- elenco e totali -->
           <div class="flex min-h-0 flex-col">
+            {#if sconosciute.length || msgParole}
+              <section class="border-b border-line bg-amber-50/60 px-3 py-2 dark:bg-amber-950/20">
+                {#if sconosciute.length}
+                  <h3 class="text-xs font-semibold">Parole che il programma non conosce</h3>
+                  <p class="mb-1.5 text-xs text-fg-muted">Scegli che cosa significano: lo ricordo per tutte le pratiche.</p>
+                  <ul class="space-y-1.5">
+                    {#each sconosciute as p (p.testo)}
+                      <li class="flex flex-wrap items-center gap-1.5 text-xs">
+                        <span class="min-w-24 font-semibold">«{p.testo}»</span><span class="text-fg-muted">vano {p.vani.join(', ')}</span>
+                        {#each TIPI as t (t.tipo)}
+                          <button type="button" class="btn btn-piccolo" onclick={() => insegna(p.testo, t.tipo)}><span class="size-2.5 rounded-sm" style={`background:${t.colore}`}></span>{t.breve}</button>
+                        {/each}
+                        <button type="button" class="btn btn-piccolo" onclick={() => insegna(p.testo, 'ignora')}>Non è un nome</button>
+                      </li>
+                    {/each}
+                  </ul>
+                {/if}
+                {#if msgParole}<p class="mt-1 text-xs text-accent-700 dark:text-accent-300">{msgParole}</p>{/if}
+              </section>
+            {/if}
             <div class="min-h-0 flex-1 overflow-y-auto">
               <table class="w-full text-sm">
                 <thead class="sticky top-0 bg-surface text-left text-xs text-fg-muted">

@@ -13,6 +13,12 @@
   import Intestazione from '$lib/ui/Intestazione.svelte';
   import Sezione from '$lib/ui/Sezione.svelte';
   import Avvisi from '$lib/ui/Avvisi.svelte';
+  import type { ParolaVano } from '$lib/core/vani/riconosci';
+
+  const NOME_PAROLA: Record<ParolaVano, string> = { principale: 'Vano principale', bagno: 'Bagno', diretto: 'Accessorio diretto', indiretto: 'Accessorio indiretto', verificare: 'Da verificare', escluso: 'Escluso (non è un vano)', ignora: 'Non è un nome di vano' };
+  const parole = $derived(Object.entries(impostazioni.dati.paroleVani ?? {}).sort((a, b) => a[0].localeCompare(b[0], 'it')));
+  let nuovaParola = $state('');
+  let nuovoTipo = $state<ParolaVano>('principale');
 
   let messaggio = $state<string | null>(null);
   let esito = $state<{ righe: string[]; avvisi: string[] } | null>(null);
@@ -168,6 +174,36 @@
           </tbody>
         </table>
       {/if}
+    </Sezione>
+
+    <Sezione titolo="Parole dei vani" descrizione="I nomi dei locali che il riconoscimento dei vani deve capire, oltre a quelli che conosce già (camera, cucina, bagno, ingr., dis., rip., cantina…): servono per i nomi usati nella propria zona. Si aggiungono anche dalla finestra dei vani, alla voce «Parole che il programma non conosce».">
+      <div class="space-y-3 text-sm">
+        <div class="flex flex-wrap items-end gap-2">
+          <Campo etichetta="Parola" classe="w-56"><input type="text" class="campo" bind:value={nuovaParola} placeholder="es. fondo, andito" /></Campo>
+          <Campo etichetta="Significa" classe="w-56">
+            <select class="campo" bind:value={nuovoTipo}>{#each Object.entries(NOME_PAROLA) as [v, n] (v)}<option value={v}>{n}</option>{/each}</select>
+          </Campo>
+          <button type="button" class="btn btn-primario" disabled={!nuovaParola.trim()} onclick={async () => { await impostazioni.impostaParolaVano(nuovaParola, nuovoTipo); nuovaParola = ''; }}><Icona nome="piu" /> Aggiungi</button>
+        </div>
+        {#if parole.length}
+          <table class="w-full max-w-2xl text-sm">
+            <thead><tr class="text-left text-xs text-fg-muted"><th class="py-1">Parola</th><th class="py-1">Significa</th><th></th></tr></thead>
+            <tbody>
+              {#each parole as [p, t] (p)}
+                <tr class="border-t border-line">
+                  <td class="py-1.5 pr-3 font-medium">{p}</td>
+                  <td class="py-1 pr-3">
+                    <select class="campo campo-piccolo w-56" value={t} onchange={(e) => impostazioni.impostaParolaVano(p, e.currentTarget.value as ParolaVano)}>{#each Object.entries(NOME_PAROLA) as [v, n] (v)}<option value={v}>{n}</option>{/each}</select>
+                  </td>
+                  <td class="py-1 text-right"><button type="button" class="btn btn-piccolo" onclick={() => impostazioni.impostaParolaVano(p, null)}><Icona nome="cestino" /> Togli</button></td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        {:else}
+          <p class="text-xs text-fg-faint">Nessuna parola aggiunta.</p>
+        {/if}
+      </div>
     </Sezione>
 
     <Sezione titolo="Informazioni" descrizione="{PROGETTO.nome} {version}{VERSIONE_APP.rilascio ? ` del ${VERSIONE_APP.rilascio}` : ''}: software libero e gratuito ({PROGETTO.licenza}).">

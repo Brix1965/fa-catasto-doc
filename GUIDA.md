@@ -401,20 +401,28 @@ modulo fa molti meno errori; senza nome deve indovinare.
      (lunghezza fra 50 cm e 1,80 m).
    Gli archi di apertura delle porte possono restare: non chiudono i locali.
 4. **Nomi dei locali**: un testo (TEXT o MTEXT) **dentro** ogni locale. Nomi riconosciuti:
-   - vani principali: camera, letto, soggiorno, pranzo, salotto, sala, studio, cucina (anche **K**), tinello,
-     vano, stanza; i locali senza nome sono proposti come principali (la destinazione dei vani principali non è
-     obbligatoria);
-   - bagni: bagno, wc, w.c., servizio, doccia;
+   - vani principali: camera, cameretta, letto, soggiorno, pranzo, salotto, salone, sala, studio, ufficio, cucina
+     (anche **K**), tinello, living, open space, vano, stanza; i locali senza nome sono proposti come principali (la
+     destinazione dei vani principali non è obbligatoria);
+   - bagni: bagno, bagnetto, wc, w.c., servizio, servizi, doccia, toilette, gabinetto;
    - accessori diretti: ingresso (ingr.), corridoio, disimpegno (disimp., dis.), ripostiglio (rip.), guardaroba,
-     cabina armadi, antibagno, cottura, lavanderia, dispensa, veranda, loggia chiusa, scala, vano scala;
-   - accessori indiretti: cantina, soffitta, sottotetto, locale tecnico, centrale termica, lavatoio, sgombero,
-     deposito, garage, autorimessa, magazzino;
+     cabina armadi, spogliatoio, antibagno, anticamera, andito, atrio, passaggio, disbrigo, cottura, angolo cottura,
+     cucinino, retrocucina, lavanderia, stireria, dispensa, stanzino, sottoscala, veranda, loggia chiusa, scala,
+     vano scala;
+   - da verificare (dipende dall'uso): tavernetta, taverna, mansarda, sala hobby;
+   - accessori indiretti: cantina, soffitta, sottotetto, solaio, locale tecnico, centrale termica, lavatoio,
+     stenditoio, sgombero, deposito, garage, autorimessa, rimessa, box, magazzino, fondo, legnaia;
    - non sono vani ma sono dell'unità: balcone, terrazzo, terrazza, loggia, portico (poligono D); giardino, corte,
      cortile, resede, aia, orto, area scoperta (poligono F);
    - non sono dell'unità (mai calcolati): tutto ciò che è **a comune** (anche scritto su due righe, «vano scale» e
-     «a comune»), condominiale, androne, parti comuni, altra proprietà, altra u.i.; cavedio e vuoto non contano.
+     «a comune»), condominiale, androne, parti comuni, altra proprietà, altra u.i., scala esterna, ascensore;
+     cavedio, vuoto e pozzo luce non contano.
    Maiuscole e minuscole non contano; vale anche l'abbreviazione col punto. Un locale con un nome diverso
    viene proposto «da verificare».
+   **Parole della propria zona**: se nel disegno c'è un nome che il programma non conosce, la finestra dei vani lo
+   mostra in alto («Parole che il programma non conosce») con i pulsanti dei tipi: basta sceglierne uno, e il
+   programma lo ricorda per tutte le pratiche («Non è un nome» per i testi che non indicano un locale). L'elenco
+   si rivede e si corregge in **Impostazioni → Parole dei vani**, dove si possono anche aggiungere parole a mano.
 5. **Altezze**: un testo nel locale come `h260`, `h=2,40`, `hmin 220` (cm o m). Le zone di altezza diversa dello
    stesso locale si separano con una **linea tratteggiata**: non divide il vano (se però i due lati hanno
    ciascuno il proprio nome, la linea tratteggiata è letta come porta e i vani restano due).
