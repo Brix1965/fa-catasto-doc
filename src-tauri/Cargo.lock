@@ -937,7 +937,7 @@ dependencies = [
 
 [[package]]
 name = "fa-catasto-doc"
-version = "0.7.10"
+version = "0.7.11"
 dependencies = [
  "serde",
  "serde_json",

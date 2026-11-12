@@ -148,8 +148,117 @@ const unisciVani = (vs: VanoPerPoligoni[]): G | null => {
   return r.length ? unione(r) : null;
 };
 
-export function generaPoligoni(vani: VanoPerPoligoni[], linee: [XY, XY][], spessoreMax = 1.0): PoligoniGenerati {
+/**
+ * Estremi dei muri lasciati aperti nel disegno (le due linee del muro finiscono senza il trattino che le chiude,
+ * tipico verso un'«altra u.i.» non disegnata o nelle spalle delle aperture): si chiudono con un segmento fra due
+ * estremi liberi vicini (fino a `max`) di linee quasi parallele, quando il segmento è di traverso al muro, oppure
+ * quando sono a meno di 3 cm. Senza questa chiusura lo spessore del muro si apre verso l'esterno e non viene
+ * riconosciuto come muro: il poligono si fermava al filo interno (DXF «ssPane», 12/11/2026).
+ */
+export function chiudiEstremiAperti(linee: [XY, XY][], max = 0.6, tolleranza = 0.005): [XY, XY][] {
+  const dSeg = (p: XY, a: XY, b: XY) => {
+    const dx = b[0] - a[0], dy = b[1] - a[1], L = dx * dx + dy * dy;
+    const t = L ? Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / L)) : 0;
+    return Math.hypot(p[0] - a[0] - t * dx, p[1] - a[1] - t * dy);
+  };
+  // estremi che non toccano nessun'altra linea
+  const liberi: { p: XY; i: number; dir: XY }[] = [];
+  linee.forEach(([a, b], i) => {
+    const L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    if (L < 1e-6) return;
+    const dir: XY = [(b[0] - a[0]) / L, (b[1] - a[1]) / L];
+    for (const p of [a, b]) {
+      let tocca = false;
+      for (let j = 0; j < linee.length && !tocca; j++) if (j !== i && dSeg(p, linee[j][0], linee[j][1]) < tolleranza) tocca = true;
+      if (!tocca) liberi.push({ p, i, dir });
+    }
+  });
+  const coppie: { d: number; a: number; b: number }[] = [];
+  for (let x = 0; x < liberi.length; x++) for (let y = x + 1; y < liberi.length; y++) {
+    const A = liberi[x], B = liberi[y];
+    if (A.i === B.i) continue;
+    const d = Math.hypot(B.p[0] - A.p[0], B.p[1] - A.p[1]);
+    if (d > max || d < 1e-9) continue;
+    if (d >= 0.03) {
+      // linee quasi parallele (entro 10°) e chiusura di traverso (oltre 60° dalla direzione del muro)
+      const par = Math.abs(A.dir[0] * B.dir[1] - A.dir[1] * B.dir[0]);
+      const u: XY = [(B.p[0] - A.p[0]) / d, (B.p[1] - A.p[1]) / d];
+      const lungo = Math.abs(u[0] * A.dir[0] + u[1] * A.dir[1]);
+      if (par > Math.sin((10 * Math.PI) / 180) || lungo > Math.cos((60 * Math.PI) / 180)) continue;
+    }
+    coppie.push({ d, a: x, b: y });
+  }
+  coppie.sort((m, n) => m.d - n.d);
+  const usati = new Set<number>();
+  const nuove: [XY, XY][] = [];
+  for (const c of coppie) {
+    if (usati.has(c.a) || usati.has(c.b)) continue;
+    usati.add(c.a); usati.add(c.b);
+    nuove.push([liberi[c.a].p, liberi[c.b].p]);
+  }
+  return nuove.length ? [...linee, ...nuove] : linee;
+}
+
+/**
+ * Fasce dei muri lungo i lati dei vani: per ogni lato, le linee del disegno parallele oltre il lato (da 5 cm a `max`)
+ * che alla stessa distanza coprono più lato (almeno un quarto) sono il filo esterno del muro; la
+ * fascia fra il lato e quel filo è muro, comprese le aperture (finestre, porte-finestre) dove il disegno non chiude il
+ * muro e lo spazio esterno entrerebbe fino al filo interno (DXF «ssPane», 12/11/2026).
+ */
+function fasceDeiMuri(R: G, linee: [XY, XY][], max = 0.6): G[] {
+  const out: G[] = [];
+  const sen3 = Math.sin((3 * Math.PI) / 180);
+  // lati allineati (vertici sulla stessa retta, chiusure delle finestre) uniti in un lato solo: il filo esterno del
+  // muro copre tutto il lato, i vetri delle finestre solo pochi tratti
+  for (const p of parti(semplifica(R, 0.01))) {
+    if (p.getGeometryType() !== 'Polygon') continue;
+    const anelli = [p.getExteriorRing(), ...Array.from({ length: p.getNumInteriorRing() }, (_, i) => p.getInteriorRingN(i))];
+    for (const an of anelli) {
+      const c = an.getCoordinates();
+      for (let k = 0; k + 1 < c.length; k++) {
+        const a: XY = [c[k].x, c[k].y], b: XY = [c[k + 1].x, c[k + 1].y];
+        const L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+        if (L < 0.3) continue;
+        const u: XY = [(b[0] - a[0]) / L, (b[1] - a[1]) / L];
+        let n: XY = [-u[1], u[0]];
+        const m: XY = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+        if (R.contains(punto([m[0] + n[0] * 0.01, m[1] + n[1] * 0.01]))) n = [-n[0], -n[1]];
+        // linee parallele oltre il lato, raggruppate per distanza (cm): copertura del lato
+        const copertura = new Map<number, [number, number][]>();
+        for (const [q1, q2] of linee) {
+          const lq = Math.hypot(q2[0] - q1[0], q2[1] - q1[1]);
+          if (lq < 0.05) continue;
+          if (Math.abs(u[0] * (q2[1] - q1[1]) - u[1] * (q2[0] - q1[0])) / lq > sen3) continue;
+          const d1 = (q1[0] - a[0]) * n[0] + (q1[1] - a[1]) * n[1], d2 = (q2[0] - a[0]) * n[0] + (q2[1] - a[1]) * n[1];
+          if (Math.abs(d1 - d2) > 0.02 || Math.min(d1, d2) < 0.05 || Math.max(d1, d2) > max) continue;
+          const t1 = (q1[0] - a[0]) * u[0] + (q1[1] - a[1]) * u[1], t2 = (q2[0] - a[0]) * u[0] + (q2[1] - a[1]) * u[1];
+          const i0 = Math.max(0, Math.min(t1, t2)), i1 = Math.min(L, Math.max(t1, t2));
+          if (i1 - i0 < 0.05) continue;
+          const chiave = Math.round(((d1 + d2) / 2) * 100);
+          if (!copertura.has(chiave)) copertura.set(chiave, []);
+          copertura.get(chiave)!.push([i0, i1]);
+        }
+        // il filo esterno è la parallela che copre più lato (almeno un quarto: le aperture lo interrompono); a pari
+        // copertura la più vicina
+        let dMin = Infinity, copMax = 0;
+        for (const [chiave, iv] of copertura) {
+          iv.sort((x, y) => x[0] - y[0]);
+          let tot = 0, fine = -Infinity;
+          for (const [i0, i1] of iv) { if (i1 > fine) { tot += i1 - Math.max(i0, fine); fine = i1; } }
+          if (tot < 0.25 * L) continue;
+          if (tot > copMax + 0.05 || (Math.abs(tot - copMax) <= 0.05 && chiave / 100 < dMin)) { copMax = Math.max(copMax, tot); dMin = chiave / 100; }
+        }
+        if (!Number.isFinite(dMin)) continue;
+        out.push(poligono([a, b, [b[0] + n[0] * dMin, b[1] + n[1] * dMin], [a[0] + n[0] * dMin, a[1] + n[1] * dMin]]));
+      }
+    }
+  }
+  return out;
+}
+
+export function generaPoligoni(vani: VanoPerPoligoni[], lineeDisegno: [XY, XY][], spessoreMax = 1.0): PoligoniGenerati {
   const avvisi: string[] = [];
+  const linee = chiudiEstremiAperti(lineeDisegno);
   // strisce strette con «altra u.i.» (≤ 1,2 m): sono il muro di confine, l'unità vicina non è disegnata
   const strisce: { g: G; spessore: number }[] = [];
   const altriSpazi: VanoPerPoligoni[] = [];
@@ -179,6 +288,16 @@ export function generaPoligoni(vani: VanoPerPoligoni[], linee: [XY, XY][], spess
       .filter((f) => !bordoPrec || intersezione(bordoPrec, f.getBoundary()).getLength() <= 0.3)
       .map((f) => (strisce.length ? differenza(f, unione(strisce.map((x) => x.g))) : f))
       .filter((f) => !f.isEmpty());
+    // fasce dei muri lungo i lati dei vani (aperture comprese), solo per i locali coperti: fino alla mezzeria verso
+    // gli spazi confinanti, mai dentro le strisce «altra u.i.»
+    if (tipo === 'A' || tipo === 'B' || tipo === 'C') {
+      for (let f of fasceDeiMuri(R, linee)) {
+        if (oltre && f.intersects(oltre)) f = differenza(f, oltre);
+        if (strisce.length) f = differenza(f, unione(strisce.map((x) => x.g)));
+        if (bordoPrec) f = differenza(f, buffer(Rprec!, 0));
+        if (!f.isEmpty() && f.getArea() > 1e-4) muri.push(f);
+      }
+    }
     // metà della striscia di confine verso i propri vani
     for (const { g, spessore } of strisce) {
       if (g.distance(R) > 0.6) continue;

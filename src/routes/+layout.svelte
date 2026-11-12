@@ -6,6 +6,7 @@
   import { onMount } from 'svelte';
   import { impostazioni } from '$lib/stato/impostazioni.svelte';
   import AvvisoAggiornamento from '$lib/ui/AvvisoAggiornamento.svelte';
+  import { attivaSelezioneNumeri } from '$lib/ui/seleziona-numeri';
   let { children } = $props();
 
   onMount(() => {
@@ -14,7 +15,9 @@
     applica();
     media.addEventListener('change', applica);
     void impostazioni.carica();
-    return () => media.removeEventListener('change', applica);
+    // campi numerici: entrando il numero si seleziona tutto, si scrive sopra senza cancellare
+    const disattiva = attivaSelezioneNumeri();
+    return () => { media.removeEventListener('change', applica); disattiva(); };
   });
 </script>
 

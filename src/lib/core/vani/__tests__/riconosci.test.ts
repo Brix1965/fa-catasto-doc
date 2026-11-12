@@ -217,4 +217,31 @@ describe('poligoni: muri di confine alla mezzeria, muri esterni per intero', () 
     expect(Math.min(...ys)).toBeCloseTo(-0.5, 2);
     expect(Math.max(...ys)).toBeCloseTo(3.5, 2);
   });
+  it('lordo con finestre aperte verso la terrazza e muri lasciati aperti nel disegno (DXF «ssPane»)', async () => {
+    const { calcolaDisegno } = await import('../worker');
+    const { poligono } = await import('../geo');
+    // camera 4 × 3, muri di 30 cm; finestra larga 1,5 m nel muro verso la terrazza: il filo esterno è interrotto e lo
+    // spazio della terrazza entra nel vano della finestra fino al filo interno
+    const e = [
+      ...rett(0, 0, 4, 3),
+      L([-0.3, 3.3], [4.3, 3.3]), L([4.3, 3.3], [4.3, -0.3]), L([-0.3, -0.3], [-0.3, 3.3]),
+      L([-0.3, -0.3], [1, -0.3]), L([1, -0.3], [1, 0]), L([2.5, -0.3], [2.5, 0]), L([2.5, -0.3], [4.3, -0.3]),
+      L([-0.3, -0.3], [-0.3, -2.3]), L([-0.3, -2.3], [4.3, -2.3]), L([4.3, -2.3], [4.3, -0.3]),
+      T('camera', [2, 1.5]), T('terrazza', [2, -1.3]),
+    ];
+    const r = calcolaDisegno({ op: 'disegno', entita: e as never, poligoni: [], usaPoligoni: false, riquadro: [[-2, -4], [9, -4], [9, 5], [-2, 5]] });
+    const area = (t: string) => r.generati.poligoni.filter((p) => p.tipo === t).reduce((s, p) => s + poligono(p.vertici).getArea(), 0);
+    expect(area('A')).toBeCloseTo(4.6 * 3.6, 1); // muri per intero, finestra compresa
+    expect(area('D')).toBeCloseTo(4.6 * 2, 1); // la terrazza si ferma al filo esterno del muro
+  });
+  it('estremi dei muri lasciati aperti: si chiudono di traverso', async () => {
+    const { chiudiEstremiAperti } = await import('../poligoni');
+    // muro di 30 cm che prosegue verso un'altra unità non disegnata: le due linee finiscono senza chiusura
+    const linee: [[number, number], [number, number]][] = [[[0, 0], [5, 0]], [[0, 0.3], [5, 0.3]], [[5, 0], [5, 0.3]]];
+    const n = chiudiEstremiAperti(linee).slice(linee.length);
+    expect(n).toEqual([[[0, 0], [0, 0.3]]]);
+    // linee non parallele o lontane: niente
+    expect(chiudiEstremiAperti([[[0, 0], [5, 0]], [[0, 0.3], [3, 3]]]).length).toBe(2);
+    expect(chiudiEstremiAperti([[[0, 0], [5, 0]], [[0, 0.9], [5, 0.9]]]).length).toBe(2);
+  });
 });
