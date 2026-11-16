@@ -117,3 +117,22 @@ describe('elenco subalterni (EPV) importabile in Docfa', () => {
     expect(controllaPratica(p).errori.some((e) => /riga 3 \(sub 02\) ripete la riga 1/.test(e.testo))).toBe(true);
   });
 });
+
+describe('2N parte II: controlli dati dall\'Ufficio (E1513, W0078)', () => {
+  it('quadro I vuoto è un errore, impianti stabilmente infissi vuoti o con caratteri non ammessi un avviso', async () => {
+    const { controllaPratica } = await import('$lib/stato/validazione');
+    const p = variazione();
+    const u = p.unita[0];
+    u.classamento = { zonaCensuaria: '1', categoria: 'D05', classe: '', consistenza: '', superficieCatastale: 0, rendita: 146, classamentoAutomatico: false };
+    u.mod2N = { recordM: {}, recordN: {}, stimaComparativa: [], corpi: [{ recordP: {}, recordQ: {}, recordR: {} }] };
+    const codici = () => { const r = controllaPratica(p); return { e: r.errori.map((x) => x.codice), a: r.avvisi.map((x) => x.codice) }; };
+    expect(codici().e).toContain('E1513');
+    expect(codici().a).toContain('W0078');
+    u.mod2N.corpi[0].recordP.solai = 'laterocemento';
+    u.mod2N.corpi[0].recordR.impianti_infissi = 'impianto elettrico; idrico';
+    expect(codici().e).not.toContain('E1513');
+    expect(codici().a).toContain('W0078'); // il punto e virgola non è ammesso
+    u.mod2N.corpi[0].recordR.impianti_infissi = "IMPIANTO ELETTRICO, IDRICO E DI RISCALDAMENTO ALL'INTERNO";
+    expect(codici().a).not.toContain('W0078');
+  });
+});

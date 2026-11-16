@@ -387,6 +387,17 @@ export function controllaPratica(p: Pratica): EsitoControlli {
         const grave = t.startsWith('rendita');
         (grave ? err : avv)('modelli', `${nome}: 2N parte I, stima e rendita: ${t}`, undefined, i);
       }
+      // 2N parte II, per ogni corpo di fabbrica (errori dati dall'Ufficio di Bologna su un NCV del 16/11/2026)
+      u.mod2N.corpi.forEach((c, k) => {
+        const testo = (v: unknown) => (typeof v === 'string' ? v.trim() : v ? String(v) : '');
+        const finiture = ['solai', 'tamponature', 'finestre_porte', 'pavimentazione', 'rifinitura_esterna', 'servizi_igienici'];
+        if (!finiture.some((f) => testo(c.recordP?.[f]))) {
+          err('modelli', `${nome}: 2N parte II, corpo ${k + 1}, quadro I: indicare almeno uno fra solai, tamponature, finestre, pavimentazione, rifinitura esterna, servizi igienici`, 'E1513', i);
+        }
+        const imp = testo(c.recordR?.impianti_infissi);
+        if (!imp) avv('modelli', `${nome}: 2N parte II, corpo ${k + 1}: descrivere gli impianti stabilmente infissi (es. IMPIANTO ELETTRICO, IDRICO, DI RISCALDAMENTO); vuoto, l'Ufficio lo segnala come caratteri non ammessi`, 'W0078', i);
+        else if (!CARATTERI_INDIRIZZO.test(testoDocfa(imp).toUpperCase())) avv('modelli', `${nome}: 2N parte II, corpo ${k + 1}: impianti stabilmente infissi con caratteri non ammessi (solo lettere, numeri, spazi e ' . , / - ( ) )`, 'W0078', i);
+      });
     }
     const m = u.mod1NParteII;
     if (m && isOrdinaria(u)) {
