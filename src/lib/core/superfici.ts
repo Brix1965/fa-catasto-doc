@@ -12,7 +12,7 @@
  *   quelle utili e il numero dei vani si inseriscono a mano.
  */
 import type { Ambiente, Poligono, TipoAmbientePoligono, UnitaImmobiliare } from './model';
-import { poligoniPlanimetria } from './model';
+import { poligoniNelDocumento, poligoniPlanimetria } from './model';
 import { tipologiaUnita } from './compile';
 
 /** Area di un poligono in m² (coordinate in metri, formula di Gauss). */
@@ -68,6 +68,37 @@ export function superficiLorde(poligoni: Poligono[]): SuperficiLorde {
   return { principali: somma('A'), accessoriDirettiA2: somma('H'), accessoriIndiretti: somma('B', 'C'), balconi: somma('D', 'E'), pertinenze: somma('F') };
 }
 
+/**
+ * Superfici per il modello 2N (categorie D ed E), dai poligoni disegnati sulla planimetria: per queste unità i poligoni
+ * non entrano nel documento, servono solo per il calcolo. Coperta = ambienti chiusi (A, A2, B, C); scoperta = D, E, F.
+ */
+export function superficiPer2N(poligoni: Poligono[]): { coperta: number; scoperta: number; totale: number } {
+  const somma = (...tipi: TipoAmbientePoligono[]) => poligoni.filter((p) => tipi.includes(p.tipo)).reduce((s, p) => s + areaPoligono(p), 0);
+  const coperta = Math.round(somma('A', 'H', 'B', 'C'));
+  const scoperta = Math.round(somma('D', 'E', 'F'));
+  return { coperta, scoperta, totale: coperta + scoperta };
+}
+
+/**
+ * Riporta nel 2N le superfici calcolate dai poligoni: parte I quadro G (area totale lorda, area coperta) e, se c'è un solo
+ * corpo di fabbrica, parte II quadro M (superficie totale sviluppata). I valori restano modificabili: con più piani l'area
+ * coperta (impronta a terra) va corretta dal tecnico. Restituisce true se qualcosa è cambiato.
+ */
+export function riportaSuperficiNel2N(u: UnitaImmobiliare): boolean {
+  const m = u.mod2N;
+  const pol = poligoniPlanimetria(u.planimetria);
+  if (!m || !pol.length) return false;
+  const s = superficiPer2N(pol);
+  let cambiato = false;
+  const imposta = (campi: Record<string, boolean | number | string>, id: string, v: number) => {
+    if (v > 0 && Number(campi[id]) !== v) { campi[id] = v; cambiato = true; }
+  };
+  imposta(m.recordN, 'area_totale_lorda', s.totale);
+  imposta(m.recordN, 'area_coperta', s.coperta);
+  if (m.corpi.length === 1) imposta(m.corpi[0].recordQ, 'superficie_sviluppata', s.coperta);
+  return cambiato;
+}
+
 /** Le superfici lorde del 1N parte II sono automatiche se la planimetria ha i poligoni. */
 export function lordeAutomatiche(poligoni: Poligono[] | undefined): boolean {
   return !!poligoni && poligoni.length > 0;
@@ -82,7 +113,8 @@ export function sincronizzaDaPoligoni(u: UnitaImmobiliare): boolean {
   const pol = poligoniPlanimetria(u.planimetria);
   if (!pol.length) return false;
   let cambiato = false;
-  const amb = ambientiDaPoligoni(pol);
+  // dati metrici solo per le unità ordinarie: per D, E, F i poligoni servono soltanto ai calcoli del 2N
+  const amb = poligoniNelDocumento(u) ? ambientiDaPoligoni(pol) : [];
   if (JSON.stringify(amb) !== JSON.stringify(u.ambienti)) { u.ambienti = amb; cambiato = true; }
   // superficie catastale: compilata in automatico dai poligoni (categorie ordinarie)
   const cat = u.classamento?.categoria ?? '';

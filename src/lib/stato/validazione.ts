@@ -7,7 +7,7 @@
  */
 import { controlli2N } from '$lib/core/stima-2n';
 import { consistenzaVani, totaliVani } from '$lib/core/vani/totali';
-import { poligoniPlanimetria, schedePlanimetria, type Intestato, type Pratica, type UnitaImmobiliare } from '$lib/core/model';
+import { poligoniNelDocumento, poligoniPlanimetria, schedePlanimetria, type Intestato, type Pratica, type UnitaImmobiliare } from '$lib/core/model';
 import { causaliBarrate, unaRiga } from '$lib/core/compile';
 import {
   CAUSALI_VARIAZIONE, coppieIncompatibili, OPERAZIONI_CAUSALE, DESCRIZIONE_CAUSALE, TIPOLOGIE_PLANIMETRICHE,
@@ -359,6 +359,8 @@ export function controllaPratica(p: Pratica): EsitoControlli {
       else if (!conPoligoni) err('elaborati', `${nome}: mancano i poligoni delle superfici`, 'G0212', i);
     }
     if (causali.includes('VMI') && pl) err('elaborati', `${nome}: per modifica d'identificativo non va acquisita la planimetria`, undefined, i);
+    if (pl && !poligoniNelDocumento(u) && (poligoniPlanimetria(pl).length > 0 || pl.ntf !== undefined || (pl.altreSchede ?? []).some((x) => x.ntf !== undefined)))
+      avv('elaborati', `${nome}: i poligoni non entrano nel documento (si presentano solo per le categorie A, B, C); restano nella pratica per il calcolo delle superfici`, undefined, i);
     if (pl) {
       // poligoni che escono dal riquadro: nel file NTF le coordinate negative diventano 0 e la superficie cambia
       [pl, ...(pl.altreSchede ?? [])].forEach((sc, k) => {

@@ -10,7 +10,7 @@
 import { FixedRecord, FixedRecordLibero } from './tracciati/record';
 import { ELENCO_SUBALTERNI, ELENCO_SUBALTERNI_LENGTH } from './tracciati/schema';
 import type { Campi, Data, ElencoSubalterno, Identificativo, LocaleGruppoC, Pratica, UnitaImmobiliare } from './model';
-import { schedeElaborato, schedePlanimetria } from './model';
+import { poligoniNelDocumento, schedeElaborato, schedePlanimetria } from './model';
 import { CAUSALI_VARIAZIONE, normalizzaIndirizzo, testoDocfa, allineaZona, allineaClasse, type CodiceVariazione } from './regole-docfa';
 import { REC_H_GRUPPO_C_FIELDS, REC_H } from './tracciati/schema';
 
@@ -626,7 +626,8 @@ export function compilaAtt(p: Pratica): Uint8Array {
     const pl = u.planimetria;
     if (!pl) continue;
     const schede = schedePlanimetria(pl);
-    schede.forEach((s, i) => righe.push({ progressivo: pl.progressivo, scheda: i + 1, ...s }));
+    const ammessi = poligoniNelDocumento(u);
+    schede.forEach((s, i) => righe.push({ progressivo: pl.progressivo, scheda: i + 1, ...s, poligoni: s.poligoni && ammessi }));
   }
   const ep = p.elaboratoPlanimetrico;
   if (ep) for (const s of schedeElaborato(ep)) righe.push({ ...s, poligoni: false });

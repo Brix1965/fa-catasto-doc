@@ -22,14 +22,15 @@ const mm = (v: number): number => v * MM;
 /**
  * Riga «Causali» del quadro B come la stampa Docfa (NZST00): le causali barrate, separate da virgola.
  * Variazione della destinazione: «Variazione della destinazione (da D/6 a BANCA)» (pratica BPM).
- * Altre variazioni: Docfa non ha una dicitura fissa, stampa la descrizione scritta dal tecnico.
+ * Altre variazioni: «altre variazioni» seguito dalla descrizione scritta dal tecnico (indicazione di Fabrizio, 19/11/2026;
+ * il separatore « - » è quello che Docfa usa per «Unita' afferenti - …»: da confermare su un D1 di Docfa).
  */
 export function testoCausaliD1(pratica: Pratica): string {
   const causali = CAUSALI_STAMPA.filter(([c]) => pratica.tipiVariazione[c as keyof Pratica['tipiVariazione']]).map(([c, d]) =>
     c === 'VDE' && (pratica.variazioneDa?.trim() || pratica.variazioneA?.trim())
       ? `Variazione della destinazione (da ${pratica.variazioneDa?.trim() ?? ''} a ${pratica.variazioneA?.trim() ?? ''})`
       : c === 'VAR' && pratica.altreVariazioni?.trim()
-        ? pratica.altreVariazioni.trim()
+        ? `${d} - ${pratica.altreVariazioni.trim()}`
         : d);
   return causali.length ? causali.join(', ') : pratica.causale === 'NC' ? 'accatastamento' : '';
 }

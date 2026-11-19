@@ -26,8 +26,8 @@
   import VaniDaDisegno from './VaniDaDisegno.svelte';
   import { analizzaDisegnoInBackground } from '$lib/core/vani/esegui';
   import { nuovoMod1NParteII } from '$lib/stato/pratica-file';
-  import { lordeAutomatiche } from '$lib/core/superfici';
-  import { poligoniPlanimetria, type Poligono } from '$lib/core/model';
+  import { lordeAutomatiche, riportaSuperficiNel2N, superficiPer2N } from '$lib/core/superfici';
+  import { poligoniNelDocumento, poligoniPlanimetria, type Poligono } from '$lib/core/model';
   import { untrack } from 'svelte';
   import { riquadroDiPartenza } from '$lib/core/raster/riquadro';
   import { dxfPerFile } from '$lib/core/raster/dxf-scrivi';
@@ -242,6 +242,13 @@
   const ordinaria = $derived(/^[ABC]/.test(categoria) && unita.partitaSpeciale !== 'A' && unita.operazione !== 'S');
   const motivoVani = $derived(!conPoligoni ? 'Prima genera i poligoni (passo 2)' : !categoria ? 'Indica prima la categoria nel quadro U' : !ordinaria ? 'Solo per le unità a destinazione ordinaria (categorie A, B, C)' : '');
   let vaniAperti = $state(false);
+  // categorie D, E, F e b.c.n.c.: i poligoni non entrano nel documento, servono solo per le superfici del 2N
+  const soloCalcolo = $derived(!!categoria && !poligoniNelDocumento(unita));
+  const sup2N = $derived(superficiPer2N(poligoniPlanimetria(unita.planimetria)));
+  let riportato = $state('');
+  function riportaNel2N() {
+    riportato = riportaSuperficiNel2N(unita) ? 'Superfici riportate nel 2N.' : 'Il 2N ha già queste superfici.';
+  }
   const autoLorde = $derived(lordeAutomatiche(poligoniPlanimetria(unita.planimetria)));
   function riconosciVaniUnita(): void {
     if (motivoVani) return;
@@ -345,7 +352,7 @@
       <ol class="grid gap-2 sm:grid-cols-3" aria-label="Passi della planimetria">
         {#each [
           { n: 1, titolo: sc.dxf ? 'Sostituisci DXF' : 'Carica DXF', aiuto: 'il disegno della planimetria', fatto: !!sc.dxf, attivo: true, icona: 'importa', azione: caricaDxf, motivo: '' },
-          { n: 2, titolo: 'Genera poligoni DocFa', aiuto: 'per tipologia, dal disegno', fatto: sc.poligoni.length > 0, attivo: !!sc.dxf && !generandoPoligoni, icona: 'poligono', azione: generaPoligoniDocfa, motivo: sc.dxf ? '' : 'Prima carica il DXF (passo 1)' },
+          { n: 2, titolo: soloCalcolo ? 'Genera poligoni (solo calcolo)' : 'Genera poligoni DocFa', aiuto: soloCalcolo ? 'facoltativi: per le superfici del 2N' : 'per tipologia, dal disegno', fatto: sc.poligoni.length > 0, attivo: !!sc.dxf && !generandoPoligoni, icona: 'poligono', azione: generaPoligoniDocfa, motivo: sc.dxf ? '' : 'Prima carica il DXF (passo 1)' },
           { n: 3, titolo: 'Riconosci i vani', aiuto: 'per il 1N parte II, quadro C', fatto: vaniConfermati, attivo: !motivoVani, icona: 'calcolo', azione: riconosciVaniUnita, motivo: motivoVani },
         ] as p (p.n)}
           <li>
@@ -361,6 +368,19 @@
           </li>
         {/each}
       </ol>
+      {#if soloCalcolo}
+        <div class="rounded-md border border-line bg-surface-2 px-3 py-2 text-sm">
+          <p class="font-medium">Categoria {categoria.charAt(0)}: i poligoni non entrano nel documento</p>
+          <p class="mt-0.5 text-xs text-fg-muted">I poligoni delle superfici si presentano solo per le unità a destinazione ordinaria (categorie A, B, C). Qui servono soltanto a calcolare le superfici da scrivere nel modello 2N: nel file da presentare non vengono inseriti.</p>
+          {#if poligoniPlanimetria(unita.planimetria).length}
+            <p class="mt-2">Dai poligoni: coperta <strong>{sup2N.coperta} m²</strong>, scoperta <strong>{sup2N.scoperta} m²</strong>, totale <strong>{sup2N.totale} m²</strong>.</p>
+            <div class="mt-2 flex flex-wrap items-center gap-3">
+              <button type="button" class="btn btn-primario" onclick={riportaNel2N} disabled={!unita.mod2N} title={unita.mod2N ? undefined : 'Prima crea il modello 2N'}>Riporta nel 2N</button>
+              <span class="text-xs text-fg-muted">{riportato || 'Area totale lorda e area coperta (parte I) e, con un solo corpo, superficie sviluppata (parte II). Con più piani correggi a mano l’area coperta.'}</span>
+            </div>
+          {/if}
+        </div>
+      {/if}
       {#if esitoPoligoni}
         <div class="rounded-md border border-line bg-surface-2 px-3 py-2 text-xs">
           <p>{esitoPoligoni.testo}</p>
@@ -391,7 +411,7 @@
           <ul class="list-disc space-y-0.5 pl-6 text-xs">{#each correzioniDxf as c, i (i)}<li>{c}</li>{/each}</ul>
         </div>
       {/if}
-      <Avvisi errori={errore ? [errore] : []} avvisi={sc.dxf && !sc.poligoni.length ? [...avvisiDxf, 'Il disegno non ha poligoni DocFa: generali con il passo 2 (servono per le superfici).'] : avvisiDxf} />
+      <Avvisi errori={errore ? [errore] : []} avvisi={sc.dxf && !sc.poligoni.length && !soloCalcolo ? [...avvisiDxf, 'Il disegno non ha poligoni DocFa: generali con il passo 2 (servono per le superfici).'] : avvisiDxf} />
 
       {#if sc.poligoni.length || poligoniNtf.length}
         <div>

@@ -7,11 +7,11 @@ import type { Pratica } from '../../model';
 const pratica = (p: Partial<Pratica>): Pratica => ({ causale: 'VAR', tipiVariazione: {}, ...p }) as Pratica;
 
 describe('riga «Causali» del D1', () => {
-  it('altre variazioni: stampa la descrizione scritta dal tecnico', () => {
-    expect(testoCausaliD1(pratica({ tipiVariazione: { VAR: true }, altreVariazioni: 'RETTIFICA DOCFA PROT. N. 2554/01' }))).toBe('RETTIFICA DOCFA PROT. N. 2554/01');
+  it('altre variazioni: la dicitura seguita dalla descrizione scritta dal tecnico', () => {
+    expect(testoCausaliD1(pratica({ tipiVariazione: { VAR: true }, altreVariazioni: 'RETTIFICA DOCFA PROT. N. 2554/01' }))).toBe('altre variazioni - RETTIFICA DOCFA PROT. N. 2554/01');
   });
   it('altre variazioni insieme a un’altra causale', () => {
-    expect(testoCausaliD1(pratica({ tipiVariazione: { VSI: true, VAR: true }, altreVariazioni: 'CAMBIO D\'USO' }))).toBe("diversa distribuzione degli spazi interni, CAMBIO D'USO");
+    expect(testoCausaliD1(pratica({ tipiVariazione: { VSI: true, VAR: true }, altreVariazioni: 'CAMBIO D\'USO' }))).toBe("diversa distribuzione degli spazi interni, altre variazioni - CAMBIO D'USO");
   });
   it('senza descrizione resta la dicitura generica', () => {
     expect(testoCausaliD1(pratica({ tipiVariazione: { VAR: true } }))).toBe('altre variazioni');

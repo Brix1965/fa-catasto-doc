@@ -5,6 +5,7 @@
  *   pratica → record (compile) → per ogni planimetria: TIFF dal DXF + NTF dai poligoni → PDF con annotazioni.
  */
 import type { Pratica, Poligono, SchedaGrafica } from './model';
+import { poligoniNelDocumento } from './model';
 import { compilaDocumento, type Compilato } from './compile';
 import { generaNtf } from './ntf';
 import { sincronizzaDaPoligoni } from './superfici';
@@ -81,13 +82,15 @@ export async function esportaPratica(p: Pratica, opzioni: OpzioniDocumento & { d
     const descr = descriviUiu(u.identificativo.foglio, u.identificativo.numero, u.identificativo.subalterno);
     // la scheda 1 è descritta dai campi della planimetria, le successive da altreSchede
     const schede: SchedaGrafica[] = [{ formato: pl.formato, scala: pl.scala, dxf: pl.dxf, tiff: pl.tiff, ntf: pl.ntf, poligoni: pl.poligoni, poligoniLetti: pl.poligoniLetti }, ...(pl.altreSchede ?? [])];
+    // poligoni nel documento solo per le unità ordinarie (A, B, C): per D, E, F restano nella pratica per i calcoli
+    const ammessi = poligoniNelDocumento(u);
     for (let k = 0; k < schede.length; k++) {
       const sc = schede[k];
       const nome = nomeImmagine(pl.progressivo, k + 1);
       const nomeNtf = `N${nome}`;
       if (sc.tiff) {
         // scheda importata da un documento esistente: la riusiamo tale e quale
-        const ntf = sc.ntf?.length ? { dati: sc.ntf, nome: nomeNtf } : sc.poligoni.length ? { dati: generaNtf(pl.progressivo, k + 1, { formato: sc.formato, scala: sc.scala }, sc.poligoni), nome: nomeNtf } : undefined;
+        const ntf = !ammessi ? undefined : sc.ntf?.length ? { dati: sc.ntf, nome: nomeNtf } : sc.poligoni.length ? { dati: generaNtf(pl.progressivo, k + 1, { formato: sc.formato, scala: sc.scala }, sc.poligoni), nome: nomeNtf } : undefined;
         immagini.push(immagineDaTiff(nome, sc.tiff, ntf));
         continue;
       }
@@ -118,8 +121,8 @@ export async function esportaPratica(p: Pratica, opzioni: OpzioniDocumento & { d
       });
       // poligoni già letti (anche se il tecnico li ha eliminati tutti) → si usano quelli; altrimenti quelli del DXF
       const poligoni: Poligono[] = sc.poligoni.length || sc.poligoniLetti ? sc.poligoni : composta.poligoni;
-      if (!poligoni.length && k === 0 && !(pl.altreSchede ?? []).some((x) => x.poligoni.length)) avvisi.push(`Unità ${descr}: nessun poligono sul layer DOCFA_POLIGONI`);
-      const ntf = poligoni.length ? generaNtf(pl.progressivo, k + 1, composta.foglio, poligoni) : undefined;
+      if (ammessi && !poligoni.length && k === 0 && !(pl.altreSchede ?? []).some((x) => x.poligoni.length)) avvisi.push(`Unità ${descr}: nessun poligono sul layer DOCFA_POLIGONI`);
+      const ntf = ammessi && poligoni.length ? generaNtf(pl.progressivo, k + 1, composta.foglio, poligoni) : undefined;
       // aggiorna la pratica con i poligoni letti dal DXF, così i record (ATT) sanno che ci sono
       if (!sc.poligoni.length && poligoni.length) {
         if (k === 0) { pl.poligoni = poligoni; pl.poligoniLetti = true; }

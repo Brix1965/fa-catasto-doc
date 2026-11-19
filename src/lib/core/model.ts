@@ -287,6 +287,16 @@ export function schedePlanimetria(pl: Planimetria): { formato: 'A4' | 'A3'; scal
   return pl.schede ?? [{ formato: pl.formato, scala: pl.scala, poligoni: pl.poligoni.length > 0 || !!pl.ntf }];
 }
 
+/**
+ * I poligoni delle superfici (file NTF) vanno nel documento solo per le unità a destinazione ordinaria (gruppi A, B, C):
+ * la superficie catastale del DPR 138/98 (art. 3) riguarda solo queste, e in Docfa il tasto «Poligoni» «viene attivato
+ * solo se si seleziona una scheda planimetrica relativa ad unità immobiliare ordinaria» (guida, Gestione Elaborati Grafici).
+ * Per le categorie D, E, F e i b.c.n.c. il sistema dell'Agenzia scarta il documento che li contiene (pratica BPM, D/5, 19/11/2026).
+ */
+export function poligoniNelDocumento(u: Pick<UnitaImmobiliare, 'classamento' | 'partitaSpeciale'>): boolean {
+  return /^[ABC]/.test(u.classamento?.categoria ?? '') && u.partitaSpeciale !== 'A';
+}
+
 /** Tutti i poligoni della planimetria, di tutte le schede (per superfici e dati metrici). */
 export function poligoniPlanimetria(pl: Planimetria | undefined): Poligono[] {
   if (!pl) return [];
