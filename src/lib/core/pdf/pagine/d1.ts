@@ -19,6 +19,21 @@ const X1 = 28.346; // bordo sinistro dei riquadri (10 mm)
 const X2 = 566.929; // bordo destro (200 mm)
 const mm = (v: number): number => v * MM;
 
+/**
+ * Riga «Causali» del quadro B come la stampa Docfa (NZST00): le causali barrate, separate da virgola.
+ * Variazione della destinazione: «Variazione della destinazione (da D/6 a BANCA)» (pratica BPM).
+ * Altre variazioni: Docfa non ha una dicitura fissa, stampa la descrizione scritta dal tecnico.
+ */
+export function testoCausaliD1(pratica: Pratica): string {
+  const causali = CAUSALI_STAMPA.filter(([c]) => pratica.tipiVariazione[c as keyof Pratica['tipiVariazione']]).map(([c, d]) =>
+    c === 'VDE' && (pratica.variazioneDa?.trim() || pratica.variazioneA?.trim())
+      ? `Variazione della destinazione (da ${pratica.variazioneDa?.trim() ?? ''} a ${pratica.variazioneA?.trim() ?? ''})`
+      : c === 'VAR' && pratica.altreVariazioni?.trim()
+        ? pratica.altreVariazioni.trim()
+        : d);
+  return causali.length ? causali.join(', ') : pratica.causale === 'NC' ? 'accatastamento' : '';
+}
+
 /** Testo del "numero" dell'unità: indice nel documento, allineato a destra su 3 caratteri. */
 function n3(v: number): string {
   return aDestra(String(v), 3);
@@ -235,12 +250,7 @@ export function pagineD1(pratica: Pratica, compilato: Compilato, cornice: DatiCo
   stampa(544.252, 240, v1('uiu_variate'));
   stampa(396.85, 235, v1('derivate_bcnc'));
   stampa(544.252, 235, v1('uiu_costituite'));
-  // variazione della destinazione: Docfa stampa «Variazione della destinazione (da D/6 a BANCA)» (pratica BPM)
-  const causali = CAUSALI_STAMPA.filter(([c]) => pratica.tipiVariazione[c as keyof Pratica['tipiVariazione']]).map(([c, d]) =>
-    c === 'VDE' && (pratica.variazioneDa?.trim() || pratica.variazioneA?.trim())
-      ? `Variazione della destinazione (da ${pratica.variazioneDa?.trim() ?? ''} a ${pratica.variazioneA?.trim() ?? ''})`
-      : d);
-  const testoCausali = causali.length ? causali.join(', ') : pratica.causale === 'NC' ? 'accatastamento' : '';
+  const testoCausali = testoCausaliD1(pratica);
   const righeCausali = aCapo(testoCausali, 110);
   stampa(85.039, 230, ' ' + (righeCausali[0] ?? ''));
   stampa(85.039, 225, ' ' + (righeCausali[1] ?? ''));
