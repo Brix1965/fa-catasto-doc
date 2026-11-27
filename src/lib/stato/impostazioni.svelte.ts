@@ -428,7 +428,7 @@ class StatoImpostazioni {
     if (!comune) return undefined;
     const t = this.tariffe[comune.provincia];
     if (!t) return undefined;
-    const z = zona.trim().padStart(3, '0');
+    const z = zonaTariffa(zona);
     const c = categoria.trim().toUpperCase().replace('/', '');
     const cl = classe.trim().toUpperCase().padStart(2, '0');
     return t.find((x) => x.codiceAmministrativo === comune.codiceAmministrativo && x.zona === z && x.categoria === c && x.classe === cl);
@@ -441,12 +441,18 @@ class StatoImpostazioni {
       zone: [...new Set(t.map((x) => x.zona))].sort(),
       categorie: [...new Set(t.map((x) => x.categoria))].sort(),
       classi: (zona, categoria) => {
-        const z = zona.trim().padStart(3, '0');
+        const z = zonaTariffa(zona);
         const c = categoria.trim().toUpperCase().replace('/', '');
         return [...new Set(t.filter((x) => x.zona === z && x.categoria === c).map((x) => x.classe))].sort();
       },
     };
   }
+}
+
+/** zona come nelle tariffe: vuota o "U" (zona unica) = tre spazi, altrimenti numero a 3 cifre */
+function zonaTariffa(zona: string): string {
+  const z = zona.trim().toUpperCase();
+  return z === '' || z === 'U' ? '   ' : z.padStart(3, '0');
 }
 
 export const impostazioni = new StatoImpostazioni();
