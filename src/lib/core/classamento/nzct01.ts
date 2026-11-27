@@ -38,7 +38,7 @@ export function righe(data: Uint8Array | undefined | null, lunghezza: number): s
   let s = '';
   for (let i = 0; i < data.length; i++) s += String.fromCharCode(data[i]);
   const d = s.split('\r\n');
-  if (d.length && d[d.length - 1] === '') d.pop();
+  while (d.length && d[d.length - 1].trim() === '') d.pop();
   return d.map((x) => x.slice(0, lunghezza).padEnd(lunghezza, ' '));
 }
 
